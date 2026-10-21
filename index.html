@@ -116,9 +116,8 @@
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- 1. AGUA (Geometría Subdividida para Deformación Z) ---
-    // 36x36 metros con 128 segmentos por lado (16,384 vértices)
-    const waterGeo = new THREE.PlaneGeometry(36, 36, 128, 128);
+    // --- 1. AGUA (Malla subdividida para movimiento Z real) ---
+    const waterGeo = new THREE.PlaneGeometry(36, 36, 64, 64);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
@@ -127,46 +126,28 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uColorDeep: { value: new THREE.Color(0x061b30) },    // Azul marino profundo
-        uColorShallow: { value: new THREE.Color(0x2bb8ff) }, // Azul cian brillante
-        uLightColor: { value: new THREE.Color(0xe0ffff) }    // Reflejo blanco hielo
+        uColorDeep: { value: new THREE.Color(0x041220) },    // Azul casi negro (fondo)
+        uColorShallow: { value: new THREE.Color(0x1fa2c4) }, // Cian profundo (agua)
+        uLightColor: { value: new THREE.Color(0xffffff) }    // Blanco puro (reflejo del sol)
       },
       vertexShader: `
         uniform float uTime;
-        varying vec2 vUv;
         varying vec3 vWorldPos;
         varying float vHeight;
 
-        // Ruido simple para el movimiento orgánico del vértice
-        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float noise(vec2 p) {
-          vec2 i = floor(p); vec2 f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          float a = hash(i); float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0)); float d = hash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }
-
         void main() {
-          vUv = uv;
           vec3 pos = position;
-
-          // DEFORMACIÓN EJE Z (Y en Three.js)
-          // Ondas calmadas y lentas
-          float t = uTime * 0.4;
           
-          // Onda principal (direccional)
-          float wave1 = sin(pos.x * 0.5 + t) * cos(pos.z * 0.3 + t * 1.2) * 0.08;
-          // Onda secundaria (ruido para romper la repetición)
-          float wave2 = noise(vec2(pos.x * 0.3 + t * 0.1, pos.z * 0.3)) * 0.06;
+          // Movimiento lento y calmado (Eje Y/Z)
+          float t = uTime * 0.5;
+          // Dos ondas cruzadas para hacer un oleaje natural
+          float wave = sin(pos.x * 0.4 + t) * 0.1 + cos(pos.z * 0.3 + t * 0.8) * 0.1;
           
-          float displacement = wave1 + wave2;
-          pos.y += displacement; // Mover el vértice físicamente
-          vHeight = displacement;
+          pos.y += wave; 
+          vHeight = wave;
 
           vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
           vWorldPos = worldPosition.xyz;
-
           gl_Position = projectionMatrix * viewMatrix * worldPosition;
         }
       `,
@@ -175,44 +156,46 @@
         uniform vec3 uColorDeep;
         uniform vec3 uColorShallow;
         uniform vec3 uLightColor;
-        varying vec2 vUv;
         varying vec3 vWorldPos;
         varying float vHeight;
 
         void main() {
-          // CÁLCULO DE NORMALES DINÁMICO
-          // Usamos las derivadas de la posición del mundo para calcular la inclinación real
-          vec3 normal = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
-          if (normal.y < 0.0) normal *= -1.0; // Asegurar que apunte hacia arriba
+          // Cálculo matemático de la Normal (más limpio que dFdx para este caso)
+          // Derivamos la función de la ola para saber hacia dónde mira la superficie
+          float t = uTime * 0.5;
+          float dx = cos(vWorldPos.x * 0.4 + t) * 0.4 * 0.1;
+          float dz = -sin(vWorldPos.z * 0.3 + t * 0.8) * 0.3 * 0.1;
+          vec3 normal = normalize(vec3(-dx, 1.0, -dz));
+
+          // Añadimos un pequeño rizo de alta frecuencia para el brillo (textura de agua)
+          float ripple = sin(vWorldPos.x * 4.0 + vWorldPos.z * 3.0 + uTime * 2.0) * 0.02;
+          normal = normalize(normal + vec3(ripple, 0.0, ripple));
 
           vec3 viewDir = normalize(cameraPosition - vWorldPos);
-          vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5)); // Luz cenital
+          vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5)); // Luz desde arriba
 
-          // Reflejo Especular Nítido (Agua)
-          float spec = pow(max(dot(normal, lightDir), 0.0), 64.0); // Exponente alto = brillo concentrado
+          // REFLEJO ESPECULAR (La clave del agua)
+          // Exponente alto (128.0) para que el brillo sea muy nítido (como un espejo)
+          float spec = pow(max(dot(normal, lightDir), 0.0), 128.0);
           
-          // Fresnel: Brillo en los bordes lejanos
-          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
+          // Fresnel (más brillo en los bordes lejanos)
+          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 4.0);
 
-          // Mezcla de color basada en la altura física de la ola
-          // Si vHeight va de -0.14 a 0.14, lo normalizamos a 0-1
-          float heightFactor = smoothstep(-0.1, 0.1, vHeight);
-          vec3 color = mix(uColorDeep, uColorShallow, heightFactor);
-          
-          // Añadir reflejos
-          color += uLightColor * spec * 2.0;
-          color = mix(color, uLightColor, fresnel * 0.4);
+          // MEZCLA DE COLOR
+          // El agua es oscura, pero donde pega la luz (spec) se vuelve blanca/cian brillante
+          vec3 color = mix(uColorDeep, uColorShallow, smoothstep(-0.1, 0.1, vHeight));
+          color += uLightColor * spec * 3.0; // Destello blanco puro
+          color = mix(color, uColorShallow, fresnel * 0.5);
 
-          // OPACIDAD SÓLIDA (Sin huecos)
-          // Base 0.65 (translúcido pero tapa el suelo), llega a 0.9 en crestas
-          float alpha = mix(0.65, 0.9, heightFactor);
-          alpha = max(alpha, fresnel * 0.8);
-          
-          // Desvanecimiento circular en los bordes (para que no se vea el cuadrado del plano)
-          float dist = length(vUv - 0.5) * 2.0;
-          float edgeFade = 1.0 - smoothstep(0.6, 1.0, dist); 
-          
-          alpha = clamp(alpha, 0.0, 0.95) * edgeFade;
+          // OPACIDAD CONTINUA (Sin huecos)
+          float alpha = 0.55; // Base sólida
+          alpha += spec * 0.45; // Donde hay brillo, es totalmente opaco
+          alpha = min(alpha, 1.0);
+
+          // Desvanecimiento en los bordes del plano 36x36
+          float dist = length(vWorldPos.xz);
+          float edgeFade = 1.0 - smoothstep(12.0, 17.0, dist);
+          alpha *= edgeFade;
 
           gl_FragColor = vec4(color, alpha);
           #include <tonemapping_fragment>
@@ -222,7 +205,7 @@
     });
 
     const water = new THREE.Mesh(waterGeo, waterMat);
-    water.position.y = 0.02; // Ligeramente sobre el suelo detectado
+    water.position.y = 0.02; 
     water.frustumCulled = false;
     group.add(water);
 
@@ -233,9 +216,9 @@
 
     for (let i = 0; i < particleCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = Math.sqrt(Math.random()) * 28.0; // Cubre los 36m del agua
+      const radius = Math.sqrt(Math.random()) * 25.0; 
       particlePositions[i * 3]     = Math.cos(angle) * radius;
-      particlePositions[i * 3 + 1] = 0.15 + Math.random() * 2.4;
+      particlePositions[i * 3 + 1] = 0.15 + Math.random() * 2.0;
       particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
       particleSeeds[i] = Math.random() * Math.PI * 2;
     }
@@ -261,13 +244,11 @@
 
         void main() {
           vec3 pos = position;
-          // Movimiento orgánico individual
-          pos.x += sin(uTime * 0.5 + aSeed) * 0.4;
-          pos.y += cos(uTime * 0.4 + aSeed * 2.0) * 0.25;
-          pos.z += sin(uTime * 0.3 + aSeed * 3.0) * 0.4;
+          pos.x += sin(uTime * 0.5 + aSeed) * 0.3;
+          pos.y += cos(uTime * 0.4 + aSeed * 2.0) * 0.2;
+          pos.z += sin(uTime * 0.3 + aSeed * 3.0) * 0.3;
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          
           gl_PointSize = 45.0 * uPixelRatio * (1.0 / -mvPosition.z);
           gl_PointSize = clamp(gl_PointSize, 2.0, 35.0);
 
@@ -384,7 +365,6 @@
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
-    // Actualizar shaders
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
 

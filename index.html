@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Video AR - Tori Mask</title>
+
+    <!-- ===================================================== -->
+    <!-- 1. CONFIGURACIÓN DEL VIDEO AR (EDITAR AQUÍ)           -->
+    <!-- ===================================================== -->
+    <script>
+        window.ficha = {
+            // Ruta del video animado en tu repositorio
+            videoRuta: "./models/animacion_tori.mp4",
+
+            // Ruta del archivo compilado de la imagen a detectar
+            marcadorMind: "./targets/imagen_rastreo.mind",
+
+            // Ajustes visuales del plano de video sobre la imagen
+            anchoPlano: 1.2,           // Ancho del plano 3D en metros
+            altoPlano: 1.2,            // Alto del plano 3D en metros
+            rotacionInicial: "0 0 0",
+
+            // Datos de la Ficha Informativa (UI)
+            categoria: "VIDEO AR OPTIMIZADO",
+            titulo: "TORI MASK (VIDEO)",
+            autor: "Colección Digital",
+            anio: "2026",
+            ubicacion: "Realidad Aumentada por Video",
+            mapa: "",
+            historia: "Demostración técnica de Realidad Aumentada utilizando video optimizado sobre marcador. Esta técnica reduce drásticamente el peso del archivo y permite animaciones complejas sin sobrecargar el procesador del celular."
+        };
+
+        // Forzar cámara trasera al inicio
+        window.modoCamaraActual = "environment";
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            const getUserMediaOriginal = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+            navigator.mediaDevices.getUserMedia = function (constraints) {
+                if (constraints && constraints.video) {
+                    const videoBase = typeof constraints.video === "object" ? constraints.video : {};
+                    constraints = {
+                        ...constraints,
+                        video: {
+                            ...videoBase,
+                            facingMode: { ideal: window.modoCamaraActual },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+                }
+                return getUserMediaOriginal(constraints);
+            };
+        }
+    </script>
+
+    <!-- ===================================================== -->
+    <!-- 2. LIBRERÍAS GRATUITAS: A-FRAME + MINDAR              -->
+    <!-- ===================================================== -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #000000;
+            color: #222222;
+        }
+
+        .top-bar {
+            position: fixed;
+            top: 0; left: 0; width: 100%; z-index: 300;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; pointer-events: none;
+        }
+
+        #estadoCarga {
+            font-size: 11px; color: #ffffff;
+            background: rgba(20, 20, 20, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 7px 14px; border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        #btnAbrirFicha {
+            pointer-events: auto; display: none; width: 40px; height: 40px;
+            border-radius: 50%; background: rgba(255, 255, 255, 0.9);
+            color: #111111; border: none; font-size: 16px; font-weight: 800;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); cursor: pointer;
+            align-items: center; justify-content: center;
+        }
+
+        #ui-escaneo {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 150; pointer-events: none; transition: opacity 0.4s ease;
+        }
+
+        .marco-escaner {
+            width: 64vw; max-width: 240px; height: 64vw; max-height: 240px;
+            border: 2px dashed rgba(255, 255, 255, 0.75); border-radius: 24px;
+            position: relative; box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.35);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .linea-escaner {
+            width: 85%; height: 2px; background: #ffffff;
+            box-shadow: 0 0 12px #ffffff; animation: barrido 2.2s infinite ease-in-out;
+        }
+
+        @keyframes barrido {
+            0%, 100% { transform: translateY(-80px); opacity: 0.3; }
+            50% { transform: translateY(80px); opacity: 1; }
+        }
+
+        .instruccion-ar {
+            margin-top: 22px; background: rgba(20, 20, 20, 0.82);
+            color: #f2f0eb; padding: 10px 18px; border-radius: 30px;
+            font-size: 13px; text-align: center; max-width: 82%;
+            backdrop-filter: blur(6px);
+        }
+
+        .contenedor-controles {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            z-index: 280; display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+
+        .dock-captura {
+            display: flex; align-items: center; gap: 22px;
+            background: rgba(18, 18, 18, 0.72); border: 1px solid rgba(255, 255, 255, 0.16);
+            padding: 12px 22px; border-radius: 50px; backdrop-filter: blur(14px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        .btn-icono {
+            border: none; background: none; padding: 0; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        #btnFoto {
+            width: 56px; height: 56px; border-radius: 50%;
+            border: 3px solid #ffffff; background: rgba(255, 255, 255, 0.15);
+        }
+        .nucleo-foto {
+            width: 44px; height: 44px; border-radius: 50%; background: #ffffff;
+            display: flex; align-items: center; justify-content: center; color: #111;
+        }
+
+        #btnCambiarCamara {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        #panelInferior {
+            position: fixed; bottom: 0; left: 50%; transform: translate(-50%, 110%);
+            width: 100%; max-width: 600px; background-color: #f2f0eb;
+            border-radius: 22px 22px 0 0; padding: 20px 24px 28px 24px; z-index: 400;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 80vh; overflow-y: auto;
+        }
+        #panelInferior.visible { transform: translate(-50%, 0%); }
+
+        .cabecera-ficha { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .badge-categoria { font-size: 10px; font-weight: bold; letter-spacing: 1.5px; color: #fff; background: #202020; padding: 5px 10px; border-radius: 6px; }
+        .titulo-obra { margin: 0; font-size: 22px; font-weight: 700; color: #202020; }
+        .boton-cerrar-ficha { background: #202020; color: #fff; border: none; border-radius: 8px; padding: 9px 14px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .historia-texto { font-size: 14px; line-height: 1.6; color: #444; margin: 8px 0 0 0; }
+    </style>
+
+    <script>
+        // Componente para controlar la reproducción del video al detectar la imagen
+        AFRAME.registerComponent('controlador-video-ar', {
+            init: function () {
+                const videoEl = document.querySelector("#videoAnimado");
+                const objetivoAR = document.getElementById('objetivoAR');
+                const estadoUI = document.getElementById('estadoCarga');
+
+                videoEl.addEventListener('loadeddata', () => {
+                    estadoUI.textContent = "✓ Video listo para escanear";
+                });
+
+                objetivoAR.addEventListener('targetFound', () => {
+                    videoEl.play().catch(e => console.log("Autoplay bloqueado:", e));
+                });
+
+                objetivoAR.addEventListener('targetLost', () => {
+                    videoEl.pause();
+                });
+            }
+        });
+    </script>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <div id="estadoCarga">Cargando video...</div>
+        <button id="btnAbrirFicha">i</button>
+    </div>
+
+    <div id="ui-escaneo">
+        <div class="marco-escaner">
+            <div class="linea-escaner"></div>
+        </div>
+        <div class="instruccion-ar">
+            Apunta la cámara hacia la imagen marcador
+        </div>
+    </div>
+
+    <div class="contenedor-controles">
+        <div class="dock-captura">
+            <button class="btn-icono" id="btnFoto">
+                <div class="nucleo-foto">📷</div>
+            </button>
+            <button class="btn-icono" id="btnCambiarCamara">🔄</button>
+        </div>
+    </div>
+
+    <section id="panelInferior">
+        <div class="cabecera-ficha">
+            <div>
+                <span class="badge-categoria" id="uiCategoria"></span>
+                <h1 class="titulo-obra" id="uiTitulo"></h1>
+            </div>
+            <button class="boton-cerrar-ficha" id="btnCerrarFicha">CERRAR</button>
+        </div>
+        <p class="historia-texto" id="uiHistoria"></p>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- ESCENA AR CON PLANO DE VIDEO                          -->
+    <!-- ===================================================== -->
+    <a-scene
+        mindar-image="imageTargetSrc: ./targets/imagen_rastreo.mind; autoStart: true; uiLoading: no; uiScanning: no;"
+        color-space="sRGB" renderer="colorManagement: true, antialias: true" vr-mode-ui="enabled: false">
+
+        <a-assets>
+            <!-- Archivo de video cargado en memoria -->
+            <video id="videoAnimado" src="./models/animacion_tori.mp4" preload="auto" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0" id="objetivoAR" controlador-video-ar>
+            <!-- Plano 3D que proyecta el video animado -->
+            <a-video 
+                src="#videoAnimado" 
+                width="1.2" 
+                height="1.2" 
+                position="0 0 0.1" 
+                rotation="0 0 0">
+            </a-video>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("uiCategoria").textContent = window.ficha.categoria;
+            document.getElementById("uiTitulo").textContent = window.ficha.titulo;
+            document.getElementById("uiHistoria").textContent = window.ficha.historia;
+
+            document.getElementById("btnAbrirFicha").addEventListener("click", () => document.getElementById("panelInferior").classList.add("visible"));
+            document.getElementById("btnCerrarFicha").addEventListener("click", () => document.getElementById("panelInferior").classList.remove("visible"));
+
+            const objetivoAR = document.getElementById("objetivoAR");
+            const uiEscaneo = document.getElementById("ui-escaneo");
+
+            objetivoAR.addEventListener("targetFound", () => {
+                uiEscaneo.style.opacity = "0";
+                document.getElementById("btnAbrirFicha").style.display = "flex";
+            });
+            objetivoAR.addEventListener("targetLost", () => {
+                uiEscaneo.style.opacity = "1";
+                document.getElementById("panelInferior").classList.remove("visible");
+            });
+
+            // Cambio de cámara
+            document.getElementById("btnCambiarCamara").addEventListener("click", () => {
+                window.modoCamaraActual = (window.modoCamaraActual === "environment") ? "user" : "environment";
+                const sys = document.querySelector("a-scene").systems["mindar-image-system"];
+                if (sys && typeof sys.switchCamera === "function") sys.switchCamera();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -26,7 +26,7 @@
       font-weight:750; font-size:13px; cursor:pointer; }
     #start { color:#06201e; background:var(--mint); flex:1; }
     #reset { color:#e9f6f3; background:#ffffff17; border:1px solid #ffffff25; }
-    #close { color:#ffdede; background:#ff4d4d22; border:1px solid #ff4d4d55; }
+    #close { color:#ffdede; background:#ff4d4d22; border:1px solid #ff4d4d55; display:none; }
     #close:hover { background:#ff4d4d33; }
     #fallback { position:absolute; z-index:4; inset:0; display:none; align-items:center; justify-content:center;
       padding:24px; background:linear-gradient(160deg,#0b282d,#07191d); }
@@ -58,7 +58,7 @@
       <div class="actions">
         <button id="start">Iniciar realidad aumentada</button>
         <button id="reset" type="button">Reiniciar</button>
-        <button id="close" type="button" style="display:none;">Cerrar AR</button>
+        <button id="close" type="button">Cerrar AR</button>
       </div>
     </div>
   </div>
@@ -82,9 +82,7 @@
   const fallbackText = document.querySelector('#fallbackText');
 
   /* ---------------- Renderer / escena ---------------- */
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true, alpha: true, powerPreference: 'high-performance'
-  });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -97,42 +95,30 @@
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 30);
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.6));
 
-  /* ---------------- Textura de partícula (gradiente circular) ---------------- */
+  /* ---------------- Textura de partícula ---------------- */
   function makeParticleTexture() {
-    const size = 128;
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    const ctx = c.getContext('2d');
+    const size = 128; const c = document.createElement('canvas');
+    c.width = c.height = size; const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
     g.addColorStop(0.0, 'rgba(255,255,255,1)');
     g.addColorStop(0.25, 'rgba(230,255,255,0.85)');
     g.addColorStop(0.55, 'rgba(160,235,240,0.35)');
     g.addColorStop(1.0, 'rgba(100,200,220,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
+    ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; return tex;
   }
   const particleTexture = makeParticleTexture();
 
   /* ---------------- Reticle ---------------- */
-  const reticleGeo = new THREE.RingGeometry(0.12, 0.17, 48);
-  reticleGeo.rotateX(-Math.PI / 2);
-  const reticle = new THREE.Mesh(
-    reticleGeo,
-    new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
-  );
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
+  const reticleGeo = new THREE.RingGeometry(0.12, 0.17, 48); reticleGeo.rotateX(-Math.PI / 2);
+  const reticle = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }));
+  reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
 
   /* ---------------- Efecto agua + neblina + brillos ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- AGUA: shader basado en la v1 (que SÍ se veía) -----------------
-    // Extensión ×3 respecto al original (4.8 → 14.4 m).
+    // --- AGUA: Shader con FBM y Fresnel para ondas orgánicas ---
     const waterGeo = new THREE.PlaneGeometry(14.4, 14.4, 1, 1);
     waterGeo.rotateX(-Math.PI / 2);
 
@@ -142,40 +128,99 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uTint: { value: new THREE.Color(0x43c9c0) }   // ← color base del agua
+        uColorDeep: { value: new THREE.Color(0x0a3d4a) },  // Azul profundo
+        uColorShallow: { value: new THREE.Color(0x43c9c0) }, // Turquesa
+        uFresnelPower: { value: 4.0 }
       },
       vertexShader: `
         varying vec2 vUv;
+        varying vec3 vWorldPos;
         void main() {
           vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPos = worldPosition.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPosition;
         }
       `,
       fragmentShader: `
         uniform float uTime;
-        uniform vec3 uTint;
+        uniform vec3 uColorDeep;
+        uniform vec3 uColorShallow;
+        uniform float uFresnelPower;
         varying vec2 vUv;
+        varying vec3 vWorldPos;
 
-        float ringWave(vec2 p, float t) {
-          float d = length(p);
-          return sin(d * 14.0 - t * 1.4 + sin(p.x * 3.0 + t * 0.6) * 0.5);
+        // Ruido pseudoaleatorio para FBM
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        // Ruido de valor con suavizado
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // Movimiento Browniano Fractal (FBM) - 3 octavas para eficiencia
+        float fbm(vec2 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          float frequency = 1.0;
+          for (int i = 0; i < 3; i++) {
+            value += amplitude * noise(p * frequency);
+            frequency *= 2.0;
+            amplitude *= 0.5;
+          }
+          return value;
         }
 
         void main() {
+          // Coordenadas UV centradas
           vec2 p = (vUv - 0.5) * 2.0;
-          float r1 = ringWave(p, uTime);
-          float r2 = ringWave(p * 1.47 + vec2(0.16, -0.12), -uTime * 0.72);
-          float wave = smoothstep(0.10, 0.90, (r1 * 0.55 + r2 * 0.45) * 0.5 + 0.5);
-          float edge = 1.0 - smoothstep(0.75, 1.0, length(p));
-          float shimmer = pow(max(0.0, sin((p.x + p.y) * 15.0 + uTime * 1.2)), 9.0);
+          float dist = length(p);
 
-          vec3 deep  = uTint * 0.45;
-          vec3 crest = vec3(0.70, 1.0, 0.94);
-          vec3 color = mix(deep, crest, wave * 0.60 + shimmer * 0.25);
+          // Distorsión de las coordenadas para que las ondas no sean radiales
+          vec2 distortedUv = p;
+          distortedUv.x += sin(p.y * 3.0 + uTime * 0.5) * 0.1;
+          distortedUv.y += cos(p.x * 3.0 + uTime * 0.4) * 0.1;
 
-          // ALFA: base 0.12 + onda + destello. Bajado respecto a v1 (0.17),
-          // pero con color brillante gracias a <colorspace_fragment>.
-          float alpha = (0.12 + wave * 0.20 + shimmer * 0.12) * edge;
+          // Ondas orgánicas con FBM
+          float n1 = fbm(distortedUv * 3.0 + vec2(uTime * 0.1, uTime * 0.05));
+          float n2 = fbm(distortedUv * 6.0 - vec2(uTime * 0.08, uTime * 0.12));
+          
+          // Altura de la ola (combinación de escalas)
+          float waveHeight = n1 * 0.6 + n2 * 0.4;
+
+          // Color basado en la altura de la ola (profundidad vs cresta)
+          vec3 color = mix(uColorDeep, uColorShallow, waveHeight * 1.5);
+
+          // Reflejo especular tipo Fresnel (da el brillo realista)
+          // Simulamos una luz cenital fija
+          vec3 normal = normalize(vec3(
+            (n1 - fbm(distortedUv * 3.0 + vec2(0.01, 0.0))) * 2.0,
+            1.0,
+            (n1 - fbm(distortedUv * 3.0 + vec2(0.0, 0.01))) * 2.0
+          ));
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), uFresnelPower);
+          
+          // Añadir brillo Fresnel al color
+          color += vec3(0.6, 0.9, 0.9) * fresnel * 0.8;
+
+          // Destellos finos (espuma)
+          float sparkle = smoothstep(0.7, 0.9, n2) * 0.4;
+
+          // Desvanecimiento radial en el borde
+          float edge = 1.0 - smoothstep(0.6, 1.0, dist);
+
+          // Alfa final: base + Fresnel + destellos
+          float alpha = (0.25 + fresnel * 0.4 + sparkle) * edge;
 
           gl_FragColor = vec4(color, alpha);
 
@@ -189,12 +234,12 @@
     water.frustumCulled = false;
     group.add(water);
 
-    // --- NEBLINA sobre el agua: partículas suaves y grandes ---
+    // --- NEBLINA ---
     const mistCount = 1200;
     const mistPositions = new Float32Array(mistCount * 3);
     for (let i = 0; i < mistCount; i++) {
-      const angle  = Math.random() * Math.PI * 2;
-      const radius = Math.sqrt(Math.random()) * 12.3;   // triple del original
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.sqrt(Math.random()) * 12.3;
       mistPositions[i * 3]     = Math.cos(angle) * radius;
       mistPositions[i * 3 + 1] = 0.15 + Math.random() * 2.4;
       mistPositions[i * 3 + 2] = Math.sin(angle) * radius;
@@ -202,24 +247,18 @@
     const mistGeo = new THREE.BufferGeometry();
     mistGeo.setAttribute('position', new THREE.BufferAttribute(mistPositions, 3));
     const mistMat = new THREE.PointsMaterial({
-      size: 0.55,
-      map: particleTexture,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      color: 0xb5eef5,
-      opacity: 0.32,
-      sizeAttenuation: true
+      size: 0.55, map: particleTexture, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, color: 0xb5eef5, opacity: 0.32, sizeAttenuation: true
     });
     const mist = new THREE.Points(mistGeo, mistMat);
     mist.frustumCulled = false;
     group.add(mist);
 
-    // --- PARTÍCULAS DE BRILLO: grandes y nítidas ---
+    // --- PARTÍCULAS DE BRILLO ---
     const sparkCount = 400;
     const sparkPositions = new Float32Array(sparkCount * 3);
     for (let i = 0; i < sparkCount; i++) {
-      const angle  = Math.random() * Math.PI * 2;
+      const angle = Math.random() * Math.PI * 2;
       const radius = Math.sqrt(Math.random()) * 12.3;
       sparkPositions[i * 3]     = Math.cos(angle) * radius;
       sparkPositions[i * 3 + 1] = 0.20 + Math.random() * 3.2;
@@ -228,24 +267,18 @@
     const sparkGeo = new THREE.BufferGeometry();
     sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMat = new THREE.PointsMaterial({
-      size: 0.45,                    // ← más grandes que antes (0.28)
-      map: particleTexture,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      color: 0xffffff,
-      opacity: 0.95,
-      sizeAttenuation: true
+      size: 0.45, map: particleTexture, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, color: 0xffffff, opacity: 0.95, sizeAttenuation: true
     });
     const sparks = new THREE.Points(sparkGeo, sparkMat);
     sparks.frustumCulled = false;
     group.add(sparks);
 
     group.userData.waterMaterial = waterMat;
-    group.userData.mistMaterial  = mistMat;
+    group.userData.mistMaterial = mistMat;
     group.userData.sparkMaterial = sparkMat;
-    group.userData.mist          = mist;
-    group.userData.sparks        = sparks;
+    group.userData.mist = mist;
+    group.userData.sparks = sparks;
     group.visible = false;
     scene.add(group);
     return group;
@@ -254,11 +287,11 @@
   const placedEffect = createAtmosphere();
 
   /* ---------------- Estado ---------------- */
-  let hitTestSource     = null;
-  let activeSession     = null;
-  let elapsed           = 0;
+  let hitTestSource = null;
+  let activeSession = null;
+  let elapsed = 0;
   let xrSessionStarting = false;
-  let arSupported       = null;
+  let arSupported = null;
 
   /* ---------------- Acciones ---------------- */
   function showFallback(text) {
@@ -298,10 +331,8 @@
     activeSession = renderer.xr.getSession();
     fallback.style.display = 'none';
 
-    // UI: ocultar "Iniciar", mostrar "Cerrar AR".
     startButton.style.display = 'none';
-    closeButton.style.display = '';
-
+    closeButton.style.display = ''; // Mostrar botón de cerrar
     statusEl.textContent = 'AR activa. Apunta al suelo para detectar una superficie.';
 
     const session = activeSession;
@@ -328,13 +359,13 @@
   });
 
   renderer.xr.addEventListener('sessionend', () => {
-    hitTestSource     = null;
-    activeSession     = null;
+    hitTestSource = null;
+    activeSession = null;
     xrSessionStarting = false;
     startButton.disabled = false;
     startButton.style.display = '';
     startButton.textContent = 'Iniciar realidad aumentada';
-    closeButton.style.display = 'none';
+    closeButton.style.display = 'none'; // Ocultar botón de cerrar
   });
 
   /* ---------------- Bucle de render ---------------- */
@@ -343,13 +374,11 @@
 
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
 
-    placedEffect.userData.mist.rotation.y   = elapsed * 0.05;
+    placedEffect.userData.mist.rotation.y = elapsed * 0.05;
     placedEffect.userData.sparks.rotation.y = -elapsed * 0.08;
 
-    placedEffect.userData.mistMaterial.opacity =
-      0.26 + 0.10 * Math.sin(elapsed * 0.6);
-    placedEffect.userData.sparkMaterial.opacity =
-      0.75 + 0.20 * Math.sin(elapsed * 1.6);
+    placedEffect.userData.mistMaterial.opacity = 0.26 + 0.10 * Math.sin(elapsed * 0.6);
+    placedEffect.userData.sparkMaterial.opacity = 0.75 + 0.20 * Math.sin(elapsed * 1.6);
 
     if (frame) {
       const refSpace = renderer.xr.getReferenceSpace();
@@ -361,15 +390,10 @@
             reticle.visible = true;
             reticle.matrix.fromArray(pose.transform.matrix);
             reticle.matrixWorldNeedsUpdate = true;
-          } else {
-            reticle.visible = false;
-          }
-        } else {
-          reticle.visible = false;
-        }
+          } else { reticle.visible = false; }
+        } else { reticle.visible = false; }
       }
     }
-
     renderer.render(scene, camera);
   });
 
@@ -406,12 +430,9 @@
         try { await session.end(); } catch (_) {}
       }
       const message = err?.message || String(err);
-      showFallback(
-        message.includes('already an active')
-          ? 'Ya hay una sesión AR activa. Recarga la página y pulsa Iniciar una sola vez.'
-          : 'No se pudo iniciar la sesión AR: ' + message +
-            '. Comprueba HTTPS y compatibilidad del dispositivo.'
-      );
+      showFallback(message.includes('already an active')
+        ? 'Ya hay una sesión AR activa. Recarga la página y pulsa Iniciar una sola vez.'
+        : 'No se pudo iniciar la sesión AR: ' + message + '. Comprueba HTTPS y compatibilidad del dispositivo.');
       statusEl.textContent = 'No se pudo iniciar AR.';
       startButton.disabled = false;
       startButton.textContent = 'Intentar de nuevo';
@@ -444,9 +465,7 @@
   if (navigator.xr) {
     navigator.xr.isSessionSupported('immersive-ar').then((ok) => {
       arSupported = ok;
-      statusEl.textContent = ok
-        ? 'Listo. Pulsa “Iniciar realidad aumentada”.'
-        : 'Este dispositivo no admite WebXR immersive-ar.';
+      statusEl.textContent = ok ? 'Listo. Pulsa “Iniciar realidad aumentada”.' : 'Este dispositivo no admite WebXR immersive-ar.';
       if (!ok) startButton.textContent = 'Ver compatibilidad';
     }).catch(() => {
       statusEl.textContent = 'No se pudo comprobar la compatibilidad. Pulsa “Iniciar”.';

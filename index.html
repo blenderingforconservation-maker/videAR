@@ -4,32 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video AR - Tori Mask</title>
+    <title>Entorno Inmersivo AR - Tori Mask</title>
 
     <!-- ===================================================== -->
-    <!-- 1. CONFIGURACIÓN DEL VIDEO AR (EDITAR AQUÍ)           -->
+    <!-- 1. CONFIGURACIÓN DEL ENTORNO AR (EDITAR AQUÍ)         -->
     <!-- ===================================================== -->
     <script>
         window.ficha = {
-            // Ruta del video animado en tu repositorio
-            videoRuta: "./models/animacion_tori.mp4",
+            // Ruta del video ambiental/animación en tu repositorio
+            videoAmbiente: "./models/animacion_tori.mp4",
 
-            // Ruta del archivo compilado de la imagen a detectar
+            // Ruta del archivo compilado de la imagen/escultura a detectar
             marcadorMind: "./targets/imagen_rastreo.mind",
 
-            // Ajustes visuales del plano de video sobre la imagen
-            anchoPlano: 1.2,           // Ancho del plano 3D en metros
-            altoPlano: 1.2,            // Alto del plano 3D en metros
+            // Ajustes espaciales del entorno inmersivo
+            escalaEntorno: 2.5,        // Escala para expandir el entorno alrededor de la escultura
             rotacionInicial: "0 0 0",
 
             // Datos de la Ficha Informativa (UI)
-            categoria: "VIDEO AR OPTIMIZADO",
-            titulo: "TORI MASK (VIDEO)",
+            categoria: "ENTORNO AR INMERSIVO",
+            titulo: "TORI MASK - MUNDO VIRTUAL",
             autor: "Colección Digital",
             anio: "2026",
-            ubicacion: "Realidad Aumentada por Video",
+            ubicacion: "Exhibición Interactiva",
             mapa: "",
-            historia: "Demostración técnica de Realidad Aumentada utilizando video optimizado sobre marcador. Esta técnica reduce drásticamente el peso del archivo y permite animaciones complejas sin sobrecargar el procesador del celular."
+            historia: "Al reconocer la escultura física, el sistema despliega un entorno ambiental animado en realidad aumentada que transforma el espacio circundante mediante efectos visuales inmersivos."
         };
 
         // Forzar cámara trasera al inicio
@@ -146,15 +145,6 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        #btnFoto {
-            width: 56px; height: 56px; border-radius: 50%;
-            border: 3px solid #ffffff; background: rgba(255, 255, 255, 0.15);
-        }
-        .nucleo-foto {
-            width: 44px; height: 44px; border-radius: 50%; background: #ffffff;
-            display: flex; align-items: center; justify-content: center; color: #111;
-        }
-
         #btnCambiarCamara {
             width: 46px; height: 46px; border-radius: 50%;
             background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.25);
@@ -179,15 +169,15 @@
     </style>
 
     <script>
-        // Componente para controlar la reproducción del video al detectar la imagen
-        AFRAME.registerComponent('controlador-video-ar', {
+        // Componente para activar el entorno inmersivo al reconocer la escultura
+        AFRAME.registerComponent('controlador-entorno-ar', {
             init: function () {
-                const videoEl = document.querySelector("#videoAnimado");
+                const videoEl = document.querySelector("#videoEntorno");
                 const objetivoAR = document.getElementById('objetivoAR');
                 const estadoUI = document.getElementById('estadoCarga');
 
                 videoEl.addEventListener('loadeddata', () => {
-                    estadoUI.textContent = "✓ Video listo para escanear";
+                    estadoUI.textContent = "✓ Escultura lista para escanear";
                 });
 
                 objetivoAR.addEventListener('targetFound', () => {
@@ -205,7 +195,7 @@
 <body>
 
     <div class="top-bar">
-        <div id="estadoCarga">Cargando video...</div>
+        <div id="estadoCarga">Cargando entorno AR...</div>
         <button id="btnAbrirFicha">i</button>
     </div>
 
@@ -214,16 +204,13 @@
             <div class="linea-escaner"></div>
         </div>
         <div class="instruccion-ar">
-            Apunta la cámara hacia la imagen marcador
+            Apunta la cámara hacia la escultura o imagen marcador
         </div>
     </div>
 
     <div class="contenedor-controles">
         <div class="dock-captura">
-            <button class="btn-icono" id="btnFoto">
-                <div class="nucleo-foto">📷</div>
-            </button>
-            <button class="btn-icono" id="btnCambiarCamara">🔄</button>
+            <button class="btn-icono" id="btnCambiarCamara" aria-label="Cambiar cámara">🔄</button>
         </div>
     </div>
 
@@ -239,28 +226,31 @@
     </section>
 
     <!-- ===================================================== -->
-    <!-- ESCENA AR CON PLANO DE VIDEO                          -->
+    <!-- ESCENA AR: ESCULTURA + ENTORNO INMERSIVO              -->
     <!-- ===================================================== -->
     <a-scene
         mindar-image="imageTargetSrc: ./targets/imagen_rastreo.mind; autoStart: true; uiLoading: no; uiScanning: no;"
         color-space="sRGB" renderer="colorManagement: true, antialias: true" vr-mode-ui="enabled: false">
 
         <a-assets>
-            <!-- Archivo de video cargado en memoria -->
-            <video id="videoAnimado" src="./models/animacion_tori.mp4" preload="auto" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
+            <!-- Video ambiental que llenará el entorno -->
+            <video id="videoEntorno" src="./models/animacion_tori.mp4" preload="auto" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="objetivoAR" controlador-video-ar>
-            <!-- Plano 3D que proyecta el video animado -->
+        <!-- Anclado a la escultura / imagen -->
+        <a-entity mindar-image-target="targetIndex: 0" id="objetivoAR" controlador-entorno-ar>
+            
+            <!-- Elemento ambiental envolvente (un domo o esfera invertida / plano expandido que envuelve la escena) -->
             <a-video 
-                src="#videoAnimado" 
-                width="1.2" 
-                height="1.2" 
-                position="0 0 0.1" 
+                src="#videoEntorno" 
+                width="2.5" 
+                height="2.5" 
+                position="0 0 0.2" 
                 rotation="0 0 0">
             </a-video>
+
         </a-entity>
 
     </a-scene>

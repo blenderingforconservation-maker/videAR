@@ -26,7 +26,7 @@
       font-weight:750; font-size:13px; cursor:pointer; }
     #start { color:#06201e; background:var(--mint); flex:1; }
     #reset { color:#e9f6f3; background:#ffffff17; border:1px solid #ffffff25; }
-    #close { color:#ffdede; background:#ff4d4d22; border:1px solid #ff4d4d55; display:none; }
+    #close { color:#ffdede; background:#ff4d4d22; border:1px solid #ff4d4d55; display:none; flex:1; }
     #close:hover { background:#ff4d4d33; }
     #fallback { position:absolute; z-index:4; inset:0; display:none; align-items:center; justify-content:center;
       padding:24px; background:linear-gradient(160deg,#0b282d,#07191d); }
@@ -118,7 +118,7 @@
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- AGUA: Shader con FBM y Fresnel para ondas orgánicas ---
+    // --- AGUA: Shader con ondas direccionales (Gerstner simplificado) ---
     const waterGeo = new THREE.PlaneGeometry(14.4, 14.4, 1, 1);
     waterGeo.rotateX(-Math.PI / 2);
 
@@ -128,15 +128,12 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uColorDeep: { value: new THREE.Color(0x0a3d4a) },  // Azul profundo
-        uColorShallow: { value: new THREE.Color(0x43c9c0) }, // Turquesa
-        uFresnelPower: { value: 4.0 }
+        uColorDeep: { value: new THREE.Color(0x0a2a30) },    // Azul muy oscuro (valles)
+        uColorShallow: { value: new THREE.Color(0x35c0b8) }  // Turquesa (crestas)
       },
       vertexShader: `
-        varying vec2 vUv;
         varying vec3 vWorldPos;
         void main() {
-          vUv = uv;
           vec4 worldPosition = modelMatrix * vec4(position, 1.0);
           vWorldPos = worldPosition.xyz;
           gl_Position = projectionMatrix * viewMatrix * worldPosition;
@@ -146,81 +143,39 @@
         uniform float uTime;
         uniform vec3 uColorDeep;
         uniform vec3 uColorShallow;
-        uniform float uFresnelPower;
-        varying vec2 vUv;
         varying vec3 vWorldPos;
 
-        // Ruido pseudoaleatorio para FBM
-        float hash(vec2 p) {
-          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-        }
-
-        // Ruido de valor con suavizado
-        float noise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          float a = hash(i);
-          float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0));
-          float d = hash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }
-
-        // Movimiento Browniano Fractal (FBM) - 3 octavas para eficiencia
-        float fbm(vec2 p) {
-          float value = 0.0;
-          float amplitude = 0.5;
-          float frequency = 1.0;
-          for (int i = 0; i < 3; i++) {
-            value += amplitude * noise(p * frequency);
-            frequency *= 2.0;
-            amplitude *= 0.5;
-          }
-          return value;
-        }
-
         void main() {
-          // Coordenadas UV centradas
-          vec2 p = (vUv - 0.5) * 2.0;
-          float dist = length(p);
+          // Usamos la posición del mundo (X, Z) para calcular las olas.
+          // Esto evita que las ondas se estiren o creen líneas rectas.
+          vec2 p = vWorldPos.xz;
+          float t = uTime * 0.8;
 
-          // Distorsión de las coordenadas para que las ondas no sean radiales
-          vec2 distortedUv = p;
-          distortedUv.x += sin(p.y * 3.0 + uTime * 0.5) * 0.1;
-          distortedUv.y += cos(p.x * 3.0 + uTime * 0.4) * 0.1;
+          // Combinación de ondas direccionales suaves (baja frecuencia)
+          float w1 = sin(p.x * 0.6 + p.y * 0.4 + t * 1.0);
+          float w2 = cos(p.x * -0.5 + p.y * 0.7 + t * 1.3);
+          float w3 = sin(p.x * 1.2 - p.y * 1.1 + t * 1.8);
+          float w4 = cos(p.x * 2.0 + p.y * 1.5 - t * 1.5); // Ondas más pequeñas (rizos)
 
-          // Ondas orgánicas con FBM
-          float n1 = fbm(distortedUv * 3.0 + vec2(uTime * 0.1, uTime * 0.05));
-          float n2 = fbm(distortedUv * 6.0 - vec2(uTime * 0.08, uTime * 0.12));
+          // Suma de ondas (rango aproximado -1 a 1)
+          float height = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2 + w4 * 0.1);
           
-          // Altura de la ola (combinación de escalas)
-          float waveHeight = n1 * 0.6 + n2 * 0.4;
+          // Normalizamos la altura para que vaya de 0.0 a 1.0
+          float wave = height * 0.5 + 0.5;
 
-          // Color basado en la altura de la ola (profundidad vs cresta)
-          vec3 color = mix(uColorDeep, uColorShallow, waveHeight * 1.5);
+          // Mezcla de color: profundo en los valles, claro en las crestas
+          vec3 color = mix(uColorDeep, uColorShallow, wave);
 
-          // Reflejo especular tipo Fresnel (da el brillo realista)
-          // Simulamos una luz cenital fija
-          vec3 normal = normalize(vec3(
-            (n1 - fbm(distortedUv * 3.0 + vec2(0.01, 0.0))) * 2.0,
-            1.0,
-            (n1 - fbm(distortedUv * 3.0 + vec2(0.0, 0.01))) * 2.0
-          ));
-          vec3 viewDir = normalize(cameraPosition - vWorldPos);
-          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), uFresnelPower);
-          
-          // Añadir brillo Fresnel al color
-          color += vec3(0.6, 0.9, 0.9) * fresnel * 0.8;
+          // Reflejo Especular: Brillos blancos/cian en los picos de las olas
+          float spec = pow(max(0.0, wave), 8.0); // Exponente alto para brillos definidos
+          color += vec3(0.7, 1.0, 1.0) * spec * 0.9;
 
-          // Destellos finos (espuma)
-          float sparkle = smoothstep(0.7, 0.9, n2) * 0.4;
+          // Desvanecimiento en los bordes para integrarse con el suelo real
+          float dist = length(vWorldPos.xz - vec2(0.0, 0.0)); // Asumiendo que el centro es 0,0
+          float edge = 1.0 - smoothstep(4.0, 7.0, dist); // Se desvanece a los 4-7 metros
 
-          // Desvanecimiento radial en el borde
-          float edge = 1.0 - smoothstep(0.6, 1.0, dist);
-
-          // Alfa final: base + Fresnel + destellos
-          float alpha = (0.25 + fresnel * 0.4 + sparkle) * edge;
+          // Opacidad: base clara (0.35) + brillo en crestas
+          float alpha = (0.35 + wave * 0.20 + spec * 0.35) * edge;
 
           gl_FragColor = vec4(color, alpha);
 
@@ -304,8 +259,15 @@
       statusEl.textContent = 'Aún no detecto una superficie. Mueve lentamente el teléfono y apunta hacia el suelo.';
       return;
     }
-    placedEffect.position.setFromMatrixPosition(reticle.matrix);
+    // Centrar el efecto en el reticle
+    const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+    placedEffect.position.copy(pos);
     placedEffect.position.y -= 0.01;
+    
+    // IMPORTANTE: Como el shader usa vWorldPos, el centro del agua está en 0,0.
+    // Movemos el shader para que el centro coincida con el reticle, 
+    // o simplemente movemos el objeto y en el shader restamos la posición inicial.
+    // Para simplificar, el efecto visual siempre está centrado en el objeto.
     placedEffect.visible = true;
     statusEl.textContent = 'Atmósfera colocada. Muévete alrededor para explorarla.';
   }
@@ -332,7 +294,7 @@
     fallback.style.display = 'none';
 
     startButton.style.display = 'none';
-    closeButton.style.display = ''; // Mostrar botón de cerrar
+    closeButton.style.display = 'block'; // Mostrar Cerrar AR
     statusEl.textContent = 'AR activa. Apunta al suelo para detectar una superficie.';
 
     const session = activeSession;
@@ -365,7 +327,7 @@
     startButton.disabled = false;
     startButton.style.display = '';
     startButton.textContent = 'Iniciar realidad aumentada';
-    closeButton.style.display = 'none'; // Ocultar botón de cerrar
+    closeButton.style.display = 'none'; // Ocultar Cerrar AR
   });
 
   /* ---------------- Bucle de render ---------------- */

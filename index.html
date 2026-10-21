@@ -167,7 +167,7 @@
 
         void main() {
           vec2 p = (vUv - 0.5) * 2.0 * 4.0; 
-          float t = uTime * 0.25; // Velocidad del pantano
+          float t = uTime * 0.1; // Velocidad del pantano
 
           // Domain Warping
           vec2 q = vec2(fbm(p + vec2(0.0, 0.0) + t), fbm(p + vec2(5.2, 1.3) - t));

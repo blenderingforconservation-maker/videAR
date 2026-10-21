@@ -117,7 +117,7 @@
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- AGUA: Vuelta al shader original (ondas concéntricas) escalado x3 ---
+    // --- AGUA: Shader con Domain Warping (movimiento de pantano) ---
     const waterGeo = new THREE.PlaneGeometry(14.4, 14.4, 1, 1);
     waterGeo.rotateX(-Math.PI / 2);
 
@@ -127,7 +127,8 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uTint: { value: new THREE.Color(0x35c0b8) }
+        uColorDeep: { value: new THREE.Color(0x0a2a30) },    // Fondo oscuro del pantano
+        uColorShallow: { value: new THREE.Color(0x2bb8a8) }  // Reflejo turquesa
       },
       vertexShader: `
         varying vec2 vUv;
@@ -138,35 +139,43 @@
       `,
       fragmentShader: `
         uniform float uTime;
-        uniform vec3 uTint;
+        uniform vec3 uColorDeep;
+        uniform vec3 uColorShallow;
         varying vec2 vUv;
 
-        // Función de onda original
-        float ring(vec2 p, float t) {
-          float d = length(p);
-          return sin(d * 21.0 - t * 1.7 + sin(p.x * 4.0 + t) * 0.7);
-        }
-
         void main() {
-          // Multiplicamos por 3.0 para que las ondas cubran los 14.4 metros
-          // sin perder la densidad original.
-          vec2 p = (vUv - 0.5) * 2.0 * 3.0;
+          // Coordenadas centradas
+          vec2 p = (vUv - 0.5) * 2.0;
+          float t = uTime * 0.3; // Velocidad muy lenta (pantano)
 
-          float r1 = ring(p, uTime);
-          float r2 = ring(p * 1.47 + vec2(0.16, -0.12), -uTime * 0.72);
-          
-          float wave = smoothstep(0.25, 1.0, (r1 * 0.55 + r2 * 0.45) * 0.5 + 0.5);
-          
-          // Desvanecimiento en el borde
-          float edge = 1.0 - smoothstep(0.7, 1.0, length(vUv - 0.5) * 2.0);
-          
-          float shimmer = pow(max(0.0, sin((p.x + p.y) * 15.0 + uTime * 1.2)), 9.0);
-          
-          // Color original
-          vec3 color = mix(uTint * 0.42, vec3(0.70, 1.0, 0.94), wave * 0.55 + shimmer * 0.22);
-          
-          // ALFA AUMENTADO: Base 0.35 (antes era 0.17) para que sea visible
-          float alpha = (0.35 + wave * 0.25 + shimmer * 0.15) * edge;
+          // DOMAIN WARPING: Distorsionamos las coordenadas con ondas lentas
+          // Esto crea formas irregulares y orgánicas, sin círculos.
+          vec2 warp = vec2(
+            sin(p.y * 2.5 + t) * 0.15 + cos(p.x * 1.5 - t) * 0.1,
+            cos(p.x * 2.5 + t) * 0.15 + sin(p.y * 1.5 - t) * 0.1
+          );
+          vec2 p2 = p + warp;
+
+          // Ondas direccionales sobre las coordenadas distorsionadas
+          float w1 = sin(p2.x * 4.0 + p2.y * 2.0 + t * 1.2);
+          float w2 = cos(p2.x * -2.0 + p2.y * 5.0 + t * 1.5);
+          float w3 = sin(p2.x * 7.0 - p2.y * 3.0 - t * 0.8);
+
+          // Altura combinada (normalizada de 0.0 a 1.0)
+          float wave = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * 0.5 + 0.5;
+
+          // Brillo en las crestas
+          float spec = pow(wave, 6.0);
+
+          // Mezcla de color
+          vec3 color = mix(uColorDeep, uColorShallow, wave);
+          color += vec3(0.6, 1.0, 1.0) * spec * 0.5; // Destello blanco/cian
+
+          // Borde desvanecido
+          float edge = 1.0 - smoothstep(0.7, 1.0, length(p));
+
+          // OPACIDAD ALTA: Base 0.65 para que no sea fantasmal
+          float alpha = (0.65 + wave * 0.20 + spec * 0.15) * edge;
 
           gl_FragColor = vec4(color, alpha);
           #include <tonemapping_fragment>
@@ -176,7 +185,6 @@
     });
     
     const water = new THREE.Mesh(waterGeo, waterMat);
-    // Lo subimos 5cm para asegurar que no lo tape la geometría del suelo real en AR
     water.position.y = 0.05; 
     water.frustumCulled = false;
     group.add(water);
@@ -279,7 +287,7 @@
     fallback.style.display = 'none';
 
     startButton.style.display = 'none';
-    closeButton.style.display = 'block'; // Mostrar Cerrar AR
+    closeButton.style.display = 'block';
     statusEl.textContent = 'AR activa. Apunta al suelo para detectar una superficie.';
 
     const session = activeSession;
@@ -312,7 +320,7 @@
     startButton.disabled = false;
     startButton.style.display = '';
     startButton.textContent = 'Iniciar realidad aumentada';
-    closeButton.style.display = 'none'; // Ocultar Cerrar AR
+    closeButton.style.display = 'none';
   });
 
   /* ---------------- Bucle de render ---------------- */

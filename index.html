@@ -26,6 +26,8 @@
       font-weight:750; font-size:13px; cursor:pointer; }
     #start { color:#06201e; background:var(--mint); flex:1; }
     #reset { color:#e9f6f3; background:#ffffff17; border:1px solid #ffffff25; }
+    #close { color:#ffdede; background:#ff4d4d22; border:1px solid #ff4d4d55; }
+    #close:hover { background:#ff4d4d33; }
     #fallback { position:absolute; z-index:4; inset:0; display:none; align-items:center; justify-content:center;
       padding:24px; background:linear-gradient(160deg,#0b282d,#07191d); }
     #fallback .panel { max-width:460px; }
@@ -56,6 +58,7 @@
       <div class="actions">
         <button id="start">Iniciar realidad aumentada</button>
         <button id="reset" type="button">Reiniciar</button>
+        <button id="close" type="button" style="display:none;">Cerrar AR</button>
       </div>
     </div>
   </div>
@@ -74,6 +77,7 @@
   const statusEl     = document.querySelector('#status');
   const startButton  = document.querySelector('#start');
   const resetButton  = document.querySelector('#reset');
+  const closeButton  = document.querySelector('#close');
   const fallback     = document.querySelector('#fallback');
   const fallbackText = document.querySelector('#fallbackText');
 
@@ -91,7 +95,6 @@
 
   const scene  = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 30);
-
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.6));
 
   /* ---------------- Textura de partícula (gradiente circular) ---------------- */
@@ -128,16 +131,18 @@
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- Agua: shader SIMPLE, sin tonemapping, sin pow grandes ---
-    const waterGeo = new THREE.PlaneGeometry(14.4, 14.4);
+    // --- AGUA: shader basado en la v1 (que SÍ se veía) -----------------
+    // Extensión ×3 respecto al original (4.8 → 14.4 m).
+    const waterGeo = new THREE.PlaneGeometry(14.4, 14.4, 1, 1);
     waterGeo.rotateX(-Math.PI / 2);
+
     const waterMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uTint: { value: new THREE.Color(0x35c0b8) }
+        uTint: { value: new THREE.Color(0x43c9c0) }   // ← color base del agua
       },
       vertexShader: `
         varying vec2 vUv;
@@ -151,29 +156,31 @@
         uniform vec3 uTint;
         varying vec2 vUv;
 
+        float ringWave(vec2 p, float t) {
+          float d = length(p);
+          return sin(d * 14.0 - t * 1.4 + sin(p.x * 3.0 + t * 0.6) * 0.5);
+        }
+
         void main() {
           vec2 p = (vUv - 0.5) * 2.0;
-          float dist = length(p);
+          float r1 = ringWave(p, uTime);
+          float r2 = ringWave(p * 1.47 + vec2(0.16, -0.12), -uTime * 0.72);
+          float wave = smoothstep(0.10, 0.90, (r1 * 0.55 + r2 * 0.45) * 0.5 + 0.5);
+          float edge = 1.0 - smoothstep(0.75, 1.0, length(p));
+          float shimmer = pow(max(0.0, sin((p.x + p.y) * 15.0 + uTime * 1.2)), 9.0);
 
-          // Ondulaciones LEVES: dos senos cruzados suaves
-          float w1 = sin(dist * 8.0 - uTime * 1.1) * 0.5 + 0.5;
-          float w2 = sin(p.x * 5.0 + uTime * 0.8) *
-                     sin(p.y * 5.0 - uTime * 1.0) * 0.5 + 0.5;
-          float wave = w1 * 0.55 + w2 * 0.45;
+          vec3 deep  = uTint * 0.45;
+          vec3 crest = vec3(0.70, 1.0, 0.94);
+          vec3 color = mix(deep, crest, wave * 0.60 + shimmer * 0.25);
 
-          // Caída radial clara para que el centro sea visible y el borde
-          // se difumine en el entorno real.
-          float fade = 1.0 - smoothstep(0.30, 0.95, dist);
-
-          // Color: base turquesa oscura, crestas claras
-          vec3 deep   = uTint * 0.55;
-          vec3 crest  = vec3(0.72, 0.98, 0.94);
-          vec3 color  = mix(deep, crest, wave * 0.75);
-
-          // Alfa claramente visible (0.22 base, picos ~0.55)
-          float alpha = (0.22 + wave * 0.30) * fade;
+          // ALFA: base 0.12 + onda + destello. Bajado respecto a v1 (0.17),
+          // pero con color brillante gracias a <colorspace_fragment>.
+          float alpha = (0.12 + wave * 0.20 + shimmer * 0.12) * edge;
 
           gl_FragColor = vec4(color, alpha);
+
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
         }
       `
     });
@@ -182,7 +189,7 @@
     water.frustumCulled = false;
     group.add(water);
 
-    // --- Neblina sobre el agua: partículas grandes y suaves ---
+    // --- NEBLINA sobre el agua: partículas suaves y grandes ---
     const mistCount = 1200;
     const mistPositions = new Float32Array(mistCount * 3);
     for (let i = 0; i < mistCount; i++) {
@@ -208,7 +215,7 @@
     mist.frustumCulled = false;
     group.add(mist);
 
-    // --- Partículas de brillo: grandes, brillantes, con pulso ---
+    // --- PARTÍCULAS DE BRILLO: grandes y nítidas ---
     const sparkCount = 400;
     const sparkPositions = new Float32Array(sparkCount * 3);
     for (let i = 0; i < sparkCount; i++) {
@@ -221,7 +228,7 @@
     const sparkGeo = new THREE.BufferGeometry();
     sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMat = new THREE.PointsMaterial({
-      size: 0.28,                    // grande y claramente visible
+      size: 0.45,                    // ← más grandes que antes (0.28)
       map: particleTexture,
       transparent: true,
       depthWrite: false,
@@ -276,6 +283,12 @@
     statusEl.textContent = 'Efecto reiniciado. Apunta al suelo y toca para colocar.';
   }
 
+  async function endAR() {
+    if (activeSession) {
+      try { await activeSession.end(); } catch (_) {}
+    }
+  }
+
   /* ---------------- Controladores / sesión ---------------- */
   const controller = renderer.xr.getController(0);
   controller.addEventListener('select', placeEffect);
@@ -284,9 +297,12 @@
   renderer.xr.addEventListener('sessionstart', async () => {
     activeSession = renderer.xr.getSession();
     fallback.style.display = 'none';
+
+    // UI: ocultar "Iniciar", mostrar "Cerrar AR".
+    startButton.style.display = 'none';
+    closeButton.style.display = '';
+
     statusEl.textContent = 'AR activa. Apunta al suelo para detectar una superficie.';
-    startButton.textContent = 'AR iniciada';
-    startButton.disabled = true;
 
     const session = activeSession;
     if (!session) return;
@@ -312,33 +328,29 @@
   });
 
   renderer.xr.addEventListener('sessionend', () => {
-    hitTestSource = null;
-    activeSession = null;
+    hitTestSource     = null;
+    activeSession     = null;
     xrSessionStarting = false;
     startButton.disabled = false;
+    startButton.style.display = '';
     startButton.textContent = 'Iniciar realidad aumentada';
+    closeButton.style.display = 'none';
   });
 
   /* ---------------- Bucle de render ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
-    // Animación del agua (uniforms)
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
 
-    // Rotación lenta de neblina y brillos: da vida sin tocar posiciones.
     placedEffect.userData.mist.rotation.y   = elapsed * 0.05;
     placedEffect.userData.sparks.rotation.y = -elapsed * 0.08;
 
-    // Pulso global de la neblina.
     placedEffect.userData.mistMaterial.opacity =
       0.26 + 0.10 * Math.sin(elapsed * 0.6);
-
-    // Pulso de las partículas de brillo.
     placedEffect.userData.sparkMaterial.opacity =
       0.75 + 0.20 * Math.sin(elapsed * 1.6);
 
-    // Hit-test
     if (frame) {
       const refSpace = renderer.xr.getReferenceSpace();
       if (hitTestSource && refSpace) {
@@ -416,6 +428,7 @@
 
   startButton.addEventListener('click', beginAR);
   resetButton.addEventListener('click', clearEffect);
+  closeButton.addEventListener('click', endAR);
 
   document.body.addEventListener('beforexrselect', (e) => {
     const t = e.target;

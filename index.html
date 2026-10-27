@@ -43,65 +43,6 @@
       font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:800; margin-bottom:10px; }
     
     canvas { display:block; touch-action:none; }
-
-    /* ================================================= */
-    /* BOTÓN INTELIGENTE (FOTO Y VIDEO TIPO INSTAGRAM)   */
-    /* ================================================= */
-    #contenedorControles {
-      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
-      z-index: 20; display: none; flex-direction: column; align-items: center; gap: 14px; pointer-events: none;
-    }
-    
-    #badgeTiempo {
-      display: none; align-items: center; gap: 6px; background: rgba(255, 59, 48, 0.92); color: #fff;
-      font-size: 13px; font-weight: 700; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px;
-    }
-    #badgeTiempo.activo { display: flex; }
-    .punto-parpadeo { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: parpadeo 1s infinite; }
-    @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-
-    .instruccion-btn { font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); letter-spacing: 0.5px; }
-
-    /* Estilo del botón híbrido */
-    #btnCaptura {
-      width: 76px; height: 76px; border-radius: 50%; border: 4px solid #ffffff; background: transparent;
-      display: flex; align-items: center; justify-content: center; position: relative;
-      cursor: pointer; pointer-events: auto; touch-action: none;
-      transition: border-color 0.3s ease;
-    }
-    .nucleo-btn {
-      width: 58px; height: 58px; border-radius: 50%; background: #ffffff;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    /* Animación cuando graba video */
-    #btnCaptura.grabando { border-color: rgba(255, 255, 255, 0.4); }
-    #btnCaptura.grabando .nucleo-btn {
-      transform: scale(0.45);
-      background: #ff3b30;
-      border-radius: 12px;
-    }
-
-    #flashPantalla { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 100; transition: opacity 0.2s; }
-
-    /* ================================================= */
-    /* MODAL DE VISTA PREVIA Y DESCARGA                  */
-    /* ================================================= */
-    #modalPreview {
-      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      z-index: 200; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 18px; pointer-events: auto;
-    }
-    #modalPreview.activo { display: flex; }
-    .tarjeta-preview { background: #1c1c1e; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 22px; padding: 16px; width: 100%; max-width: 380px; color: #fff; }
-    .cabecera-preview { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #e5e5ea; }
-    #pesoArchivo { background: rgba(48, 209, 88, 0.15); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.3); padding: 4px 10px; border-radius: 12px; font-size: 11px; }
-    .contenedor-media { width: 100%; max-height: 55vh; border-radius: 14px; overflow: hidden; background: #000; margin-bottom: 14px; display: flex; justify-content: center; align-items: center; }
-    .contenedor-media img, .contenedor-media video { max-width: 100%; max-height: 55vh; object-fit: contain; }
-    .acciones-preview { display: flex; gap: 8px; }
-    .btn-modal { flex: 1; padding: 12px 10px; border: none; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    #btnCerrarPreview { background: #2c2c2e; color: #fff; flex: 0.5; }
-    #btnCompartir { display: none; background: #30d158; color: #000; }
-    #btnDescargar { background: #0a84ff; color: #fff; }
   </style>
   <script type="importmap">
     {
@@ -129,18 +70,6 @@
     </div>
   </div>
 
-  <!-- Controles Híbridos (Estilo IG) -->
-  <div id="contenedorControles">
-    <div id="badgeTiempo">
-      <span class="punto-parpadeo"></span>
-      <span id="textoTiempo">00:00</span>
-    </div>
-    <div class="instruccion-btn">Toca para foto · Mantén para video</div>
-    <button id="btnCaptura" aria-label="Capturar">
-      <div class="nucleo-btn"></div>
-    </button>
-  </div>
-
   <div id="fallback">
     <div class="panel">
       <span class="pill">Compatibilidad del dispositivo</span>
@@ -150,24 +79,9 @@
   </div>
 </div>
 
-<div id="flashPantalla"></div>
-
-<!-- Modal de Descarga Seguro -->
-<div id="modalPreview">
-  <div class="tarjeta-preview">
-    <div class="cabecera-preview">
-      <span id="tituloPreview">Captura lista</span>
-      <span id="pesoArchivo">0 KB</span>
-    </div>
-    <div class="contenedor-media" id="contenedorMedia"></div>
-    <div class="acciones-preview">
-      <button class="btn-modal" id="btnCerrarPreview">✕</button>
-      <button class="btn-modal" id="btnCompartir">Guardar</button>
-      <button class="btn-modal" id="btnDescargar">⬇ Descargar</button>
-    </div>
-  </div>
-</div>
-
+<!-- ===================================================== -->
+<!-- ELEMENTO DE AUDIO: ATMÓSFERA INMERSIVA DE BOSQUE      -->
+<!-- ===================================================== -->
 <audio id="audioBosque" src="bosque_noche.mp3" preload="auto" loop></audio>
 
 <script type="module">
@@ -182,7 +96,6 @@
   const fallback     = document.querySelector('#fallback');
   const fallbackText = document.querySelector('#fallbackText');
   const audioBosque  = document.querySelector('#audioBosque');
-  const contenedorControles = document.querySelector('#contenedorControles');
 
   /* ---------------- Sistema de Audio Suave ---------------- */
   let fadeAudioInterval = null;
@@ -212,8 +125,9 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / escena ---------------- */
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+  /* ---------------- Renderer / escena (Optimizado) ---------------- */
+  // Se eliminó 'preserveDrawingBuffer' para que el AR sea ultra fluido y detecte el suelo al instante
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -223,11 +137,11 @@
   app.prepend(renderer.domElement);
 
   const scene  = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x071e2b, 0.12); // Ajustado al tono azulado
+  scene.fog = new THREE.FogExp2(0x071e2b, 0.12); // Tono azulado nocturno
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 30);
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.6));
 
-  /* ---------------- Textura de partícula ---------------- */
+  /* ---------------- Textura de partícula (Halo fluorescente) ---------------- */
   function makeParticleTexture() {
     const size = 128; const c = document.createElement('canvas');
     c.width = c.height = size; const ctx = c.getContext('2d');
@@ -241,12 +155,12 @@
   }
   const particleTexture = makeParticleTexture();
 
-  /* ---------------- Reticle ---------------- */
-  const reticleGeo = new THREE.RingGeometry(0.12, 0.17, 48); reticleGeo.rotateX(-Math.PI / 2);
+  /* ---------------- Reticle (Guía visual para el suelo) ---------------- */
+  const reticleGeo = new THREE.RingGeometry(0.15, 0.2, 48); reticleGeo.rotateX(-Math.PI / 2);
   const reticle = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }));
   reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
 
-  /* ---------------- Efecto agua + neblina + partículas ---------------- */
+  /* ---------------- Efecto agua (Azul/Esmeralda) + neblina + partículas ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
@@ -262,7 +176,6 @@
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        // LIGERAMENTE MÁS AZUL (Turquesa/Cian profundo)
         uColorDeep: { value: new THREE.Color(0x052026) },    
         uColorShallow: { value: new THREE.Color(0x19a0a8) }, 
         uLightColor: { value: new THREE.Color(0xbdf7ff) },   
@@ -424,127 +337,13 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Lógica del Botón Híbrido (Instagram-Style) ---------------- */
-  window.capturador = {
-    fotoPendiente: false, grabando: false,
-    canvas: document.createElement('canvas')
-  };
-  window.capturador.ctx = window.capturador.canvas.getContext('2d', { alpha: false });
-
-  let mediaRecorder = null;
-  let fragmentosVideo = [];
-  let tiempoGrabacion = null;
-  let segundos = 0;
-  let urlActual = null;
-  let objActual = null;
-  let nombreActual = "";
-
-  const btnCaptura = document.getElementById("btnCaptura");
-  const flash = document.getElementById("flashPantalla");
-  const badgeTiempo = document.getElementById("badgeTiempo");
-  const textoTiempo = document.getElementById("textoTiempo");
-  
-  let pressTimer = null;
-  let longPressTriggered = false;
-
-  const solicitarPermisoMic = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      return stream;
-    } catch(e) {
-      console.warn("Micrófono denegado/no disponible. Grabando sin audio ambiental real.");
-      return null;
-    }
-  };
-
-  btnCaptura.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    longPressTriggered = false;
-    // Si se mantiene presionado más de 350ms, graba video
-    pressTimer = setTimeout(() => {
-      longPressTriggered = true;
-      iniciarGrabacion();
-    }, 350);
-  });
-
-  const finalizarCaptura = (e) => {
-    e.preventDefault();
-    clearTimeout(pressTimer);
-
-    if (window.capturador.grabando) {
-      detenerGrabacion();
-    } else if (!longPressTriggered) {
-      // Fue un toque rápido -> Tomar foto
-      tomarFoto();
-    }
-  };
-
-  btnCaptura.addEventListener("pointerup", finalizarCaptura);
-  btnCaptura.addEventListener("pointercancel", finalizarCaptura);
-  btnCaptura.addEventListener("pointerleave", finalizarCaptura);
-
-  function tomarFoto() {
-    flash.style.opacity = "0.85";
-    setTimeout(() => { flash.style.opacity = "0"; }, 180);
-    window.capturador.fotoPendiente = true;
-  }
-
-  async function iniciarGrabacion() {
-    window.capturador.grabando = true;
-    fragmentosVideo = [];
-    btnCaptura.classList.add("grabando");
-    badgeTiempo.classList.add("activo");
-    segundos = 0; textoTiempo.textContent = "00:00";
-    
-    tiempoGrabacion = setInterval(() => {
-      segundos++;
-      textoTiempo.textContent = String(Math.floor(segundos/60)).padStart(2,"0") + ":" + String(segundos%60).padStart(2,"0");
-    }, 1000);
-
-    const canvasStream = window.capturador.canvas.captureStream(30);
-    const micStream = await solicitarPermisoMic();
-    
-    let combinedStream = canvasStream;
-    if (micStream) {
-      // Combinar video del canvas y audio del micrófono real para mayor inmersión
-      combinedStream = new MediaStream([ ...canvasStream.getVideoTracks(), ...micStream.getAudioTracks() ]);
-    }
-
-    const tipos = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
-    let mime = ""; for (const t of tipos) if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) { mime = t; break; }
-
-    try { mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: 1500000 }); } 
-    catch(e) { mediaRecorder = new MediaRecorder(combinedStream); }
-
-    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) fragmentosVideo.push(e.data); };
-    mediaRecorder.onstop = () => {
-      if (micStream) micStream.getTracks().forEach(t => t.stop()); // Apagar micrófono al terminar
-      const finalMime = mediaRecorder.mimeType || "video/mp4";
-      mostrarPreview(new Blob(fragmentosVideo, { type: finalMime }), "video");
-    };
-
-    mediaRecorder.start(250);
-  }
-
-  function detenerGrabacion() {
-    window.capturador.grabando = false;
-    clearInterval(tiempoGrabacion);
-    btnCaptura.classList.remove("grabando");
-    badgeTiempo.classList.remove("activo");
-    
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      try { mediaRecorder.requestData(); } catch(e){}
-      setTimeout(() => { if (mediaRecorder.state !== "inactive") mediaRecorder.stop(); }, 150);
-    }
-  }
-
   /* ---------------- Estado y Controles AR ---------------- */
   let hitTestSource = null, activeSession = null, elapsed = 0, xrSessionStarting = false, arSupported = null;
 
   function showFallback(text) { fallbackText.textContent = text; fallback.style.display = 'flex'; }
 
   function placeEffect() {
-    if (!reticle.visible) { statusEl.textContent = 'Mueve el teléfono apuntando al suelo...'; return; }
+    if (!reticle.visible) { statusEl.textContent = 'Mueve el teléfono en círculos hacia un suelo iluminado...'; return; }
     placedEffect.position.setFromMatrixPosition(reticle.matrix);
     placedEffect.position.y -= 0.01; placedEffect.visible = true;
     
@@ -555,7 +354,7 @@
 
   function clearEffect() {
     placedEffect.visible = false; reticle.visible = false; hud.style.opacity = "1";
-    statusEl.textContent = 'Apunta al suelo y toca para colocar.';
+    statusEl.textContent = 'Escaneando... Apunta al suelo y toca para colocar.';
     detenerAudioAmbiente();
   }
 
@@ -569,24 +368,26 @@
     activeSession = renderer.xr.getSession();
     fallback.style.display = 'none'; startButton.style.display = 'none';
     closeButton.style.display = 'block'; resetButton.style.display = 'block';
-    contenedorControles.style.display = 'flex'; 
-    statusEl.textContent = 'AR activa. Apunta al suelo.';
+    
+    statusEl.textContent = 'Escaneando entorno. Mueve el celular en círculos...';
 
     if (!activeSession) return;
     try {
       const viewerSpace = await activeSession.requestReferenceSpace('viewer');
       if (activeSession) hitTestSource = await activeSession.requestHitTestSource({ space: viewerSpace });
-    } catch (err) {}
+    } catch (err) {
+      statusEl.textContent = 'AR activa, buscando superficies...';
+    }
 
     activeSession.addEventListener('end', () => {
       detenerAudioAmbiente(); hitTestSource = null; activeSession = null; xrSessionStarting = false;
       startButton.disabled = false; startButton.style.display = 'block';
       closeButton.style.display = 'none'; resetButton.style.display = 'none';
-      contenedorControles.style.display = 'none'; hud.style.opacity = "1";
+      hud.style.opacity = "1";
     }, { once: true });
   });
 
-  /* ---------------- Bucle de Render y Compositor ---------------- */
+  /* ---------------- Bucle de Render ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
@@ -606,68 +407,6 @@
       }
     }
     renderer.render(scene, camera);
-
-    if (window.capturador.fotoPendiente || window.capturador.grabando) {
-      const glC = renderer.domElement; const compC = window.capturador.canvas; const ctx = window.capturador.ctx;
-      if (compC.width !== glC.width) { compC.width = glC.width; compC.height = glC.height; }
-      
-      const grad = ctx.createLinearGradient(0, 0, 0, compC.height);
-      grad.addColorStop(0, '#040d12'); grad.addColorStop(1, '#091c21');
-      ctx.fillStyle = grad; ctx.fillRect(0, 0, compC.width, compC.height);
-      ctx.drawImage(glC, 0, 0);
-
-      if (window.capturador.fotoPendiente) {
-        window.capturador.fotoPendiente = false;
-        compC.toBlob(b => mostrarPreview(b, 'foto'), 'image/jpeg', 0.85);
-      }
-    }
-  });
-
-  /* ---------------- Lógica del Modal de Guardado Seguro (Bypass iOS) ---------------- */
-  const modal = document.getElementById("modalPreview");
-  const contenedorMedia = document.getElementById("contenedorMedia");
-  
-  function mostrarPreview(blob, tipo) {
-    if (urlActual) try { URL.revokeObjectURL(urlActual); } catch(e){}
-    urlActual = URL.createObjectURL(blob);
-    contenedorMedia.innerHTML = "";
-    
-    const kb = blob.size / 1024;
-    document.getElementById("pesoArchivo").textContent = kb < 1024 ? `${Math.round(kb)} KB` : `${(kb/1024).toFixed(2)} MB`;
-    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
-
-    if (tipo === "foto") {
-      document.getElementById("tituloPreview").textContent = "Fotografía Guardada";
-      nombreActual = `atmosfera-ar-${ts}.jpg`;
-      objActual = new File([blob], nombreActual, { type: "image/jpeg" });
-      const img = document.createElement("img"); img.src = urlActual;
-      contenedorMedia.appendChild(img);
-    } else {
-      document.getElementById("tituloPreview").textContent = "Video Guardado";
-      const esMp4 = blob.type && blob.type.includes("mp4");
-      nombreActual = `atmosfera-ar-${ts}.${esMp4 ? 'mp4' : 'webm'}`;
-      objActual = new File([blob], nombreActual, { type: esMp4 ? "video/mp4" : "video/webm" });
-      const vid = document.createElement("video");
-      vid.src = urlActual; vid.controls = true; vid.autoplay = true; vid.loop = true; vid.muted = false; vid.playsInline = true;
-      contenedorMedia.appendChild(vid);
-    }
-
-    const btnComp = document.getElementById("btnCompartir");
-    if (navigator.canShare && objActual && navigator.canShare({ files: [objActual] })) btnComp.style.display = "flex";
-    else btnComp.style.display = "none";
-    
-    modal.classList.add("activo");
-  }
-
-  document.getElementById("btnCerrarPreview").addEventListener("click", () => { modal.classList.remove("activo"); contenedorMedia.innerHTML = ""; });
-  document.getElementById("btnCompartir").addEventListener("click", async () => {
-    if (!objActual) return;
-    try { await navigator.share({ files: [objActual], title: 'Captura AR' }); } catch(e){}
-  });
-  document.getElementById("btnDescargar").addEventListener("click", () => {
-    if (!urlActual) return;
-    const a = document.createElement("a"); a.style.display = "none"; a.href = urlActual; a.download = nombreActual;
-    document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 200);
   });
 
   /* ---------------- Inicialización AR ---------------- */
@@ -691,8 +430,8 @@
 
   document.body.addEventListener('beforexrselect', (e) => {
     const t = e.target;
-    // Ignorar toques si fueron en los botones para que no reposicione el efecto
-    if (t && t.closest && t.closest('button, .actions, #btnCaptura')) e.preventDefault();
+    // Evitar colocar la pieza si el usuario está interactuando con los botones de la interfaz
+    if (t && t.closest && t.closest('button, .actions')) e.preventDefault();
   });
 
   window.addEventListener('resize', () => {

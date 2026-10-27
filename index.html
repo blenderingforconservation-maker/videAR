@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07191d">
   <title>Atmósferas escultóricas | AR</title>
+  <!-- Tipografías cursivas elegantes para el letrero dorado -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: dark; --mint:#8ce7d5; --glass:rgba(5,22,27,.78); }
     * { box-sizing:border-box; }
@@ -107,12 +111,137 @@
   }
   const particleTexture = makeParticleTexture();
 
+  /* ---------------- Generador del Letrero Virtual con el Marco ---------------- */
+  function createGoldenSignTexture() {
+    const c = document.createElement('canvas');
+    c.width = 750;
+    c.height = 1000;
+    const ctx = c.getContext('2d');
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    function renderSign(img) {
+      ctx.clearRect(0, 0, c.width, c.height);
+
+      if (img) {
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        // Eliminar el fondo gris oscuro exterior de la foto conservando las tallas doradas
+        const imgData = ctx.getImageData(0, 0, c.width, c.height);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const sat = max - min;
+          // El fondo de estudio es neutro (baja saturación) y oscuro
+          if (sat < 22 && max < 92) {
+            const fade = Math.max(0, (sat - 10) / 12);
+            data[i + 3] = Math.round(data[i + 3] * fade);
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      // Coordenadas exactas del interior de los paneles dentro del marco dorado
+      const ix = 143, iy = 216, iw = 450, ih = 638;
+
+      // Fondo oscuro profundo dentro del marco para resaltar las letras doradas
+      const bgGrad = ctx.createRadialGradient(
+        ix + iw * 0.5, iy + ih * 0.5, 20,
+        ix + iw * 0.5, iy + ih * 0.5, ih * 0.65
+      );
+      bgGrad.addColorStop(0.0, 'rgba(12, 24, 34, 0.96)');
+      bgGrad.addColorStop(0.7, 'rgba(6, 13, 20, 0.98)');
+      bgGrad.addColorStop(1.0, 'rgba(3, 7, 12, 0.99)');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(ix, iy, iw, ih);
+
+      // Sombra interna para integrar el lienzo con la moldura de madera dorada
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(ix + 5, iy + 5, iw - 10, ih - 10);
+
+      // Filete interior dorado ornamental
+      ctx.strokeStyle = 'rgba(218, 178, 92, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ix + 16, iy + 16, iw - 32, ih - 32);
+      ctx.restore();
+
+      // Gradiente metálico dorado para la caligrafía cursiva
+      const cx = ix + iw * 0.5;
+      const cy = iy + ih * 0.5;
+      const textGrad = ctx.createLinearGradient(cx - 180, iy + 120, cx + 180, iy + ih - 120);
+      textGrad.addColorStop(0.0, '#fff6d1');
+      textGrad.addColorStop(0.25, '#f5ce69');
+      textGrad.addColorStop(0.5, '#fffbe6');
+      textGrad.addColorStop(0.75, '#d49b2a');
+      textGrad.addColorStop(1.0, '#fce38a');
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Ornamento superior sutil
+      ctx.fillStyle = 'rgba(245, 206, 105, 0.8)';
+      ctx.font = 'italic 600 22px "Cormorant Garamond", Georgia, serif';
+      ctx.fillText('✦   ✦   ✦', cx, cy - 175);
+
+      // Renglónes del título: "La Barca de Las Grullas" en cursiva elegante
+      const lines = ['La Barca', 'de Las', 'Grullas'];
+      const lineOffsets = [-85, 10, 105];
+
+      lines.forEach((line, idx) => {
+        const yPos = cy + lineOffsets[idx];
+        ctx.font = '92px "Great Vibes", "Cormorant Garamond", cursive';
+
+        // Halo de resplandor dorado exterior
+        ctx.shadowColor = 'rgba(255, 200, 75, 0.95)';
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = textGrad;
+        ctx.fillText(line, cx, yPos);
+
+        // Segunda pasada para núcleo brillante y nítido
+        ctx.shadowColor = 'rgba(255, 240, 180, 0.75)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(line, cx, yPos);
+      });
+
+      // Filete ornamental inferior
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = 'rgba(245, 206, 105, 0.7)';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(cx - 110, cy + 185);
+      ctx.lineTo(cx + 110, cy + 185);
+      ctx.stroke();
+
+      ctx.restore();
+      tex.needsUpdate = true;
+    }
+
+    // Dibujo inicial e carga de la imagen del marco + las fuentes
+    renderSign(null);
+    const frameImg = new Image();
+    frameImg.crossOrigin = 'anonymous';
+    frameImg.onload = () => {
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => renderSign(frameImg));
+      } else {
+        renderSign(frameImg);
+      }
+    };
+    frameImg.src = 'image_c64162.jpg';
+
+    return tex;
+  }
+
   /* ---------------- Reticle ---------------- */
   const reticleGeo = new THREE.RingGeometry(0.12, 0.17, 48); reticleGeo.rotateX(-Math.PI / 2);
   const reticle = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }));
   reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
 
-  /* ---------------- Efecto agua + partículas ---------------- */
+  /* ---------------- Efecto agua + partículas + letrero ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
@@ -282,8 +411,78 @@
     particles.frustumCulled = false;
     group.add(particles);
 
+    // --- 3. LETRERO VIRTUAL CON MARCO Y MATERIALIZACIÓN DORADA ---
+    const signTexture = createGoldenSignTexture();
+    const signGeo = new THREE.PlaneGeometry(0.9, 1.2);
+    const signMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uTexture: { value: signTexture },
+        uTime: { value: 0 },
+        uReveal: { value: 0 } // 0 = invisible, 1 = completamente materializado
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        uniform float uTime;
+        uniform float uReveal;
+        varying vec2 vUv;
+
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float noise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                     mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+
+        void main() {
+          vec4 tex = texture2D(uTexture, vUv);
+          if (tex.a < 0.02) discard;
+
+          // Ruido para que el letrero se materialice orgánicamente de abajo hacia arriba
+          float n = noise(vUv * 7.0 + vec2(0.0, -uTime * 0.35)) * 0.22;
+          float progress = uReveal * 1.35 - 0.15;
+          float threshold = vUv.y * 0.82 + n;
+
+          float mask = 1.0 - smoothstep(progress - 0.08, progress + 0.08, threshold);
+
+          // Borde incandescente dorado durante la materialización
+          float edgeGlow = smoothstep(progress - 0.14, progress, threshold) * (1.0 - smoothstep(progress, progress + 0.09, threshold));
+          edgeGlow *= step(0.01, uReveal) * step(uReveal, 0.99);
+
+          // Destello dorado continuo (shimmer) que recorre las letras y el marco
+          float shimmerWave = sin((vUv.x + vUv.y * 0.65) * 9.0 - uTime * 2.2);
+          float shimmer = pow(max(0.0, shimmerWave), 10.0) * 0.42;
+
+          vec3 goldGlow = vec3(1.0, 0.86, 0.42);
+          vec3 finalColor = tex.rgb + goldGlow * (edgeGlow * 2.6 + shimmer);
+
+          gl_FragColor = vec4(finalColor, tex.a * mask);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }
+      `
+    });
+
+    const signMesh = new THREE.Mesh(signGeo, signMat);
+    signMesh.position.set(0, 1.05, 0);
+    signMesh.frustumCulled = false;
+    group.add(signMesh);
+
     group.userData.waterMaterial = waterMat;
     group.userData.particleMaterial = particleMat;
+    group.userData.signMaterial = signMat;
+    group.userData.signMesh = signMesh;
+    group.userData.placedTime = null;
     group.visible = false;
     scene.add(group);
     return group;
@@ -312,11 +511,15 @@
     placedEffect.position.setFromMatrixPosition(reticle.matrix);
     placedEffect.position.y -= 0.01;
     placedEffect.visible = true;
+    placedEffect.userData.placedTime = elapsed;
+    placedEffect.userData.signMaterial.uniforms.uReveal.value = 0;
     statusEl.textContent = 'Atmósfera colocada. Muévete alrededor para explorarla.';
   }
 
   function clearEffect() {
     placedEffect.visible = false;
+    placedEffect.userData.placedTime = null;
+    placedEffect.userData.signMaterial.uniforms.uReveal.value = 0;
     reticle.visible = false;
     statusEl.textContent = 'Efecto reiniciado. Apunta al suelo y toca para colocar.';
   }
@@ -374,12 +577,31 @@
   });
 
   /* ---------------- Bucle de render ---------------- */
+  const camWorldPos = new THREE.Vector3();
+
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
     // Actualizar shaders
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
+    placedEffect.userData.signMaterial.uniforms.uTime.value = elapsed;
+
+    // Animar materialización gradual del letrero (duración ~4.2 segundos) y flotación suave
+    if (placedEffect.visible && placedEffect.userData.placedTime !== null) {
+      const dt = Math.max(0, elapsed - placedEffect.userData.placedTime);
+      const progress = Math.min(1.0, dt / 4.2);
+      const eased = 1.0 - Math.pow(1.0 - progress, 3.0);
+      placedEffect.userData.signMaterial.uniforms.uReveal.value = eased;
+
+      const signMesh = placedEffect.userData.signMesh;
+      signMesh.position.y = 1.02 + Math.sin(elapsed * 1.4) * 0.035;
+
+      // Orientar suavemente el letrero hacia la cámara del usuario en el eje horizontal
+      const xrCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      xrCam.getWorldPosition(camWorldPos);
+      signMesh.lookAt(camWorldPos.x, signMesh.getWorldPosition(new THREE.Vector3()).y, camWorldPos.z);
+    }
 
     if (frame) {
       const refSpace = renderer.xr.getReferenceSpace();

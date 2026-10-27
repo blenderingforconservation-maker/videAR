@@ -73,6 +73,12 @@
     </div>
   </div>
 </div>
+
+<!-- ===================================================== -->
+<!-- ELEMENTO DE AUDIO: ATMÓSFERA INMERSIVA DE BOSQUE      -->
+<!-- ===================================================== -->
+<audio id="audioBosque" src="bosque_noche.mp3" preload="auto" loop></audio>
+
 <script type="module">
   import * as THREE from 'three';
 
@@ -83,6 +89,49 @@
   const closeButton  = document.querySelector('#close');
   const fallback     = document.querySelector('#fallback');
   const fallbackText = document.querySelector('#fallbackText');
+  const audioBosque  = document.querySelector('#audioBosque');
+
+  /* ---------------- Sistema de Control de Audio Suave ---------------- */
+  let fadeAudioInterval = null;
+
+  function iniciarAudioAmbiente() {
+    if (!audioBosque) return;
+    clearInterval(fadeAudioInterval);
+    audioBosque.volume = 0.0;
+    
+    const playPromise = audioBosque.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // Fundido de entrada (Fade-In progresivo durante 2.5 segundos)
+        fadeAudioInterval = setInterval(() => {
+          if (audioBosque.volume < 0.85) {
+            audioBosque.volume = Math.min(0.85, audioBosque.volume + 0.05);
+          } else {
+            clearInterval(fadeAudioInterval);
+          }
+        }, 150);
+      }).catch(err => {
+        console.warn("Audio esperando interacción del usuario:", err);
+      });
+    }
+  }
+
+  function detenerAudioAmbiente() {
+    if (!audioBosque) return;
+    clearInterval(fadeAudioInterval);
+    
+    // Fundido de salida (Fade-Out progresivo)
+    fadeAudioInterval = setInterval(() => {
+      if (audioBosque.volume > 0.05) {
+        audioBosque.volume = Math.max(0, audioBosque.volume - 0.08);
+      } else {
+        audioBosque.volume = 0;
+        audioBosque.pause();
+        audioBosque.currentTime = 0;
+        clearInterval(fadeAudioInterval);
+      }
+    }, 100);
+  }
 
   /* ---------------- Renderer / escena ---------------- */
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -125,7 +174,6 @@
 
       if (img) {
         ctx.drawImage(img, 0, 0, c.width, c.height);
-        // Eliminar el fondo gris oscuro exterior de la foto conservando las tallas doradas
         const imgData = ctx.getImageData(0, 0, c.width, c.height);
         const data = imgData.data;
         for (let i = 0; i < data.length; i += 4) {
@@ -133,7 +181,6 @@
           const max = Math.max(r, g, b);
           const min = Math.min(r, g, b);
           const sat = max - min;
-          // El fondo de estudio es neutro (baja saturación) y oscuro
           if (sat < 22 && max < 92) {
             const fade = Math.max(0, (sat - 10) / 12);
             data[i + 3] = Math.round(data[i + 3] * fade);
@@ -142,10 +189,8 @@
         ctx.putImageData(imgData, 0, 0);
       }
 
-      // Coordenadas exactas del interior de los paneles dentro del marco dorado
       const ix = 143, iy = 216, iw = 450, ih = 638;
 
-      // Fondo oscuro profundo dentro del marco para resaltar las letras doradas
       const bgGrad = ctx.createRadialGradient(
         ix + iw * 0.5, iy + ih * 0.5, 20,
         ix + iw * 0.5, iy + ih * 0.5, ih * 0.65
@@ -156,19 +201,16 @@
       ctx.fillStyle = bgGrad;
       ctx.fillRect(ix, iy, iw, ih);
 
-      // Sombra interna para integrar el lienzo con la moldura de madera dorada
       ctx.save();
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
       ctx.lineWidth = 10;
       ctx.strokeRect(ix + 5, iy + 5, iw - 10, ih - 10);
 
-      // Filete interior dorado ornamental
       ctx.strokeStyle = 'rgba(218, 178, 92, 0.55)';
       ctx.lineWidth = 2;
       ctx.strokeRect(ix + 16, iy + 16, iw - 32, ih - 32);
       ctx.restore();
 
-      // Gradiente metálico dorado para la caligrafía cursiva
       const cx = ix + iw * 0.5;
       const cy = iy + ih * 0.5;
       const textGrad = ctx.createLinearGradient(cx - 180, iy + 120, cx + 180, iy + ih - 120);
@@ -182,12 +224,10 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Ornamento superior sutil
       ctx.fillStyle = 'rgba(245, 206, 105, 0.8)';
       ctx.font = 'italic 600 22px "Cormorant Garamond", Georgia, serif';
       ctx.fillText('✦   ✦   ✦', cx, cy - 175);
 
-      // Renglónes del título: "La Barca de Las Grullas" en cursiva elegante
       const lines = ['La Barca', 'de Las', 'Grullas'];
       const lineOffsets = [-85, 10, 105];
 
@@ -195,19 +235,16 @@
         const yPos = cy + lineOffsets[idx];
         ctx.font = '92px "Great Vibes", "Cormorant Garamond", cursive';
 
-        // Halo de resplandor dorado exterior
         ctx.shadowColor = 'rgba(255, 200, 75, 0.95)';
         ctx.shadowBlur = 28;
         ctx.fillStyle = textGrad;
         ctx.fillText(line, cx, yPos);
 
-        // Segunda pasada para núcleo brillante y nítido
         ctx.shadowColor = 'rgba(255, 240, 180, 0.75)';
         ctx.shadowBlur = 8;
         ctx.fillText(line, cx, yPos);
       });
 
-      // Filete ornamental inferior
       ctx.shadowBlur = 12;
       ctx.strokeStyle = 'rgba(245, 206, 105, 0.7)';
       ctx.lineWidth = 1.8;
@@ -220,7 +257,6 @@
       tex.needsUpdate = true;
     }
 
-    // Dibujo inicial e carga de la imagen del marco + las fuentes
     renderSign(null);
     const frameImg = new Image();
     frameImg.crossOrigin = 'anonymous';
@@ -245,7 +281,6 @@
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // --- 1. AGUA (Domain Warping + Normal Map + Fresnel) ---
     const textureLoader = new THREE.TextureLoader();
     const waterNormal = textureLoader.load('image_c713d6.png');
     waterNormal.wrapS = THREE.RepeatWrapping;
@@ -260,9 +295,9 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uColorDeep: { value: new THREE.Color(0x05142b) },    // Oscuro profundo más azul
-        uColorShallow: { value: new THREE.Color(0x2b88c8) }, // Azul vivo, menos verde
-        uLightColor: { value: new THREE.Color(0xc9f1ff) },   // Reflejo especular más frío/azulado
+        uColorDeep: { value: new THREE.Color(0x05142b) },
+        uColorShallow: { value: new THREE.Color(0x2b88c8) },
+        uLightColor: { value: new THREE.Color(0xc9f1ff) },
         uNormalMap: { value: waterNormal }
       },
       vertexShader: `
@@ -303,15 +338,13 @@
 
         void main() {
           vec2 p = (vUv - 0.5) * 2.0 * 4.0; 
-          float t = uTime * 0.075; // Velocidad del pantano
+          float t = uTime * 0.075;
 
-          // Domain Warping para mezclas de color y opacidad
           vec2 q = vec2(fbm(p + vec2(0.0, 0.0) + t), fbm(p + vec2(5.2, 1.3) - t));
           vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.5), fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.3));
           
           float height = fbm(p + 4.0 * r);
 
-          // Normales usando la textura animada (Normal Map)
           vec2 uvNormal = vUv * 6.0 + vec2(t * 0.15, -t * 0.1);
           vec3 texNormal = texture2D(uNormalMap, uvNormal).xyz * 2.0 - 1.0;
           vec3 normal = normalize(vec3(texNormal.x * 1.5, texNormal.y * 1.5, 1.0));
@@ -319,20 +352,16 @@
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
 
-          // Reflejo Especular y Fresnel
           float spec = pow(max(dot(normal, lightDir), 0.0), 24.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          // Color final
           vec3 color = mix(uColorDeep, uColorShallow, smoothstep(0.2, 0.8, height));
           color += uLightColor * spec * 1.5;
           color = mix(color, uLightColor, fresnel * 0.4);
 
-          // Opacidad: Transparente en valles, opaco en crestas y bordes
           float alpha = mix(0.85, 0.99, smoothstep(0.2, 0.8, height));
           alpha = max(alpha, fresnel * 0.8);
           
-          // Desvanecimiento del borde del plano
           float edgeFade = 1.0 - smoothstep(0.7, 1.0, length(vUv - 0.5) * 2.0);
           alpha = clamp(alpha, 0.0, 0.95) * edgeFade;
 
@@ -348,7 +377,7 @@
     water.frustumCulled = false;
     group.add(water);
 
-    // --- 2. PARTÍCULAS (Shader con aSeed) ---
+    // --- PARTÍCULAS ---
     const particleCount = 1200;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
@@ -383,7 +412,6 @@
 
         void main() {
           vec3 pos = position;
-          // Movimiento orgánico individual
           pos.x += sin(uTime * 0.5 + aSeed) * 0.4;
           pos.y += cos(uTime * 0.4 + aSeed * 2.0) * 0.25;
           pos.z += sin(uTime * 0.3 + aSeed * 3.0) * 0.4;
@@ -411,7 +439,7 @@
     particles.frustumCulled = false;
     group.add(particles);
 
-    // --- 3. LETRERO VIRTUAL CON MARCO Y MATERIALIZACIÓN DORADA ---
+    // --- LETRERO VIRTUAL ---
     const signTexture = createGoldenSignTexture();
     const signGeo = new THREE.PlaneGeometry(0.9, 1.2);
     const signMat = new THREE.ShaderMaterial({
@@ -421,7 +449,7 @@
       uniforms: {
         uTexture: { value: signTexture },
         uTime: { value: 0 },
-        uReveal: { value: 0 } // 0 = invisible, 1 = completamente materializado
+        uReveal: { value: 0 }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -448,18 +476,15 @@
           vec4 tex = texture2D(uTexture, vUv);
           if (tex.a < 0.02) discard;
 
-          // Ruido para que el letrero se materialice orgánicamente de abajo hacia arriba
           float n = noise(vUv * 7.0 + vec2(0.0, -uTime * 0.35)) * 0.22;
           float progress = uReveal * 1.35 - 0.15;
           float threshold = vUv.y * 0.82 + n;
 
           float mask = 1.0 - smoothstep(progress - 0.08, progress + 0.08, threshold);
 
-          // Borde incandescente dorado durante la materialización
           float edgeGlow = smoothstep(progress - 0.14, progress, threshold) * (1.0 - smoothstep(progress, progress + 0.09, threshold));
           edgeGlow *= step(0.01, uReveal) * step(uReveal, 0.99);
 
-          // Destello dorado continuo (shimmer) que recorre las letras y el marco
           float shimmerWave = sin((vUv.x + vUv.y * 0.65) * 9.0 - uTime * 2.2);
           float shimmer = pow(max(0.0, shimmerWave), 10.0) * 0.42;
 
@@ -514,6 +539,9 @@
     placedEffect.userData.placedTime = elapsed;
     placedEffect.userData.signMaterial.uniforms.uReveal.value = 0;
     statusEl.textContent = 'Atmósfera colocada. Muévete alrededor para explorarla.';
+
+    // Iniciar el audio ambiental nocturno al colocar la atmósfera
+    iniciarAudioAmbiente();
   }
 
   function clearEffect() {
@@ -522,9 +550,13 @@
     placedEffect.userData.signMaterial.uniforms.uReveal.value = 0;
     reticle.visible = false;
     statusEl.textContent = 'Efecto reiniciado. Apunta al suelo y toca para colocar.';
+
+    // Pausar y reiniciar el audio al limpiar la escena
+    detenerAudioAmbiente();
   }
 
   async function endAR() {
+    detenerAudioAmbiente();
     if (activeSession) {
       try { await activeSession.end(); } catch (_) {}
     }
@@ -557,6 +589,7 @@
     }
 
     session.addEventListener('end', () => {
+      detenerAudioAmbiente();
       hitTestSource = null;
       activeSession = null;
       xrSessionStarting = false;
@@ -567,6 +600,7 @@
   });
 
   renderer.xr.addEventListener('sessionend', () => {
+    detenerAudioAmbiente();
     hitTestSource = null;
     activeSession = null;
     xrSessionStarting = false;
@@ -582,12 +616,10 @@
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
-    // Actualizar shaders
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.signMaterial.uniforms.uTime.value = elapsed;
 
-    // Animar materialización gradual del letrero (duración ~4.2 segundos) y flotación suave
     if (placedEffect.visible && placedEffect.userData.placedTime !== null) {
       const dt = Math.max(0, elapsed - placedEffect.userData.placedTime);
       const progress = Math.min(1.0, dt / 4.2);
@@ -597,7 +629,6 @@
       const signMesh = placedEffect.userData.signMesh;
       signMesh.position.y = 1.02 + Math.sin(elapsed * 1.4) * 0.035;
 
-      // Orientar suavemente el letrero hacia la cámara del usuario en el eje horizontal
       const xrCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
       xrCam.getWorldPosition(camWorldPos);
       signMesh.lookAt(camWorldPos.x, signMesh.getWorldPosition(new THREE.Vector3()).y, camWorldPos.z);

@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="es">
 <head>
@@ -11,8 +10,10 @@
       color-scheme: dark;
       --mint: #8ce7d5;
       --accent: #6ee0ff;
-      --glass: rgba(5, 22, 27, .72);
+      --lime: #b9ff6b;
+      --glass: rgba(6, 22, 28, .72);
       --glass-border: rgba(164, 231, 221, .22);
+      --radius: 22px;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
     html, body {
@@ -20,175 +21,189 @@
       background: #07191d; color: #effbf9;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
       -webkit-font-smoothing: antialiased;
+      overscroll-behavior: contain;
     }
     body { min-height: 100svh; overflow: hidden; }
     #app { position: fixed; inset: 0; overflow: hidden; }
     canvas { display: block; touch-action: none; }
+    button { touch-action: manipulation; font-family: inherit; }
+
+    /* Fondo vivo pre-AR (glow sutil) */
+    #app::before {
+      content: ''; position: absolute; inset: -20%;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(140, 231, 213, .12), transparent 55%),
+        radial-gradient(circle at 75% 70%, rgba(110, 224, 255, .08), transparent 55%);
+      pointer-events: none; z-index: 0;
+      transition: opacity .6s ease;
+    }
+    body.enAR #app::before { opacity: 0; }
 
     /* ================= HUD ================= */
     #hud {
       position: absolute; z-index: 5; inset: 0;
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+      padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
       pointer-events: none;
+      transition: opacity .4s ease;
     }
     .top { width: min(100%, 560px); margin-inline: auto; }
     .eyebrow {
-      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
       color: var(--mint); font-weight: 750;
     }
+    .eyebrow::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--mint); box-shadow: 0 0 8px var(--mint);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
     h1 {
-      font-size: clamp(28px, 7.5vw, 42px); line-height: 1.02;
-      margin: 10px 0 0; letter-spacing: -.04em;
-      background: linear-gradient(120deg, #ffffff 30%, #9feadd 100%);
+      font-size: clamp(28px, 7.5vw, 44px); line-height: 1.02;
+      margin: 12px 0 0; letter-spacing: -.035em;
+      background: linear-gradient(120deg, #ffffff 25%, #9feadd 80%);
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
 
-    /* ================= Portada: espacio para fotografía ================= */
-    .foto-portada {
-      position: absolute; top: 51%; left: 50%;
+    /* ================= Instrucción central ================= */
+    #instruccion {
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: min(76%, 390px); aspect-ratio: 4 / 5; max-height: 43svh;
-      border-radius: 24px;
-      border: 1px solid rgba(164, 231, 221, .20);
-      background:
-        radial-gradient(ellipse at 50% 25%, rgba(140, 231, 213, .06), transparent 62%),
-        linear-gradient(155deg, rgba(255,255,255,.025), rgba(110,224,255,.012));
-      box-shadow: 0 24px 60px rgba(0,0,0,.14), inset 0 0 0 1px rgba(255,255,255,.025);
+      width: min(88%, 420px);
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 26px 26px 24px;
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      box-shadow: 0 24px 60px #0007, 0 0 0 1px #ffffff08 inset;
+      text-align: center;
       pointer-events: none;
-      transition: opacity .35s ease, transform .35s ease, visibility .35s ease;
+      transition: opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1);
+      z-index: 6;
     }
-    .foto-portada.oculto {
-      opacity: 0; visibility: hidden;
-      transform: translate(-50%, -47%) scale(.98);
-    }
-    .foto-portada img { display: block; width: 100%; height: 100%; object-fit: cover; }
-
-    /* Estado accesible sin texto visible en la portada */
-    .status-sr {
-      position: absolute !important; width: 1px !important; height: 1px !important;
-      padding: 0 !important; margin: -1px !important; overflow: hidden !important;
-      clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
-    }
-
-    /* Instrucción visible durante AR */
-    #arHint {
-      position: absolute; z-index: 18;
-      left: 50%; bottom: calc(130px + env(safe-area-inset-bottom));
-      transform: translateX(-50%); width: min(88%, 430px);
-      display: none; padding: 12px 16px; border-radius: 16px;
-      background: rgba(5, 22, 27, .78);
-      border: 1px solid rgba(164, 231, 221, .24);
-      box-shadow: 0 12px 32px #0004;
-      color: #effbf9; text-align: center; font-size: 13px;
-      line-height: 1.4; font-weight: 650; letter-spacing: .01em;
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    #instruccion.oculto {
+      opacity: 0; transform: translate(-50%, -50%) scale(.9);
       pointer-events: none;
     }
-    #arHint.activo { display: block; }
+    .ico-inst {
+      width: 48px; height: 48px; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(140, 231, 213, .18), rgba(110, 224, 255, .1));
+      border: 1px solid rgba(164, 231, 221, .22);
+      color: var(--mint);
+    }
+    #instruccion .etiqueta {
+      display: inline-block; padding: 5px 12px; border-radius: 99px;
+      background: rgba(140, 231, 213, .12);
+      color: var(--mint); font-size: 10px; letter-spacing: .16em;
+      text-transform: uppercase; font-weight: 800; margin-bottom: 12px;
+      border: 1px solid rgba(140, 231, 213, .2);
+    }
+    #status {
+      font-size: 15px; line-height: 1.55; color: #e9f8f5;
+      margin: 0; font-weight: 500;
+    }
 
     /* ================= Panel inferior ================= */
     .bottom { width: min(100%, 560px); margin-inline: auto; }
     .panel {
-      background: linear-gradient(145deg, rgba(7, 27, 32, .86), rgba(5, 22, 27, .74));
+      background: var(--glass);
       border: 1px solid var(--glass-border);
-      border-radius: 22px;
-      padding: 13px;
+      border-radius: 20px;
+      padding: 14px 15px;
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 18px 46px #0005, inset 0 1px 0 rgba(255,255,255,.035);
+      box-shadow: 0 14px 44px #0005;
     }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; pointer-events: auto; }
     button {
       appearance: none; border: 0; border-radius: 999px;
-      padding: 14px 20px; min-height: 48px;
+      padding: 14px 20px; min-height: 50px;
       font-weight: 750; font-size: 14px; cursor: pointer;
-      font-family: inherit; touch-action: manipulation;
-      transition: transform .15s ease, background .2s ease, box-shadow .2s ease, border-color .2s ease;
+      transition: transform .15s ease, background .2s ease, box-shadow .2s ease, opacity .2s ease;
     }
-    button:active { transform: scale(.96); }
-    button:focus-visible { outline: 2px solid #b7ff76; outline-offset: 3px; }
+    button:active:not(:disabled) { transform: scale(.96); }
+    button:disabled { cursor: not-allowed; }
     #start {
       color: #06201e;
-      background: linear-gradient(120deg, var(--mint), #a6f7e7 52%, var(--accent));
+      background: linear-gradient(120deg, var(--mint), var(--accent));
       flex: 1;
-      letter-spacing: .005em;
-      box-shadow: 0 9px 26px rgba(140, 231, 213, .22), inset 0 1px 0 rgba(255,255,255,.34);
+      box-shadow: 0 8px 28px rgba(140, 231, 213, .28);
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     }
-    #start:hover:not(:disabled) { box-shadow: 0 11px 32px rgba(140, 231, 213, .30); }
-    #start:disabled { opacity: .6; cursor: not-allowed; }
+    #start.loading { pointer-events: none; opacity: .9; }
+    #start.loading::after {
+      content: ''; width: 16px; height: 16px; border-radius: 50%;
+      border: 2.5px solid rgba(6, 32, 30, .28);
+      border-top-color: #06201e;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ================= Controles flotantes AR ================= */
+    /* ================= Controles AR flotantes ================= */
     #controlesAR {
-      position: absolute; top: calc(16px + env(safe-area-inset-top));
+      position: absolute; top: calc(18px + env(safe-area-inset-top));
       right: 16px; z-index: 20;
       display: none; gap: 10px; pointer-events: auto;
     }
     #controlesAR.activo { display: flex; }
     .btn-flotante {
-      width: 44px; height: 44px; min-height: 44px; padding: 0;
+      width: 46px; height: 46px; min-height: 46px; padding: 0;
       border-radius: 50%;
-      background: rgba(10, 30, 36, .78);
+      background: rgba(10, 30, 36, .82);
       border: 1px solid rgba(164, 231, 221, .28);
       color: #effbf9;
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; line-height: 1;
-      box-shadow: 0 8px 24px #0005;
+      box-shadow: 0 10px 28px #0006;
     }
     #close.btn-flotante { color: #ffc7c7; border-color: rgba(255, 100, 100, .4); }
 
-    /* ================= Dock de captura: foto + vídeo ================= */
+    /* ================= Botón de foto ================= */
     #contenedorControles {
-      position: absolute; bottom: calc(26px + env(safe-area-inset-bottom));
-      left: 50%; transform: translateX(-50%) translateY(16px);
+      position: absolute; bottom: calc(36px + env(safe-area-inset-bottom));
+      left: 50%; transform: translateX(-50%) translateY(24px);
       z-index: 20; display: flex; flex-direction: column; align-items: center;
       gap: 12px; pointer-events: none; opacity: 0;
-      transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1);
+      transition: opacity .55s cubic-bezier(.2,.8,.2,1), transform .55s cubic-bezier(.2,.8,.2,1);
     }
     #contenedorControles.activo {
       opacity: 1; transform: translateX(-50%) translateY(0);
       pointer-events: auto;
     }
     .dock-captura {
-      display: flex; align-items: center; justify-content: center; gap: 13px;
-      background: rgba(7, 24, 29, .82);
-      border: 1px solid rgba(164, 231, 221, .25);
-      padding: 9px 12px; border-radius: 50px;
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 15px 42px #0006, inset 0 1px 0 rgba(255,255,255,.035);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(10, 30, 36, .78);
+      border: 1px solid rgba(164, 231, 221, .24);
+      padding: 10px 16px; border-radius: 50px;
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      box-shadow: 0 16px 44px #0007;
       pointer-events: auto;
     }
-    .btn-captura {
-      width: 52px; height: 52px; min-height: 52px; padding: 0;
-      border-radius: 50%; border: 1px solid rgba(255,255,255,.34);
-      background: rgba(255,255,255,.045); color: #effbf9;
-      display: flex; align-items: center; justify-content: center;
-      transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
-    }
-    .btn-captura svg { display: block; width: 24px; height: 24px; }
     #btnFoto {
-      width: 68px; height: 68px; min-height: 68px; padding: 0;
-      border: 3px solid rgba(255,255,255,.96);
-      background: rgba(255,255,255,.10);
-      box-shadow: 0 0 0 4px rgba(140,231,213,.13), 0 0 24px rgba(140,231,213,.10);
+      width: 70px; height: 70px; min-height: 70px; padding: 0;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      background: rgba(255, 255, 255, .08);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 5px rgba(140, 231, 213, .18), 0 10px 30px rgba(0,0,0,.45);
+      transition: transform .12s ease, background .2s ease, box-shadow .2s ease;
+      animation: pulseGlow 3.5s ease-in-out infinite;
     }
-    #btnFoto .nucleo-foto {
-      width: 54px; height: 54px; border-radius: 50%;
-      background: #fff; display: flex; align-items: center; justify-content: center;
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 5px rgba(140, 231, 213, .18), 0 10px 30px rgba(0,0,0,.45); }
+      50%      { box-shadow: 0 0 0 10px rgba(140, 231, 213, .07), 0 10px 30px rgba(0,0,0,.45); }
+    }
+    #btnFoto:active { transform: scale(.92); animation: none; }
+    .nucleo-foto {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
       color: #0a1a1d;
-    }
-    #btnVideo { color: #c1ff8b; border-color: rgba(193,255,139,.50); }
-    #btnVideo.grabando {
-      color: #ff7d8b; border-color: rgba(255,125,139,.9);
-      box-shadow: 0 0 0 4px rgba(255,80,105,.12), 0 0 22px rgba(255,80,105,.16);
-      animation: pulsoGrabacion 1.25s ease-in-out infinite;
-    }
-    @keyframes pulsoGrabacion {
-      0%,100% { box-shadow: 0 0 0 3px rgba(255,80,105,.08), 0 0 16px rgba(255,80,105,.12); }
-      50% { box-shadow: 0 0 0 6px rgba(255,80,105,.15), 0 0 24px rgba(255,80,105,.24); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
 
     #flashPantalla {
@@ -199,18 +214,22 @@
     /* ================= Toast ================= */
     .toast {
       position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(.9);
-      background: rgba(10, 30, 36, .92);
-      border: 1px solid rgba(164, 231, 221, .3);
+      transform: translate(-50%, -50%) scale(.92);
+      background: rgba(10, 30, 36, .94);
+      border: 1px solid rgba(164, 231, 221, .32);
       color: #e9f8f5;
-      padding: 12px 22px; border-radius: 99px;
-      font-size: 13px; font-weight: 600;
+      padding: 13px 24px; border-radius: 99px;
+      font-size: 13px; font-weight: 650;
       z-index: 150; opacity: 0; pointer-events: none;
-      transition: opacity .3s, transform .3s;
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      transition: opacity .3s ease, transform .3s cubic-bezier(.2,.8,.2,1);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 14px 40px #0006;
+      display: flex; align-items: center; gap: 10px;
     }
-    .toast.visible {
-      opacity: 1; transform: translate(-50%, -50%) scale(1);
+    .toast.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .toast::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--mint); box-shadow: 0 0 10px var(--mint);
     }
 
     /* ================= Fallback ================= */
@@ -221,21 +240,75 @@
       background: linear-gradient(160deg, #0b282d, #07191d);
     }
     #fallback .panel { max-width: 460px; pointer-events: auto; }
-    @media (max-height: 700px) {
-      .foto-portada { max-height: 35svh; top: 49%; }
-      h1 { font-size: clamp(27px, 6.5vw, 38px); }
-      #arHint { bottom: calc(116px + env(safe-area-inset-bottom)); }
-    }
     #fallback h2 { margin: 0 0 10px; font-size: 24px; }
     #fallback p { color: #c3d9d7; font-size: 14px; line-height: 1.55; }
     .pill {
       display: inline-block; padding: 5px 10px; border-radius: 99px;
-      background: #8ce7d51c; color: var(--mint);
+      background: rgba(140, 231, 213, .12); color: var(--mint);
       font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
       font-weight: 800; margin-bottom: 10px;
+      border: 1px solid rgba(140, 231, 213, .2);
+    }
+
+    /* ================= Modal de descarga ================= */
+    #modalPreview {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, .88);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      z-index: 200; display: none; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 18px; pointer-events: auto;
+      opacity: 0; transition: opacity .3s ease;
+    }
+    #modalPreview.activo { display: flex; opacity: 1; }
+    .tarjeta-preview {
+      background: linear-gradient(160deg, #16262b, #0e1c20);
+      border: 1px solid rgba(164, 231, 221, .18);
+      border-radius: 24px; padding: 18px;
+      width: 100%; max-width: 400px; color: #fff;
+      box-shadow: 0 30px 80px #0009, 0 0 0 1px #ffffff08 inset;
+      transform: translateY(20px); opacity: 0;
+      transition: transform .4s cubic-bezier(.2,.8,.2,1), opacity .35s ease;
+    }
+    #modalPreview.activo .tarjeta-preview {
+      transform: translateY(0); opacity: 1;
+    }
+    .cabecera-preview {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; font-size: 13px; font-weight: 650; color: #e5f4f1;
+      letter-spacing: .02em;
+    }
+    #pesoArchivo {
+      background: rgba(185, 255, 107, .14); color: var(--lime);
+      border: 1px solid rgba(185, 255, 107, .32);
+      padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 750;
+    }
+    .contenedor-media {
+      width: 100%; max-height: 55vh; border-radius: 14px;
+      overflow: hidden; background: #000; margin-bottom: 14px;
+      display: flex; justify-content: center; align-items: center;
+      border: 1px solid #ffffff10;
+    }
+    .contenedor-media img { max-width: 100%; max-height: 55vh; object-fit: contain; display: block; }
+    .acciones-preview { display: flex; gap: 8px; }
+    .btn-modal {
+      flex: 1; padding: 14px 10px; border: none; border-radius: 14px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: transform .15s ease, filter .2s ease;
+    }
+    .btn-modal:active { transform: scale(.96); }
+    #btnCerrarPreview {
+      background: #ffffff12; color: #fff; flex: .5;
+      border: 1px solid #ffffff1a;
+    }
+    #btnCompartir { display: none; background: #30d158; color: #000; }
+    #btnDescargar {
+      background: linear-gradient(120deg, var(--mint), var(--accent));
+      color: #06201e;
+      box-shadow: 0 8px 24px rgba(140, 231, 213, .25);
     }
   </style>
-
   <script type="importmap">
     {
       "imports": {
@@ -245,7 +318,6 @@
     }
   </script>
 </head>
-
 <body>
 <div id="app">
   <div id="hud">
@@ -254,9 +326,15 @@
       <h1>Atmósferas<br>escultóricas.</h1>
     </div>
 
-    <!-- Espacio reservado para añadir una fotografía a la portada. -->
-    <div id="fotoPortada" class="foto-portada" aria-label="Espacio reservado para fotografía"></div>
-    <p id="status" class="status-sr" aria-live="polite">Preparando la experiencia…</p>
+    <div id="instruccion">
+      <div class="ico-inst">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h4l3-7 4 14 3-7h4"/>
+        </svg>
+      </div>
+      <span class="etiqueta">Instrucciones</span>
+      <p id="status">Preparando la experiencia…</p>
+    </div>
 
     <div class="bottom" id="panelInicio">
       <div class="panel">
@@ -267,38 +345,20 @@
     </div>
   </div>
 
-  <!-- Controles espaciales (reiniciar / salir) -->
+  <!-- Botones flotantes AR -->
   <div id="controlesAR">
-    <button id="reset" class="btn-flotante" aria-label="Reposicionar" title="Reposicionar">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M20 7v5h-5"/><path d="M4.9 9A7.5 7.5 0 0 1 18 5.7L20 12M4 17v-5h5"/><path d="M19.1 15A7.5 7.5 0 0 1 6 18.3L4 12"/>
-      </svg>
-    </button>
-    <button id="close" class="btn-flotante" aria-label="Salir" title="Salir">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-        <path d="m6 6 12 12M18 6 6 18"/>
-      </svg>
-    </button>
+    <button id="reset" class="btn-flotante" aria-label="Reposicionar">⟳</button>
+    <button id="close" class="btn-flotante" aria-label="Salir">✕</button>
   </div>
 
-  <div id="arHint" aria-live="polite">Apunta al suelo y gira suavemente la cámara alrededor.</div>
-
-  <!-- Dock de foto y vídeo -->
+  <!-- Botón de cámara -->
   <div id="contenedorControles">
-    <div class="dock-captura" aria-label="Controles de captura">
-      <button id="btnVideo" class="btn-captura" aria-label="Iniciar grabación de vídeo" title="Grabar vídeo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="6" width="12" height="12" rx="3"/>
-          <path d="m15 10 5.5-3v10L15 14"/>
-          <circle cx="9" cy="12" r="1.25" fill="currentColor" stroke="none"/>
-        </svg>
-      </button>
-      <button id="btnFoto" aria-label="Tomar foto" title="Tomar fotografía">
+    <div class="dock-captura">
+      <button id="btnFoto" aria-label="Tomar foto">
         <div class="nucleo-foto">
-          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M4.2 8.1h3.2l1.5-2.2h6.2l1.5 2.2h3.2A1.6 1.6 0 0 1 21.4 9.7v8A1.6 1.6 0 0 1 19.8 19.3H4.2a1.6 1.6 0 0 1-1.6-1.6v-8a1.6 1.6 0 0 1 1.6-1.6Z"/>
-            <circle cx="12" cy="13.7" r="3.6"/>
-            <path d="M17.7 10.7h.01" stroke-width="2.8"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
           </svg>
         </div>
       </button>
@@ -315,24 +375,40 @@
 </div>
 
 <div id="flashPantalla"></div>
+
+<!-- Modal de descarga -->
+<div id="modalPreview">
+  <div class="tarjeta-preview">
+    <div class="cabecera-preview">
+      <span id="tituloPreview">Captura lista</span>
+      <span id="pesoArchivo">0 KB</span>
+    </div>
+    <div class="contenedor-media" id="contenedorMedia"></div>
+    <div class="acciones-preview">
+      <button class="btn-modal" id="btnCerrarPreview">✕</button>
+      <button class="btn-modal" id="btnCompartir">Guardar</button>
+      <button class="btn-modal" id="btnDescargar">⬇ Descargar JPG</button>
+    </div>
+  </div>
+</div>
+
 <audio id="audioBosque" src="bosque_noche.mp3" preload="auto" loop></audio>
 
 <script type="module">
   import * as THREE from 'three';
 
-  const app          = document.querySelector('#app');
-  const statusEl     = document.querySelector('#status');
-  const fotoPortada  = document.querySelector('#fotoPortada');
-  const arHint       = document.querySelector('#arHint');
-  const panelInicio  = document.querySelector('#panelInicio');
-  const controlesAR  = document.querySelector('#controlesAR');
-  const controlesCam = document.querySelector('#contenedorControles');
-  const startButton  = document.querySelector('#start');
-  const resetButton  = document.querySelector('#reset');
-  const closeButton  = document.querySelector('#close');
-  const fallback     = document.querySelector('#fallback');
-  const fallbackText = document.querySelector('#fallbackText');
-  const audioBosque  = document.querySelector('#audioBosque');
+  const app         = document.querySelector('#app');
+  const statusEl    = document.querySelector('#status');
+  const instruccion = document.querySelector('#instruccion');
+  const panelInicio = document.querySelector('#panelInicio');
+  const controlesAR = document.querySelector('#controlesAR');
+  const controlesCam= document.querySelector('#contenedorControles');
+  const startButton = document.querySelector('#start');
+  const resetButton = document.querySelector('#reset');
+  const closeButton = document.querySelector('#close');
+  const fallback    = document.querySelector('#fallback');
+  const fallbackText= document.querySelector('#fallbackText');
+  const audioBosque = document.querySelector('#audioBosque');
 
   /* ---------------- Toast helper ---------------- */
   function mostrarToast(msg) {
@@ -343,39 +419,32 @@
     requestAnimationFrame(() => t.classList.add('visible'));
     setTimeout(() => {
       t.classList.remove('visible');
-      setTimeout(() => t.remove(), 300);
+      setTimeout(() => t.remove(), 320);
     }, 2000);
   }
 
   /* ---------------- Audio ---------------- */
   let fadeAudioInterval = null;
-
   function iniciarAudioAmbiente() {
     if (!audioBosque) return;
     clearInterval(fadeAudioInterval);
-    audioBosque.volume = 0.0;
+    audioBosque.volume = 0;
     const p = audioBosque.play();
-
     if (p !== undefined) {
       p.then(() => {
         fadeAudioInterval = setInterval(() => {
-          if (audioBosque.volume < 0.85) {
-            audioBosque.volume = Math.min(0.85, audioBosque.volume + 0.05);
-          } else {
-            clearInterval(fadeAudioInterval);
-          }
+          if (audioBosque.volume < 0.85) audioBosque.volume = Math.min(0.85, audioBosque.volume + 0.05);
+          else clearInterval(fadeAudioInterval);
         }, 150);
-      }).catch(err => console.warn("Audio:", err));
+      }).catch(err => console.warn('Audio:', err));
     }
   }
-
   function detenerAudioAmbiente() {
     if (!audioBosque) return;
     clearInterval(fadeAudioInterval);
     fadeAudioInterval = setInterval(() => {
-      if (audioBosque.volume > 0.05) {
-        audioBosque.volume = Math.max(0, audioBosque.volume - 0.08);
-      } else {
+      if (audioBosque.volume > 0.05) audioBosque.volume = Math.max(0, audioBosque.volume - 0.08);
+      else {
         audioBosque.volume = 0;
         audioBosque.pause();
         audioBosque.currentTime = 0;
@@ -386,10 +455,8 @@
 
   /* ---------------- Renderer ---------------- */
   const renderer = new THREE.WebGLRenderer({
-    antialias: true, alpha: true, powerPreference: 'high-performance',
-    preserveDrawingBuffer: true
+    antialias: true, alpha: true, powerPreference: 'high-performance'
   });
-
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -403,42 +470,37 @@
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 30);
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.6));
 
-  /* ---------------- Textura de partículas verdes fluorescentes ---------------- */
+  /* ---------------- Textura partícula (lima fluorescente) ---------------- */
   function makeParticleTexture() {
     const size = 128;
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-
-    g.addColorStop(0.0, 'rgba(250, 255, 226, 1)');
-    g.addColorStop(0.15, 'rgba(178, 255, 92, 0.98)');
-    g.addColorStop(0.6, 'rgba(38, 255, 96, 0.42)');
-    g.addColorStop(1.0, 'rgba(0, 125, 45, 0)');
-
+    // Núcleo cálido → lima fluorescente → verde lima → borde oscuro
+    g.addColorStop(0.00, 'rgba(255, 255, 225, 1)');
+    g.addColorStop(0.18, 'rgba(205, 255, 120, 0.96)');
+    g.addColorStop(0.55, 'rgba(140, 245, 60, 0.42)');
+    g.addColorStop(1.00, 'rgba(30, 100, 10, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
-
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
-
   const particleTexture = makeParticleTexture();
 
   /* ---------------- Reticle ---------------- */
   const reticleGeo = new THREE.RingGeometry(0.12, 0.17, 48);
   reticleGeo.rotateX(-Math.PI / 2);
-
   const reticle = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({
     color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95
   }));
-
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Atmósfera original: agua y partículas pulsantes ---------------- */
+  /* ---------------- Atmósfera (agua opaca + partículas grandes lima) ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
@@ -456,9 +518,10 @@
       side: THREE.DoubleSide,
       uniforms: {
         uTime:         { value: 0 },
-        uColorDeep:    { value: new THREE.Color(0x041c30) },
-        uColorShallow: { value: new THREE.Color(0x1690c2) },
-        uLightColor:   { value: new THREE.Color(0xbce9ff) },
+        // Agua azulada pero con brillo reducido
+        uColorDeep:    { value: new THREE.Color(0x041a2e) },
+        uColorShallow: { value: new THREE.Color(0x1488b0) },
+        uLightColor:   { value: new THREE.Color(0x7fc4e0) },  // antes 0xbce9ff → menos brillante
         uFogColor:     { value: new THREE.Color(0x081c33) },
         uFogDensity:   { value: 0.14 },
         uNormalMap:    { value: waterNormal }
@@ -516,12 +579,13 @@
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
 
-          float spec = pow(max(dot(normal, lightDir), 0.0), 24.0);
+          // ====== REFLEJOS REDUCIDOS (menos brillante) ======
+          float spec = pow(max(dot(normal, lightDir), 0.0), 20.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
           vec3 color = mix(uColorDeep, uColorShallow, smoothstep(0.2, 0.8, height));
-          color += uLightColor * spec * 1.5;
-          color = mix(color, uLightColor, fresnel * 0.4);
+          color += uLightColor * spec * 0.35;              // antes 1.5
+          color = mix(color, uLightColor, fresnel * 0.10); // antes 0.4
 
           float dist = length(cameraPosition - vWorldPosition);
           float fogFactor = 1.0 - exp(-pow(dist * uFogDensity, 2.0));
@@ -530,7 +594,7 @@
           color = mix(color, uFogColor, clamp(fogFactor * 0.65 + mistLayer, 0.0, 0.75));
 
           float alpha = mix(0.85, 0.99, smoothstep(0.2, 0.8, height));
-          alpha = max(alpha, fresnel * 0.8);
+          alpha = max(alpha, fresnel * 0.25);              // antes 0.8
 
           float edgeFade = 1.0 - smoothstep(0.7, 1.0, length(vUv - 0.5) * 2.0);
           alpha = clamp(alpha, 0.0, 0.95) * edgeFade;
@@ -547,7 +611,7 @@
     water.frustumCulled = false;
     group.add(water);
 
-    // ===== PARTÍCULAS: distribución original =====
+    // ===== PARTÍCULAS: DOBLE DE GRANDES + LIMA PULSANTE =====
     const particleCount = 1200;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
@@ -581,6 +645,7 @@
         uniform float uFogDensity;
         attribute float aSeed;
         varying float vAlpha;
+        varying float vPulse;
 
         void main() {
           vec3 pos = position;
@@ -592,13 +657,14 @@
           float dist = length(mvPosition.xyz);
           float fogAtten = exp(-pow(dist * uFogDensity, 2.0));
 
-          // Doble de tamaño respecto al shader original.
-          float pulse = 0.75 + 0.35 * sin(uTime * 2.2 + aSeed * 3.5);
-          gl_PointSize = 280.0 * uPixelRatio * (1.0 / -mvPosition.z) * pulse;
-          gl_PointSize = clamp(gl_PointSize, 8.0, 180.0);
+          // Tamaño base x2 (280) con pulso
+          float pulse = 0.7 + 0.4 * sin(uTime * 2.0 + aSeed * 3.0);
+          vPulse = pulse;
 
-          // ===== Pulso de alpha original =====
-          float alphaPulse = 0.6 + 0.4 * sin(uTime * 1.8 + aSeed * 5.0);
+          gl_PointSize = 280.0 * uPixelRatio * (1.0 / -mvPosition.z) * pulse;
+          gl_PointSize = clamp(gl_PointSize, 6.0, 180.0);
+
+          float alphaPulse = 0.55 + 0.45 * sin(uTime * 1.6 + aSeed * 5.0);
           vAlpha = alphaPulse * fogAtten;
 
           gl_Position = projectionMatrix * mvPosition;
@@ -607,9 +673,13 @@
       fragmentShader: `
         uniform sampler2D uTexture;
         varying float vAlpha;
+        varying float vPulse;
         void main() {
           vec4 texColor = texture2D(uTexture, gl_PointCoord);
-          gl_FragColor = vec4(texColor.rgb * 1.2, texColor.a * vAlpha);
+          // Realce lima fluorescente
+          vec3 boost = texColor.rgb * vec3(1.05, 1.15, 0.95);
+          float a = texColor.a * vAlpha;
+          gl_FragColor = vec4(boost, a);
         }
       `
     });
@@ -627,146 +697,143 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Captura: fotografía directa y vídeo ---------------- */
-  window.capturador = {
-    fotoPendiente: false,
-    canvas: document.createElement('canvas')
-  };
-  window.capturador.ctx = window.capturador.canvas.getContext('2d', { alpha: false });
+  /* =====================================================
+     CAPTURA WEBXR → RENDER TARGET
+     WebXR no permite leer el canvas del DOM: renderiza en su
+     propio framebuffer. Por eso:
+       1. Clonamos la cámara XR (pose + proyección)
+       2. Renderizamos la escena a un WebGLRenderTarget
+       3. readRenderTargetPixels() → ImageData → JPG
+     ===================================================== */
+  let captureRT = null;
 
-  const btnFoto = document.getElementById('btnFoto');
-  const btnVideo = document.getElementById('btnVideo');
-  const flash = document.getElementById('flashPantalla');
+  function capturarFoto() {
+    // Ocultar reticle durante la foto
+    const reticleWasVisible = reticle.visible;
+    reticle.visible = false;
 
-  let grabadorVideo = null;
-  let streamVideo = null;
-  let fragmentosVideo = [];
+    // Aspect real de la vista XR
+    let aspect = window.innerWidth / window.innerHeight;
+    let capCam;
 
-  function marcaTemporal() {
-    const d = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
-  }
+    if (renderer.xr.isPresenting) {
+      const xrCam = renderer.xr.getCamera();
+      const eye = (xrCam.cameras && xrCam.cameras.length) ? xrCam.cameras[0] : xrCam;
+      const e = eye.projectionMatrix.elements;
+      aspect = e[5] / e[0];
 
-  function descargarArchivo(blob, nombre) {
-    if (!blob || !blob.size) {
-      mostrarToast('No se pudo generar el archivo. Inténtalo de nuevo.');
-      return;
+      capCam = new THREE.PerspectiveCamera();
+      capCam.matrixAutoUpdate = false;
+      capCam.matrixWorld.copy(eye.matrixWorld);
+      capCam.matrixWorldInverse.copy(eye.matrixWorld).invert();
+      capCam.projectionMatrix.copy(eye.projectionMatrix);
+      capCam.projectionMatrixInverse.copy(eye.projectionMatrix).invert();
+    } else {
+      capCam = camera.clone();
+      capCam.aspect = aspect;
+      capCam.updateProjectionMatrix();
+      capCam.updateMatrixWorld(true);
     }
 
-    const url = URL.createObjectURL(blob);
-    const enlace = document.createElement('a');
-    enlace.href = url;
-    enlace.download = nombre;
-    enlace.style.display = 'none';
-    enlace.rel = 'noopener';
+    // Resolución objetivo (JPG ligero, ≤1600 px por lado mayor)
+    const maxDim = 1600;
+    let w, h;
+    if (aspect >= 1) { w = maxDim; h = Math.round(maxDim / aspect); }
+    else            { h = maxDim; w = Math.round(maxDim * aspect); }
 
-    document.body.appendChild(enlace);
-    enlace.click();
-    enlace.remove();
+    // Crear / redimensionar RT
+    if (!captureRT || captureRT.width !== w || captureRT.height !== h) {
+      if (captureRT) captureRT.dispose();
+      captureRT = new THREE.WebGLRenderTarget(w, h, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        depthBuffer: true,
+        stencilBuffer: false
+      });
+      captureRT.texture.colorSpace = THREE.SRGBColorSpace;
+    }
 
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    // Guardar estado
+    const prevXR      = renderer.xr.enabled;
+    const prevTarget  = renderer.getRenderTarget();
+    const prevAlpha   = renderer.getClearAlpha();
+    const prevColor   = new THREE.Color();
+    renderer.getClearColor(prevColor);
+
+    // Render a RT
+    renderer.xr.enabled = false;
+    renderer.setClearColor(0x061a22, 1);
+    renderer.setRenderTarget(captureRT);
+    renderer.render(scene, capCam);
+
+    // Restaurar
+    renderer.setRenderTarget(prevTarget);
+    renderer.setClearColor(prevColor, prevAlpha);
+    renderer.xr.enabled = prevXR;
+
+    // Leer píxeles
+    const pixels = new Uint8Array(w * h * 4);
+    renderer.readRenderTargetPixels(captureRT, 0, 0, w, h, pixels);
+
+    // Volcar a canvas 2D (flip Y + alpha opaco)
+    const canvas2d = document.createElement('canvas');
+    canvas2d.width = w;
+    canvas2d.height = h;
+    const ctx = canvas2d.getContext('2d', { alpha: false });
+    const img = ctx.createImageData(w, h);
+    const data = img.data;
+    for (let y = 0; y < h; y++) {
+      const src = (h - 1 - y) * w * 4;
+      const dst = y * w * 4;
+      for (let x = 0; x < w; x++) {
+        const s = src + x * 4, d = dst + x * 4;
+        data[d]     = pixels[s];
+        data[d + 1] = pixels[s + 1];
+        data[d + 2] = pixels[s + 2];
+        data[d + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    // Restaurar reticle
+    reticle.visible = reticleWasVisible;
+
+    // Exportar JPG comprimido
+    canvas2d.toBlob((blob) => {
+      if (blob && blob.size > 0) {
+        mostrarPreview(blob, 'foto');
+      } else {
+        mostrarToast('No se pudo generar la foto');
+      }
+    }, 'image/jpeg', 0.62);
   }
+
+  /* ---------------- Botón foto ---------------- */
+  const btnFoto = document.getElementById('btnFoto');
+  const flash   = document.getElementById('flashPantalla');
+  let capturaEnCurso = false;
 
   btnFoto.addEventListener('click', () => {
-    if (!activeSession) {
-      mostrarToast('Primero inicia la experiencia AR.');
-      return;
-    }
+    if (capturaEnCurso) return;
+    capturaEnCurso = true;
 
-    flash.style.opacity = '0.82';
-    setTimeout(() => { flash.style.opacity = '0'; }, 150);
-    window.capturador.fotoPendiente = true;
-  });
+    flash.style.opacity = '0.9';
+    setTimeout(() => { flash.style.opacity = '0'; }, 180);
 
-  function formatoVideoCompatible() {
-    if (!window.MediaRecorder) return '';
+    if (navigator.vibrate) navigator.vibrate(18);
 
-    const formatos = [
-      'video/mp4;codecs=avc1.42E01E',
-      'video/mp4',
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm'
-    ];
-
-    return formatos.find(tipo => MediaRecorder.isTypeSupported?.(tipo)) || '';
-  }
-
-  function restaurarBotonVideo() {
-    btnVideo.classList.remove('grabando');
-    btnVideo.setAttribute('aria-label', 'Iniciar grabación de vídeo');
-    btnVideo.title = 'Grabar vídeo';
-  }
-
-  function iniciarGrabacionVideo() {
-    if (!activeSession) {
-      mostrarToast('Primero inicia la experiencia AR.');
-      return;
-    }
-
-    if (!window.MediaRecorder || !renderer.domElement.captureStream) {
-      mostrarToast('La grabación de vídeo no está disponible en este navegador.');
-      return;
-    }
-
-    try {
-      streamVideo = renderer.domElement.captureStream(24);
-      const formato = formatoVideoCompatible();
-
-      grabadorVideo = formato
-        ? new MediaRecorder(streamVideo, { mimeType: formato })
-        : new MediaRecorder(streamVideo);
-
-      fragmentosVideo = [];
-
-      grabadorVideo.addEventListener('dataavailable', evento => {
-        if (evento.data && evento.data.size) fragmentosVideo.push(evento.data);
-      });
-
-      grabadorVideo.addEventListener('stop', () => {
-        const mime = grabadorVideo?.mimeType || formato || 'video/webm';
-        const extension = mime.includes('mp4') ? 'mp4' : 'webm';
-        const video = new Blob(fragmentosVideo, { type: mime });
-
-        if (video.size) {
-          descargarArchivo(video, `atmosferas-ar-${marcaTemporal()}.${extension}`);
-          mostrarToast('Vídeo preparado. Revisa las descargas del navegador.');
-        } else {
-          mostrarToast('La grabación quedó vacía. Inténtalo otra vez.');
-        }
-
-        if (streamVideo) streamVideo.getTracks().forEach(track => track.stop());
-        streamVideo = null;
-        grabadorVideo = null;
-        fragmentosVideo = [];
-        restaurarBotonVideo();
-      }, { once: true });
-
-      grabadorVideo.start(300);
-      btnVideo.classList.add('grabando');
-      btnVideo.setAttribute('aria-label', 'Detener y guardar vídeo');
-      btnVideo.title = 'Detener y guardar vídeo';
-      mostrarToast('Grabando vídeo. Pulsa de nuevo para detener y guardar.');
-    } catch (error) {
-      console.error('No se pudo iniciar la grabación:', error);
-
-      if (streamVideo) streamVideo.getTracks().forEach(track => track.stop());
-
-      streamVideo = null;
-      grabadorVideo = null;
-      fragmentosVideo = [];
-      restaurarBotonVideo();
-      mostrarToast('No se pudo iniciar la grabación en este navegador.');
-    }
-  }
-
-  btnVideo.addEventListener('click', () => {
-    if (grabadorVideo && grabadorVideo.state !== 'inactive') {
-      grabadorVideo.stop();
-    } else {
-      iniciarGrabacionVideo();
-    }
+    // Pequeño delay: deja que el flash no salga en la captura
+    setTimeout(() => {
+      try { capturarFoto(); }
+      catch (e) {
+        console.error(e);
+        mostrarToast('Error al capturar');
+      } finally {
+        capturaEnCurso = false;
+      }
+    }, 210);
   });
 
   /* ---------------- Estado AR ---------------- */
@@ -786,7 +853,6 @@
       mostrarToast('Apunta al suelo para colocar');
       return;
     }
-
     placedEffect.position.setFromMatrixPosition(reticle.matrix);
     placedEffect.position.y -= 0.01;
     placedEffect.visible = true;
@@ -801,9 +867,7 @@
 
   async function endAR() {
     detenerAudioAmbiente();
-    if (activeSession) {
-      try { await activeSession.end(); } catch (_) {}
-    }
+    if (activeSession) { try { await activeSession.end(); } catch (_) {} }
   }
 
   const controller = renderer.xr.getController(0);
@@ -812,20 +876,17 @@
 
   renderer.xr.addEventListener('sessionstart', async () => {
     activeSession = renderer.xr.getSession();
+    document.body.classList.add('enAR');
     fallback.style.display = 'none';
     panelInicio.style.display = 'none';
-
-    fotoPortada.classList.add('oculto');
-    arHint.classList.add('activo');
+    instruccion.classList.add('oculto');
     controlesAR.classList.add('activo');
     controlesCam.classList.add('activo');
 
     const session = activeSession;
     if (!session) return;
-
     try {
       const viewerSpace = await session.requestReferenceSpace('viewer');
-
       if (session === activeSession) {
         hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
       }
@@ -833,31 +894,24 @@
 
     session.addEventListener('end', () => {
       detenerAudioAmbiente();
-
+      document.body.classList.remove('enAR');
       hitTestSource = null;
       activeSession = null;
       xrSessionStarting = false;
-
       panelInicio.style.display = '';
       startButton.disabled = false;
+      startButton.classList.remove('loading');
       startButton.textContent = 'Iniciar realidad aumentada';
-
-      fotoPortada.classList.remove('oculto');
-      arHint.classList.remove('activo');
+      instruccion.classList.remove('oculto');
       controlesAR.classList.remove('activo');
       controlesCam.classList.remove('activo');
-
-      if (grabadorVideo && grabadorVideo.state !== 'inactive') {
-        grabadorVideo.stop();
-      }
-
       statusEl.textContent = 'Listo. Pulsa "Iniciar realidad aumentada".';
       placedEffect.visible = false;
       reticle.visible = false;
     }, { once: true });
   });
 
-  /* ---------------- Bucle de render + captura ---------------- */
+  /* ---------------- Bucle ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
@@ -866,75 +920,81 @@
 
     if (frame) {
       const refSpace = renderer.xr.getReferenceSpace();
-
       if (hitTestSource && refSpace) {
         const results = frame.getHitTestResults(hitTestSource);
-
         if (results.length > 0) {
           const pose = results[0].getPose(refSpace);
-
           if (pose) {
             reticle.visible = true;
             reticle.matrix.fromArray(pose.transform.matrix);
             reticle.matrixWorldNeedsUpdate = true;
-          } else {
-            reticle.visible = false;
-          }
-        } else {
-          reticle.visible = false;
-        }
+          } else { reticle.visible = false; }
+        } else { reticle.visible = false; }
       }
     }
-
     renderer.render(scene, camera);
+  });
 
-    // ===== Captura fotográfica JPG =====
-    if (window.capturador.fotoPendiente) {
-      window.capturador.fotoPendiente = false;
+  /* ---------------- Modal de preview ---------------- */
+  const modal = document.getElementById('modalPreview');
+  const contenedorMedia = document.getElementById('contenedorMedia');
+  let urlActual = null;
+  let objActual = null;
+  let nombreActual = '';
 
-      const glC = renderer.domElement;
-      const compC = window.capturador.canvas;
-      const ctx = window.capturador.ctx;
+  function mostrarPreview(blob, tipo) {
+    if (urlActual) try { URL.revokeObjectURL(urlActual); } catch (_) {}
+    urlActual = URL.createObjectURL(blob);
+    contenedorMedia.innerHTML = '';
 
-      const maxDim = 1600;
-      const scale = Math.min(1, maxDim / Math.max(glC.width, glC.height));
-      const w = Math.floor(glC.width * scale);
-      const h = Math.floor(glC.height * scale);
+    const kb = blob.size / 1024;
+    document.getElementById('pesoArchivo').textContent =
+      kb < 1024 ? `${Math.round(kb)} KB` : `${(kb/1024).toFixed(2)} MB`;
 
-      if (compC.width !== w || compC.height !== h) {
-        compC.width = w;
-        compC.height = h;
-      }
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    document.getElementById('tituloPreview').textContent = 'Fotografía JPG';
+    nombreActual = `atmosfera-ar-${ts}.jpg`;
+    objActual = new File([blob], nombreActual, { type: 'image/jpeg' });
 
-      // WebXR no expone los píxeles de la cámara física a todas las páginas.
-      const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, '#040d12');
-      grad.addColorStop(1, '#0a2530');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+    const img = document.createElement('img');
+    img.src = urlActual;
+    img.alt = 'Captura de la atmósfera';
+    contenedorMedia.appendChild(img);
 
-      try {
-        ctx.drawImage(glC, 0, 0, w, h);
-      } catch (errorCanvas) {
-        console.warn('No se pudo copiar el canvas WebGL:', errorCanvas);
-      }
-
-      compC.toBlob(blob => {
-        if (!blob) {
-          mostrarToast('No se pudo generar la fotografía.');
-          return;
-        }
-
-        descargarArchivo(blob, `atmosfera-ar-${marcaTemporal()}.jpg`);
-        mostrarToast('Fotografía descargada. Revisa las descargas del navegador.');
-      }, 'image/jpeg', 0.88);
+    const btnComp = document.getElementById('btnCompartir');
+    if (navigator.canShare && objActual && navigator.canShare({ files: [objActual] })) {
+      btnComp.style.display = 'flex';
+    } else {
+      btnComp.style.display = 'none';
     }
+
+    modal.classList.add('activo');
+  }
+
+  document.getElementById('btnCerrarPreview').addEventListener('click', () => {
+    modal.classList.remove('activo');
+    setTimeout(() => { contenedorMedia.innerHTML = ''; }, 300);
+  });
+
+  document.getElementById('btnCompartir').addEventListener('click', async () => {
+    if (!objActual) return;
+    try { await navigator.share({ files: [objActual], title: 'Atmósfera AR' }); } catch (_) {}
+  });
+
+  document.getElementById('btnDescargar').addEventListener('click', () => {
+    if (!urlActual) return;
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = urlActual;
+    a.download = nombreActual;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 200);
   });
 
   /* ---------------- Inicialización AR ---------------- */
   async function beginAR() {
     if (xrSessionStarting || renderer.xr.isPresenting || activeSession) return;
-
     if (!navigator.xr || arSupported === false) {
       showFallback('No compatible con WebXR immersive-ar.');
       return;
@@ -942,9 +1002,11 @@
 
     xrSessionStarting = true;
     startButton.disabled = true;
-    startButton.textContent = 'Iniciando…';
+    startButton.classList.add('loading');
+    startButton.textContent = 'Iniciando';
     statusEl.textContent = 'Cargando cámara…';
 
+    // Audio dentro del gesto del usuario
     iniciarAudioAmbiente();
 
     try {
@@ -953,12 +1015,12 @@
         optionalFeatures: ['dom-overlay'],
         domOverlay: { root: document.body }
       });
-
       await renderer.xr.setSession(session);
     } catch (err) {
       detenerAudioAmbiente();
       showFallback('No se pudo iniciar la sesión AR. Asegúrate de tener permisos de cámara.');
       startButton.disabled = false;
+      startButton.classList.remove('loading');
       startButton.textContent = 'Intentar de nuevo';
     } finally {
       xrSessionStarting = false;
@@ -971,7 +1033,7 @@
 
   document.body.addEventListener('beforexrselect', (e) => {
     const t = e.target;
-    if (t && t.closest && t.closest('button, .actions, .dock-captura, #controlesAR, #contenedorControles, #arHint')) {
+    if (t && t.closest && t.closest('button, .actions, .dock-captura, #controlesAR, #contenedorControles, #modalPreview')) {
       e.preventDefault();
     }
   });
@@ -985,15 +1047,11 @@
   if (navigator.xr) {
     navigator.xr.isSessionSupported('immersive-ar').then((ok) => {
       arSupported = ok;
-
       statusEl.textContent = ok
         ? 'Pulsa "Iniciar realidad aumentada" y apunta al suelo.'
         : 'Dispositivo no compatible con WebXR.';
-
       if (!ok) startButton.textContent = 'Ver compatibilidad';
-    }).catch(() => {
-      statusEl.textContent = 'Pulsa "Iniciar".';
-    });
+    }).catch(() => { statusEl.textContent = 'Pulsa "Iniciar".'; });
   } else {
     statusEl.textContent = 'WebXR no disponible en este navegador.';
   }

@@ -62,6 +62,16 @@
       touch-action: none;
     }
 
+    /* Video oculto de respaldo para captura cuando camera-access no está disponible */
+    #cam-fallback-video {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
     /* Efecto Flash al tomar fotografía */
     #camera-flash {
       position: fixed;
@@ -97,7 +107,6 @@
       margin-inline: auto;
     }
 
-    /* Encabezado centrado */
     .museum-header {
       display: flex;
       flex-direction: column;
@@ -149,12 +158,10 @@
       color: var(--mint);
     }
 
-    /* Ocultar el título grande cuando la cámara AR está activa para despejar la vista */
     body.ar-active h1.editorial-title {
       display: none;
     }
 
-    /* Panel inferior Pre-AR */
     .panel {
       background: var(--glass);
       border: 1px solid var(--glass-border);
@@ -397,11 +404,11 @@
 </head>
 <body>
 <div id="app">
+  <video id="cam-fallback-video" autoplay muted playsinline></video>
   <div id="camera-flash"></div>
   <div id="toast">Guardado en el teléfono</div>
 
   <div id="hud">
-    <!-- CABECERA CENTRADA SIN DESCRIPCIÓN DEBAJO -->
     <div class="top">
       <div class="museum-header">
         <div class="museum-badge">
@@ -412,9 +419,7 @@
       </div>
     </div>
 
-    <!-- CONTROLES INFERIORES -->
     <div class="bottom">
-      <!-- Panel Inicial -->
       <div id="pre-ar-panel" class="panel">
         <div class="status-row">
           <span class="status-dot"></span>
@@ -423,7 +428,6 @@
         <button id="start" type="button">Iniciar realidad aumentada</button>
       </div>
 
-      <!-- Dock Multimedia dentro de AR -->
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
@@ -431,14 +435,12 @@
         </div>
 
         <div class="media-bar">
-          <!-- Reposicionar -->
           <button id="reset" type="button" class="icon-btn" title="Reposicionar">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
           </button>
 
-          <!-- Botón Foto -->
           <button id="btn-photo" type="button" class="shutter-photo" title="Tomar Foto">
             <span class="inner">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -448,13 +450,11 @@
             </span>
           </button>
 
-          <!-- Botón Video -->
           <button id="btn-video" type="button" class="shutter-video" title="Grabar Video">
             <span class="rec-dot"></span>
             <span id="video-label">VIDEO</span>
           </button>
 
-          <!-- Salir -->
           <button id="close" type="button" class="icon-btn" title="Salir" style="border-color: rgba(255,90,95,0.4); color: #ffb4b4;">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -474,30 +474,28 @@
   </div>
 </div>
 
-<!-- ===================================================== -->
-<!-- ELEMENTO DE AUDIO: ATMÓSFERA INMERSIVA DE BOSQUE      -->
-<!-- ===================================================== -->
 <audio id="audioBosque" src="bosque_noche.mp3" preload="auto" loop></audio>
 
 <script type="module">
   import * as THREE from 'three';
 
-  const app          = document.querySelector('#app');
-  const statusEl     = document.querySelector('#status');
-  const arStatusPill = document.querySelector('#ar-status-pill');
-  const arStatusText = document.querySelector('#ar-status-text');
-  const arPillDot    = document.querySelector('#ar-pill-dot');
-  const startButton  = document.querySelector('#start');
-  const resetButton  = document.querySelector('#reset');
-  const closeButton  = document.querySelector('#close');
-  const photoButton  = document.querySelector('#btn-photo');
-  const videoButton  = document.querySelector('#btn-video');
-  const videoLabel   = document.querySelector('#video-label');
-  const cameraFlash  = document.querySelector('#camera-flash');
-  const toastEl      = document.querySelector('#toast');
-  const fallback     = document.querySelector('#fallback');
-  const fallbackText = document.querySelector('#fallbackText');
-  const audioBosque  = document.querySelector('#audioBosque');
+  const app           = document.querySelector('#app');
+  const statusEl      = document.querySelector('#status');
+  const arStatusPill  = document.querySelector('#ar-status-pill');
+  const arStatusText  = document.querySelector('#ar-status-text');
+  const arPillDot     = document.querySelector('#ar-pill-dot');
+  const startButton   = document.querySelector('#start');
+  const resetButton   = document.querySelector('#reset');
+  const closeButton   = document.querySelector('#close');
+  const photoButton   = document.querySelector('#btn-photo');
+  const videoButton   = document.querySelector('#btn-video');
+  const videoLabel    = document.querySelector('#video-label');
+  const cameraFlash   = document.querySelector('#camera-flash');
+  const toastEl       = document.querySelector('#toast');
+  const fallback      = document.querySelector('#fallback');
+  const fallbackText  = document.querySelector('#fallbackText');
+  const audioBosque   = document.querySelector('#audioBosque');
+  const fallbackVideo = document.querySelector('#cam-fallback-video');
 
   let toastTimer = null;
   function showToast(msg) {
@@ -505,6 +503,51 @@
     toastEl.classList.add('visible');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 3000);
+  }
+
+  /* ---------------- Permisos de Cámara y Respaldo getUserMedia ---------------- */
+  let fallbackStream = null;
+
+  async function requestCameraPermissionPreFlight() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      // Liberamos inmediatamente la pista antes de iniciar ARCore para evitar bloqueo de hardware
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (err) {
+      console.warn('Permiso de cámara denegado o no disponible:', err);
+      return false;
+    }
+  }
+
+  async function startFallbackVideoStream() {
+    if (fallbackStream || !navigator.mediaDevices?.getUserMedia) return;
+    try {
+      fallbackStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      fallbackVideo.srcObject = fallbackStream;
+      await fallbackVideo.play();
+    } catch (e) {
+      console.warn('El SO reservó la cámara exclusivamente para WebXR:', e);
+    }
+  }
+
+  function stopFallbackVideoStream() {
+    if (fallbackStream) {
+      fallbackStream.getTracks().forEach(t => t.stop());
+      fallbackStream = null;
+    }
+    fallbackVideo.srcObject = null;
   }
 
   /* ---------------- Sistema de Audio Suave ---------------- */
@@ -520,7 +563,7 @@
           if (audioBosque.volume < 0.85) audioBosque.volume = Math.min(0.85, audioBosque.volume + 0.05);
           else clearInterval(fadeAudioInterval);
         }, 150);
-      }).catch(e => console.warn("Interacción requerida", e));
+      }).catch(e => console.warn('Interacción requerida', e));
     }
   }
 
@@ -538,8 +581,13 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / escena (Optimizado para AR) ---------------- */
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  /* ---------------- Renderer / Escena (Optimizado para AR y Captura) ---------------- */
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+    powerPreference: 'high-performance'
+  });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -551,7 +599,97 @@
   const scene  = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x071e2b, 0.022);
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 150);
+  // Cámara dedicada para sincronizar la matriz exacta del XRView al capturar
+  const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 150);
+  captureCamera.matrixAutoUpdate = false;
+
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.6));
+
+  /* ---------------- Pipeline WebGL2 para dibujar la Cámara XR de Fondo ---------------- */
+  const gl = renderer.getContext();
+  let xrGlBinding = null;
+  let camShaderProgram = null;
+  let camVao = null;
+  let camScaleUniform = null;
+  let camTexUniform = null;
+
+  function initCameraBackgroundGL() {
+    const vsSource = `#version 300 es
+      out vec2 vUv;
+      uniform vec2 uScale;
+      void main() {
+        vec2 pos[6] = vec2[6](
+          vec2(-1.0, -1.0), vec2( 1.0, -1.0), vec2(-1.0,  1.0),
+          vec2(-1.0,  1.0), vec2( 1.0, -1.0), vec2( 1.0,  1.0)
+        );
+        vec2 p = pos[gl_VertexID];
+        // Ajuste aspect-ratio cover centrado en [0, 1]
+        vUv = (p * uScale) * 0.5 + 0.5;
+        gl_Position = vec4(p, 0.9999, 1.0);
+      }
+    `;
+    const fsSource = `#version 300 es
+      precision highp float;
+      in vec2 vUv;
+      uniform sampler2D uCamTex;
+      out vec4 fragColor;
+      void main() {
+        fragColor = texture(uCamTex, vUv);
+      }
+    `;
+
+    const compile = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return s;
+    };
+
+    camShaderProgram = gl.createProgram();
+    gl.attachShader(camShaderProgram, compile(gl.VERTEX_SHADER, vsSource));
+    gl.attachShader(camShaderProgram, compile(gl.FRAGMENT_SHADER, fsSource));
+    gl.linkProgram(camShaderProgram);
+
+    camScaleUniform = gl.getUniformLocation(camShaderProgram, 'uScale');
+    camTexUniform = gl.getUniformLocation(camShaderProgram, 'uCamTex');
+    camVao = gl.createVertexArray();
+  }
+  initCameraBackgroundGL();
+
+  function drawXrCameraTextureToFramebuffer(cameraWebGLTexture, camW, camH, targetW, targetH) {
+    if (!camShaderProgram || !cameraWebGLTexture) return;
+
+    const canvasAspect = targetW / Math.max(1, targetH);
+    const camAspect = camW / Math.max(1, camH);
+    let scaleX = 1.0;
+    let scaleY = 1.0;
+    if (canvasAspect > camAspect) {
+      scaleY = camAspect / canvasAspect;
+    } else {
+      scaleX = canvasAspect / camAspect;
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, targetW, targetH);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+    gl.disable(gl.CULL_FACE);
+
+    gl.useProgram(camShaderProgram);
+    gl.bindVertexArray(camVao);
+    gl.uniform2f(camScaleUniform, scaleX, scaleY);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, cameraWebGLTexture);
+    gl.uniform1i(camTexUniform, 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindVertexArray(null);
+    // Sincroniza el estado interno de Three.js tras usar WebGL nativo
+    renderer.resetState();
+  }
 
   /* ---------------- Textura de partícula (Halo fluorescente) ---------------- */
   function makeParticleTexture() {
@@ -572,7 +710,7 @@
   }
   const particleTexture = makeParticleTexture();
 
-  /* ---------------- Reticle (Se oculta en cuanto detecta el suelo) ---------------- */
+  /* ---------------- Reticle ---------------- */
   const reticleGeo = new THREE.RingGeometry(0.15, 0.2, 48);
   reticleGeo.rotateX(-Math.PI / 2);
   const reticle = new THREE.Mesh(
@@ -583,7 +721,7 @@
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Efecto agua (Radio 50m = 100m x 100m) + neblina + partículas ---------------- */
+  /* ---------------- Efecto agua + neblina + partículas ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
@@ -692,7 +830,6 @@
     water.frustumCulled = false;
     group.add(water);
 
-    // --- PARTÍCULAS ---
     const particleCount = 2200;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
@@ -768,7 +905,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Estado y Auto-Colocación sin círculo verde ---------------- */
+  /* ---------------- Estado y Auto-Colocación ---------------- */
   let hitTestSource = null;
   let activeSession = null;
   let elapsed = 0;
@@ -783,10 +920,9 @@
     fallback.style.display = 'flex';
   }
 
-  // Se ejecuta automáticamente al detectar el plano horizontal del suelo
   function autoPlaceEffect(poseMatrixArray) {
     isPlaced = true;
-    reticle.visible = false; // Quita el círculo verde definitivamente
+    reticle.visible = false;
 
     reticle.matrix.fromArray(poseMatrixArray);
     placedEffect.position.setFromMatrixPosition(reticle.matrix);
@@ -818,16 +954,28 @@
   async function endAR() {
     if (isRecording) stopVideoRecording();
     detenerAudioAmbiente();
+    stopFallbackVideoStream();
     if (activeSession) {
       try { await activeSession.end(); } catch (_) {}
     }
   }
 
-  /* ---------------- Captura de Foto y Video con Guardado en Teléfono ---------------- */
+  /* ---------------- Captura de Foto y Video con Cámara Real ---------------- */
   const captureCanvas = document.createElement('canvas');
   const captureCtx = captureCanvas.getContext('2d');
 
-  function renderSceneToCaptureCanvas() {
+  function drawVideoCover(ctx, video, targetW, targetH) {
+    const vw = video.videoWidth || targetW;
+    const vh = video.videoHeight || targetH;
+    const scale = Math.max(targetW / vw, targetH / vh);
+    const sw = targetW / scale;
+    const sh = targetH / scale;
+    const sx = (vw - sw) * 0.5;
+    const sy = (vh - sh) * 0.5;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  }
+
+  function renderSceneToCaptureCanvas(frame, refSpace) {
     const w = renderer.domElement.width;
     const h = renderer.domElement.height;
     if (captureCanvas.width !== w || captureCanvas.height !== h) {
@@ -835,27 +983,76 @@
       captureCanvas.height = h;
     }
 
-    // En WebXR renderizamos un pase espejo al canvas local para que la foto/video tenga máxima calidad
-    const xrCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+    let xrCameraTexture = null;
+    let camW = w;
+    let camH = h;
+    let activeView = null;
+
+    if (frame && refSpace) {
+      const viewerPose = frame.getViewerPose(refSpace);
+      if (viewerPose && viewerPose.views && viewerPose.views.length > 0) {
+        activeView = viewerPose.views[0];
+        if (activeView.camera && xrGlBinding) {
+          try {
+            xrCameraTexture = xrGlBinding.getCameraImage(activeView.camera);
+            camW = activeView.camera.width;
+            camH = activeView.camera.height;
+          } catch (_) {}
+        }
+      }
+    }
+
     const prevXrEnabled = renderer.xr.enabled;
+    const prevAutoClear = renderer.autoClear;
     renderer.xr.enabled = false;
     renderer.setRenderTarget(null);
-    renderer.render(scene, xrCam);
+
+    if (xrCameraTexture) {
+      // 1. Dibuja el feed real de la cámara WebXR en el fondo del framebuffer WebGL
+      drawXrCameraTextureToFramebuffer(xrCameraTexture, camW, camH, w, h);
+      renderer.autoClear = false;
+      renderer.clearDepth();
+    } else {
+      // Si el navegador no expone camera-access, limpiamos en transparente y solicitamos stream de respaldo
+      renderer.autoClear = true;
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear(true, true, true);
+      if (!fallbackStream) startFallbackVideoStream();
+    }
+
+    // 2. Sincroniza la cámara de captura con la pose exacta del XRView activo
+    if (activeView) {
+      captureCamera.projectionMatrix.fromArray(activeView.projectionMatrix);
+      captureCamera.projectionMatrixInverse.copy(captureCamera.projectionMatrix).invert();
+      captureCamera.matrixWorld.fromArray(activeView.transform.matrix);
+      captureCamera.matrixWorldInverse.fromArray(activeView.transform.inverse.matrix);
+      renderer.render(scene, captureCamera);
+    } else {
+      renderer.render(scene, camera);
+    }
+
+    renderer.autoClear = prevAutoClear;
     renderer.xr.enabled = prevXrEnabled;
 
-    // Fondo nocturno atmosférico + escena 3D + sello del museo
-    const grad = captureCtx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#071e2b');
-    grad.addColorStop(1, '#041216');
-    captureCtx.fillStyle = grad;
-    captureCtx.fillRect(0, 0, w, h);
+    // 3. Volcado final al Canvas 2D de exportación
+    captureCtx.clearRect(0, 0, w, h);
 
+    // Si no hubo textura WebXR pero el video de respaldo está activo, se dibuja detrás
+    if (!xrCameraTexture && fallbackVideo.readyState >= 2) {
+      drawVideoCover(captureCtx, fallbackVideo, w, h);
+    }
+
+    // Superpone el render WebGL (que ya incluye cámara XR + 3D o el 3D transparente)
     captureCtx.drawImage(renderer.domElement, 0, 0, w, h);
 
+    // 4. Marca de agua editorial del museo
     const fontSize = Math.max(18, Math.round(w * 0.024));
     captureCtx.font = `600 ${fontSize}px "Cormorant Garamond", Georgia, serif`;
-    captureCtx.fillStyle = 'rgba(244, 249, 248, 0.85)';
+    captureCtx.fillStyle = 'rgba(244, 249, 248, 0.88)';
+    captureCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    captureCtx.shadowBlur = 8;
     captureCtx.fillText('Museo Leonora Carrington · SLP', fontSize * 1.3, h - fontSize * 1.3);
+    captureCtx.shadowBlur = 0;
   }
 
   async function saveFileToPhone(blob, filename, mimeType) {
@@ -900,7 +1097,13 @@
 
   function startVideoRecording() {
     try {
-      renderSceneToCaptureCanvas();
+      const w = renderer.domElement.width;
+      const h = renderer.domElement.height;
+      if (captureCanvas.width !== w || captureCanvas.height !== h) {
+        captureCanvas.width = w;
+        captureCanvas.height = h;
+      }
+
       const stream = captureCanvas.captureStream(30);
       const mimeTypes = [
         'video/mp4',
@@ -966,6 +1169,17 @@
     arStatusText.textContent = 'Escaneando entorno. Apunta hacia el suelo…';
 
     if (!activeSession) return;
+
+    // Inicializa XRWebGLBinding para capturar la textura nativa de la cámara AR
+    if (typeof XRWebGLBinding !== 'undefined') {
+      try {
+        xrGlBinding = new XRWebGLBinding(activeSession, gl);
+      } catch (e) {
+        console.warn('XRWebGLBinding no soportado en este contexto:', e);
+        xrGlBinding = null;
+      }
+    }
+
     try {
       const viewerSpace = await activeSession.requestReferenceSpace('viewer');
       if (activeSession) {
@@ -978,7 +1192,9 @@
     activeSession.addEventListener('end', () => {
       if (isRecording) stopVideoRecording();
       detenerAudioAmbiente();
+      stopFallbackVideoStream();
       hitTestSource = null;
+      xrGlBinding = null;
       activeSession = null;
       xrSessionStarting = false;
       isPlaced = false;
@@ -1006,16 +1222,14 @@
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
 
-    // Auto-detección inmediata del plano horizontal: sin círculo verde persistente ni toque manual
-    if (frame && !isPlaced) {
-      const refSpace = renderer.xr.getReferenceSpace();
-      if (hitTestSource && refSpace) {
-        const results = frame.getHitTestResults(hitTestSource);
-        if (results.length > 0) {
-          const pose = results[0].getPose(refSpace);
-          if (pose) {
-            autoPlaceEffect(pose.transform.matrix);
-          }
+    const refSpace = renderer.xr.getReferenceSpace();
+
+    if (frame && !isPlaced && hitTestSource && refSpace) {
+      const results = frame.getHitTestResults(hitTestSource);
+      if (results.length > 0) {
+        const pose = results[0].getPose(refSpace);
+        if (pose) {
+          autoPlaceEffect(pose.transform.matrix);
         }
       }
     }
@@ -1024,18 +1238,18 @@
 
     if (pendingPhotoCapture) {
       pendingPhotoCapture = false;
-      renderSceneToCaptureCanvas();
+      renderSceneToCaptureCanvas(frame, refSpace);
       captureCanvas.toBlob((blob) => {
         if (!blob) return;
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
         saveFileToPhone(blob, `LeonoraCarrington_SLP_${stamp}.jpg`, 'image/jpeg');
       }, 'image/jpeg', 0.95);
     } else if (isRecording) {
-      renderSceneToCaptureCanvas();
+      renderSceneToCaptureCanvas(frame, refSpace);
     }
   });
 
-  /* ---------------- Inicialización AR ---------------- */
+  /* ---------------- Inicialización AR con Permiso de Cámara ---------------- */
   async function beginAR() {
     if (xrSessionStarting || renderer.xr.isPresenting || activeSession) return;
     if (!navigator.xr || arSupported === false) {
@@ -1045,11 +1259,16 @@
 
     xrSessionStarting = true;
     startButton.disabled = true;
-    startButton.textContent = 'Iniciando…';
+    startButton.textContent = 'Solicitando permiso de cámara…';
+
+    // Solicita explícitamente el permiso de cámara antes de abrir la sesión AR
+    await requestCameraPermissionPreFlight();
+
+    startButton.textContent = 'Iniciando AR…';
     try {
       const session = await navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
+        optionalFeatures: ['dom-overlay', 'camera-access'],
         domOverlay: { root: document.body }
       });
       await renderer.xr.setSession(session);

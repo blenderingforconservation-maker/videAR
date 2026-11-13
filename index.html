@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#07191d">
-  <title>Museo Leonora Carrington SLP · Atmósferas Escultóricas AR</title>
+  <title>Museo Leonora Carrington SLP · La Barca de las Grullas AR</title>
 
   <!-- Tipografías Museográficas -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,7 +42,7 @@
       overflow: hidden;
     }
 
-    /* CRÍTICO: Garantiza que el DOM Overlay sea 100% transparente al abrir la cámara AR */
+    /* Garantiza que el DOM Overlay sea 100% transparente al abrir la cámara AR */
     html.ar-active,
     body.ar-active,
     body.ar-active #app {
@@ -507,7 +507,7 @@
           <span class="dot"></span>
           <span>Museo Leonora Carrington · SLP</span>
         </div>
-        <h1 class="editorial-title">Atmósferas<br><em>escultóricas.</em></h1>
+        <h1 class="editorial-title">La Barca de<br><em>las Grullas.</em></h1>
       </div>
     </div>
 
@@ -515,7 +515,7 @@
       <div id="pre-ar-panel" class="panel">
         <div class="status-row">
           <span class="status-dot"></span>
-          <p id="status">Preparando la experiencia…</p>
+          <p id="status">Preparando la corriente fluvial…</p>
         </div>
         <button id="start" type="button">Iniciar realidad aumentada</button>
       </div>
@@ -523,11 +523,11 @@
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Escaneando el suelo…</span>
+          <span id="ar-status-text">Escaneando el suelo alrededor de la barca…</span>
         </div>
 
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Reposicionar">
+          <button id="reset" type="button" class="icon-btn" title="Reposicionar corriente">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -566,31 +566,30 @@
   </div>
 </div>
 
-<!-- crossorigin="anonymous" necesario para que la Web Audio API pueda capturar el audio -->
+<!-- Audio nocturno inmersivo con soporte de captura para Web Audio API -->
 <audio id="audioBosque" src="bosque_noche.mp3" preload="auto" crossorigin="anonymous" loop></audio>
 
 <script type="module">
   import * as THREE from 'three';
 
-  const app           = document.querySelector('#app');
-  const statusEl      = document.querySelector('#status');
-  const arStatusPill  = document.querySelector('#ar-status-pill');
-  const arStatusText  = document.querySelector('#ar-status-text');
-  const arPillDot     = document.querySelector('#ar-pill-dot');
-  const startButton   = document.querySelector('#start');
-  const resetButton   = document.querySelector('#reset');
-  const closeButton   = document.querySelector('#close');
-  const photoButton   = document.querySelector('#btn-photo');
-  const videoButton   = document.querySelector('#btn-video');
-  const videoLabel    = document.querySelector('#video-label');
-  const cameraFlash   = document.querySelector('#camera-flash');
-  const toastEl       = document.querySelector('#toast');
-  const fallback      = document.querySelector('#fallback');
-  const fallbackText  = document.querySelector('#fallbackText');
-  const audioBosque   = document.querySelector('#audioBosque');
-  const fallbackVideo = document.querySelector('#cam-fallback-video');
-  
-  // Elementos del Modal
+  const app            = document.querySelector('#app');
+  const statusEl       = document.querySelector('#status');
+  const arStatusPill   = document.querySelector('#ar-status-pill');
+  const arStatusText   = document.querySelector('#ar-status-text');
+  const arPillDot      = document.querySelector('#ar-pill-dot');
+  const startButton    = document.querySelector('#start');
+  const resetButton    = document.querySelector('#reset');
+  const closeButton    = document.querySelector('#close');
+  const photoButton    = document.querySelector('#btn-photo');
+  const videoButton    = document.querySelector('#btn-video');
+  const videoLabel     = document.querySelector('#video-label');
+  const cameraFlash    = document.querySelector('#camera-flash');
+  const toastEl        = document.querySelector('#toast');
+  const fallback       = document.querySelector('#fallback');
+  const fallbackText   = document.querySelector('#fallbackText');
+  const audioBosque    = document.querySelector('#audioBosque');
+  const fallbackVideo  = document.querySelector('#cam-fallback-video');
+
   const exitModal      = document.querySelector('#exit-modal');
   const btnCancelExit  = document.querySelector('#btn-cancel-exit');
   const btnConfirmExit = document.querySelector('#btn-confirm-exit');
@@ -613,7 +612,6 @@
         video: { facingMode: { ideal: 'environment' } },
         audio: false
       });
-      // Liberamos inmediatamente la pista antes de iniciar ARCore para evitar bloqueo de hardware
       stream.getTracks().forEach(track => track.stop());
       return true;
     } catch (err) {
@@ -653,7 +651,6 @@
   let audioCtx, mediaStreamDestination, sourceNode;
   let audioInitialized = false;
 
-  // Enruta el audio para que pueda ser grabado en el video
   function initAudioCapture() {
     if (audioInitialized) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -663,12 +660,10 @@
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       mediaStreamDestination = audioCtx.createMediaStreamDestination();
       sourceNode = audioCtx.createMediaElementSource(audioBosque);
-      
-      // Conectar a los altavoces del usuario
+
       sourceNode.connect(audioCtx.destination);
-      // Conectar a la pista de grabación
       sourceNode.connect(mediaStreamDestination);
-      
+
       audioInitialized = true;
     } catch (e) {
       console.warn('Captura de audio no soportada / ya enrutada:', e);
@@ -677,7 +672,7 @@
 
   function iniciarAudioAmbiente() {
     if (!audioBosque) return;
-    initAudioCapture(); // Iniciar contexto de audio tras interacción
+    initAudioCapture();
     clearInterval(fadeAudioInterval);
     audioBosque.volume = 0.0;
     const playPromise = audioBosque.play();
@@ -705,14 +700,15 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / Escena (Optimizado para AR y Captura) ---------------- */
+  /* ---------------- Renderer / Escena (Optimizado para Procesadores Móviles) ---------------- */
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false,
     powerPreference: 'high-performance'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+  // PixelRatio topado en 1.5 para garantizar 60 FPS sin calentamiento térmico en móviles
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
@@ -812,7 +808,7 @@
     renderer.resetState();
   }
 
-  /* ---------------- Textura de partícula ---------------- */
+  /* ---------------- Texturas Procedurales Optimizadas (Partículas + Mapa Normal Respaldo) ---------------- */
   function makeParticleTexture() {
     const size = 128;
     const c = document.createElement('canvas');
@@ -831,6 +827,45 @@
   }
   const particleTexture = makeParticleTexture();
 
+  // Genera un mapa de normales repetible de respaldo instantáneo por si image_c713d6.png tarda o no existe
+  function createSeamlessRiverNormalTexture() {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(size, size);
+    const data = imgData.data;
+    const tau = Math.PI * 2;
+
+    const heightAt = (u, v) => (
+      Math.sin(u * tau * 2.0 + Math.cos(v * tau * 2.0) * 0.7) * 0.45 +
+      Math.sin(v * tau * 3.0 - u * tau * 1.0) * 0.30 +
+      Math.cos((u + v) * tau * 4.0) * 0.15 +
+      Math.sin((u * 5.0 - v * 4.0) * tau) * 0.10
+    );
+
+    const eps = 1.0 / size;
+    for (let y = 0; y < size; y++) {
+      const v = y / size;
+      for (let x = 0; x < size; x++) {
+        const u = x / size;
+        const dx = (heightAt(u + eps, v) - heightAt(u - eps, v)) * 2.4;
+        const dy = (heightAt(u, v + eps) - heightAt(u, v - eps)) * 2.4;
+        const invLen = 1.0 / Math.sqrt(dx * dx + dy * dy + 1.0);
+        const idx = (y * size + x) * 4;
+        data[idx]     = Math.round(((-dx * invLen) * 0.5 + 0.5) * 255);
+        data[idx + 1] = Math.round(((-dy * invLen) * 0.5 + 0.5) * 255);
+        data[idx + 2] = Math.round(((1.0 * invLen) * 0.5 + 0.5) * 255);
+        data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
   /* ---------------- Reticle ---------------- */
   const reticleGeo = new THREE.RingGeometry(0.15, 0.2, 48);
   reticleGeo.rotateX(-Math.PI / 2);
@@ -842,16 +877,21 @@
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Efecto agua + partículas ---------------- */
+  /* ---------------- Simulación de Río Fluyendo + Navegación de La Barca de las Grullas ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
+    // Inicia con el mapa normal procedural y actualiza a image_c713d6.png apenas cargue
+    const waterNormal = createSeamlessRiverNormalTexture();
     const textureLoader = new THREE.TextureLoader();
-    const waterNormal = textureLoader.load('image_c713d6.png');
-    waterNormal.wrapS = THREE.RepeatWrapping;
-    waterNormal.wrapT = THREE.RepeatWrapping;
+    textureLoader.load('image_c713d6.png', (loadedTex) => {
+      loadedTex.wrapS = THREE.RepeatWrapping;
+      loadedTex.wrapT = THREE.RepeatWrapping;
+      waterMat.uniforms.uNormalMap.value = loadedTex;
+    });
 
-    const waterGeo = new THREE.PlaneGeometry(100.0, 100.0, 1, 1);
+    // Geometría subdividida (64x64) para permitir ondulación tridimensional de olas en el Vertex Shader
+    const waterGeo = new THREE.PlaneGeometry(80.0, 80.0, 64, 64);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
@@ -861,19 +901,46 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
-        uColorDeep: { value: new THREE.Color(0x052026) },
-        uColorShallow: { value: new THREE.Color(0x19a0a8) },
+        uFlowSpeed: { value: 1.35 }, // Velocidad del caudal del río
+        uColorDeep: { value: new THREE.Color(0x031820) },
+        uColorShallow: { value: new THREE.Color(0x1697a0) },
+        uFoamColor: { value: new THREE.Color(0xdafcf6) },
         uLightColor: { value: new THREE.Color(0xbdf7ff) },
-        uFogColor: { value: new THREE.Color(0x082130) },
-        uFogDensity: { value: 0.024 },
+        uFogColor: { value: new THREE.Color(0x071e2b) },
+        uFogDensity: { value: 0.025 },
         uNormalMap: { value: waterNormal }
       },
       vertexShader: `
+        uniform float uTime;
+        uniform float uFlowSpeed;
         varying vec2 vUv;
         varying vec3 vWorldPosition;
+        varying vec3 vLocalPos;
+        varying float vWaveElevation;
+
         void main() {
           vUv = uv;
-          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vec3 pos = position;
+
+          // Coordenada Z fluyendo río abajo (+Z) para que la barca parezca avanzar hacia -Z
+          float riverFlow = uTime * uFlowSpeed;
+          float zFlow = pos.z - riverFlow * 2.2;
+
+          // Olas longitudinales y transversales del río (calculadas en Vertex Shader = muy bajo costo GPU)
+          float primaryWave = sin(zFlow * 0.55 + pos.x * 0.25) * 0.032;
+          float crossWave   = cos(zFlow * 1.15 - pos.x * 0.70 + uTime * 1.2) * 0.018;
+
+          // Anillo suave de elevación hidrodinámica donde la Barca corta el agua (centro 0,0)
+          float distCenter = length(pos.xz);
+          float bowSwell = exp(-distCenter * 0.45) * sin(distCenter * 4.0 - uTime * 3.8) * 0.028;
+
+          float totalHeight = primaryWave + crossWave + bowSwell;
+          pos.y += totalHeight;
+
+          vWaveElevation = totalHeight;
+          vLocalPos = pos;
+
+          vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
           vWorldPosition = worldPosition.xyz;
           gl_Position = projectionMatrix * viewMatrix * worldPosition;
         }
@@ -881,63 +948,100 @@
       fragmentShader: `
         uniform float uTime;
         uniform float uReveal;
+        uniform float uFlowSpeed;
         uniform vec3 uColorDeep;
         uniform vec3 uColorShallow;
+        uniform vec3 uFoamColor;
         uniform vec3 uLightColor;
         uniform vec3 uFogColor;
         uniform float uFogDensity;
         uniform sampler2D uNormalMap;
+
         varying vec2 vUv;
         varying vec3 vWorldPosition;
-
-        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float noise(vec2 p) {
-          vec2 i = floor(p); vec2 f = fract(p);
-          f = f * f * (3.0 - 2.0 * f);
-          return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
-        }
-        float fbm(vec2 p) {
-          float value = 0.0; float amp = 0.5; float freq = 1.0;
-          for (int i = 0; i < 4; i++) {
-            value += amp * noise(p * freq);
-            freq *= 2.0; amp *= 0.5;
-          }
-          return value;
-        }
+        varying vec3 vLocalPos;
+        varying float vWaveElevation;
 
         void main() {
-          vec2 p = (vUv - 0.5) * 2.0 * 28.0;
-          float t = uTime * 0.075;
+          // 1. ADVECCIÓN DIRECCIONAL DE RÍO (3 capas en movimiento continuo hacia +Z)
+          float flow = uTime * uFlowSpeed;
+          vec2 p = vLocalPos.xz;
 
-          vec2 q = vec2(fbm(p + vec2(0.0, 0.0) + t), fbm(p + vec2(5.2, 1.3) - t));
-          vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.5), fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.3));
-          float height = fbm(p + 4.0 * r);
+          // Líneas de corriente sinuosas (meandros sutiles del caudal)
+          float streamBend = sin(p.z * 0.14 - flow * 0.45) * 0.35;
+          vec2 riverCoord = vec2(p.x + streamBend, p.z);
 
-          vec2 uvNormal = vUv * 42.0 + vec2(t * 0.15, -t * 0.1);
-          vec3 texNormal = texture2D(uNormalMap, uvNormal).xyz * 2.0 - 1.0;
-          vec3 normal = normalize(vec3(texNormal.x * 1.5, texNormal.y * 1.5, 1.0));
+          // Triple muestreo del mapa de normales con distintas escalas y velocidades de corriente
+          vec2 uvFlow1 = riverCoord * 0.26 + vec2(0.03 * sin(uTime * 0.4), -flow * 0.32);
+          vec2 uvFlow2 = riverCoord * 0.58 + vec2(-0.04 * cos(uTime * 0.35), -flow * 0.52);
+          vec2 uvFlow3 = vec2(riverCoord.x * 0.95, riverCoord.y * 0.35 - flow * 0.78);
 
+          vec3 n1 = texture2D(uNormalMap, uvFlow1).xyz * 2.0 - 1.0;
+          vec3 n2 = texture2D(uNormalMap, uvFlow2).xyz * 2.0 - 1.0;
+          vec3 n3 = texture2D(uNormalMap, uvFlow3).xyz * 2.0 - 1.0;
+
+          vec2 combinedXY = (n1.xy * 0.50 + n2.xy * 0.35 + n3.xy * 0.25) * 1.65;
+
+          // 2. ESTELA HIDRODINÁMICA DE NAVEGACIÓN ("LA BARCA DE LAS GRULLAS" EN EL ORIGEN)
+          // Casco elíptico de la barca en el centro (x=0, z=0) navegando hacia -Z
+          vec2 hullCoord = vec2(p.x * 1.25, p.z * 0.65);
+          float hullDist = length(hullCoord);
+
+          // Anillos de espuma y desplazamiento alrededor de la base de la escultura
+          float bowCollar = smoothstep(2.4, 0.35, hullDist) * smoothstep(0.15, 0.55, hullDist);
+          float bowRipples = sin(hullDist * 9.5 - uTime * 5.2) * 0.5 + 0.5;
+          float hullWakeFoam = bowCollar * bowRipples * 0.65;
+
+          // Estela en "V" (Kelvin Wake) que se abre detrás de la proa hacia +Z
+          float behindBow = smoothstep(-1.3, 0.2, p.z);
+          float wakeDecay = exp(-max(0.0, p.z + 1.0) * 0.14);
+          float wakeHalfWidth = max(0.28, (p.z + 1.3) * 0.36);
+          float distToWakeArm = abs(abs(p.x) - wakeHalfWidth);
+          float kelvinWave = cos((abs(p.x) - wakeHalfWidth) * 11.0 - uTime * 6.0);
+          float kelvinEnvelope = exp(-distToWakeArm * 1.85) * behindBow * wakeDecay;
+          float vWakeIntensity = max(0.0, kelvinWave) * kelvinEnvelope;
+
+          // Turbulencia en el canal central de popa (estela trasera de la barca)
+          float sternCenterTrail = exp(-abs(p.x) * 1.9) * smoothstep(-0.4, 1.5, p.z) * wakeDecay;
+          float sternFoam = sternCenterTrail * smoothstep(0.15, 0.65, n2.x + n3.y) * 0.55;
+
+          // Perturbar la normal del agua con la estela en "V" para reflejos reales
+          combinedXY.x += sign(p.x) * kelvinWave * kelvinEnvelope * 0.85;
+          combinedXY.y += kelvinWave * kelvinEnvelope * 0.45;
+
+          vec3 normal = normalize(vec3(combinedXY.x, 1.0, combinedXY.y));
+
+          // 3. ILUMINACIÓN, FRESNEL Y VETAS DE CORRIENTE
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-          vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
+          vec3 lightDir = normalize(vec3(0.45, 1.0, -0.35));
+          vec3 halfVec = normalize(lightDir + viewDir);
 
-          float spec = pow(max(dot(normal, lightDir), 0.0), 24.0);
+          float spec = pow(max(dot(normal, halfVec), 0.0), 36.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          vec3 color = mix(uColorDeep, uColorShallow, smoothstep(0.2, 0.8, height));
-          color += uLightColor * spec * 1.5;
-          color = mix(color, uLightColor, fresnel * 0.4);
+          // Vetas longitudinales del río que evidencian la velocidad de avance del agua
+          float currentStreaks = smoothstep(-0.25, 0.55, n1.x + n3.x * 0.7 + vWaveElevation * 8.0);
+          vec3 waterColor = mix(uColorDeep, uColorShallow, currentStreaks);
 
+          // Añadir espuma de navegación (proa + brazos en V + estela de popa + crestas del río)
+          float riverCrestFoam = smoothstep(0.58, 0.88, n1.x * 0.5 + n2.y * 0.5 + currentStreaks * 0.35) * 0.28;
+          float totalFoam = clamp(hullWakeFoam + vWakeIntensity * 0.75 + sternFoam + riverCrestFoam, 0.0, 1.0);
+
+          vec3 color = mix(waterColor, uFoamColor, totalFoam * 0.78);
+          color += uLightColor * spec * (1.35 + totalFoam * 0.8);
+          color = mix(color, uLightColor, fresnel * 0.38);
+
+          // 4. NIEBLA DE RÍO EN MOVIMIENTO Y TRANSPARENCIA SUAVE EN BORDES
           float dist = length(cameraPosition - vWorldPosition);
           float fogFactor = 1.0 - exp(-pow(dist * uFogDensity, 2.0));
-          float mistNoise = fbm(p * 0.45 - vec2(t * 0.35, t * 0.2));
-          float mistLayer = smoothstep(0.35, 0.85, mistNoise) * 0.32;
-          color = mix(color, uFogColor, clamp(fogFactor * 0.65 + mistLayer, 0.0, 0.78));
+          float driftingMist = smoothstep(-0.2, 0.6, n1.y + n2.x) * 0.26;
+          color = mix(color, uFogColor, clamp(fogFactor * 0.68 + driftingMist, 0.0, 0.82));
 
-          float alpha = mix(0.85, 0.99, smoothstep(0.2, 0.8, height));
-          alpha = max(alpha, fresnel * 0.8);
+          float baseAlpha = mix(0.82, 0.96, currentStreaks);
+          baseAlpha = max(baseAlpha, max(fresnel * 0.78, totalFoam * 0.92));
 
-          float edgeFade = 1.0 - smoothstep(0.65, 1.0, length(vUv - 0.5) * 2.0);
-          alpha = clamp(alpha, 0.0, 0.95) * edgeFade * uReveal;
+          float edgeFade = 1.0 - smoothstep(0.62, 0.98, length(vUv - 0.5) * 2.0);
+          float alpha = clamp(baseAlpha, 0.0, 0.95) * edgeFade * uReveal;
 
           gl_FragColor = vec4(color, alpha);
           #include <tonemapping_fragment>
@@ -951,16 +1055,16 @@
     water.frustumCulled = false;
     group.add(water);
 
-    const particleCount = 2200;
+    /* ---------------- Partículas Bioluminiscentes Arrastradas por la Corriente ---------------- */
+    const particleCount = 1600; // Optimizado para móviles manteniendo alta densidad visual
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Math.pow(Math.random(), 0.75) * 45.0;
-      particlePositions[i * 3]     = Math.cos(angle) * radius;
-      particlePositions[i * 3 + 1] = 0.15 + Math.random() * 2.6;
-      particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+      // Distribución en el cauce del río (-35m a +35m)
+      particlePositions[i * 3]     = (Math.random() - 0.5) * 55.0;
+      particlePositions[i * 3 + 1] = 0.08 + Math.random() * 2.4;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 65.0;
       particleSeeds[i] = Math.random() * Math.PI * 2;
     }
 
@@ -975,31 +1079,37 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
+        uFlowSpeed: { value: 1.35 },
         uTexture: { value: particleTexture },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
         uFogDensity: { value: 0.025 }
       },
       vertexShader: `
         uniform float uTime;
         uniform float uReveal;
+        uniform float uFlowSpeed;
         uniform float uPixelRatio;
         uniform float uFogDensity;
         attribute float aSeed;
         varying float vAlpha;
+
         void main() {
           vec3 pos = position;
-          pos.x += sin(uTime * 0.5 + aSeed) * 0.4;
-          pos.y += cos(uTime * 0.4 + aSeed * 2.0) * 0.25;
-          pos.z += sin(uTime * 0.3 + aSeed * 3.0) * 0.4;
+
+          // Las partículas fluyen junto con la corriente del río (+Z) en ciclo infinito
+          float streamTravel = uTime * uFlowSpeed * (1.4 + 0.4 * sin(aSeed));
+          pos.z = mod(pos.z + streamTravel + 32.5, 65.0) - 32.5;
+          pos.x += sin(uTime * 0.7 + aSeed + pos.z * 0.15) * 0.45;
+          pos.y += cos(uTime * 0.5 + aSeed * 2.0) * 0.22;
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           float dist = length(mvPosition.xyz);
           float fogAtten = exp(-pow(dist * uFogDensity, 2.0));
 
-          gl_PointSize = 100.0 * uPixelRatio * (1.0 / -mvPosition.z);
-          gl_PointSize = clamp(gl_PointSize, 3.0, 55.0);
+          gl_PointSize = 95.0 * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
+          gl_PointSize = clamp(gl_PointSize, 3.0, 52.0);
 
-          vAlpha = (0.5 + 0.5 * sin(uTime * 1.5 + aSeed * 5.0)) * fogAtten * uReveal;
+          vAlpha = (0.45 + 0.55 * sin(uTime * 1.8 + aSeed * 5.0)) * fogAtten * uReveal;
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
@@ -1026,7 +1136,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Estado y Auto-Colocación ---------------- */
+  /* ---------------- Estado y Auto-Colocación Orientada al Cauce ---------------- */
   let hitTestSource = null;
   let activeSession = null;
   let elapsed = 0;
@@ -1035,6 +1145,7 @@
   let isPlaced = false;
   let revealProgress = 0;
   let pendingPhotoCapture = false;
+  const _camForward = new THREE.Vector3();
 
   function showFallback(text) {
     fallbackText.textContent = text;
@@ -1048,12 +1159,17 @@
     reticle.matrix.fromArray(poseMatrixArray);
     placedEffect.position.setFromMatrixPosition(reticle.matrix);
     placedEffect.position.y -= 0.01;
+
+    // Alinear el eje de navegación de la barca con la orientación horizontal inicial de la cámara
+    camera.getWorldDirection(_camForward);
+    placedEffect.rotation.set(0, Math.atan2(_camForward.x, _camForward.z), 0);
+
     placedEffect.visible = true;
     revealProgress = 0.02;
 
-    arStatusText.textContent = 'Atmósfera activa';
+    arStatusText.textContent = 'Navegación fluvial activa';
     arPillDot.style.background = '#8ce7d5';
-    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2200);
+    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2400);
 
     iniciarAudioAmbiente();
   }
@@ -1067,7 +1183,7 @@
     reticle.visible = false;
 
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando nuevo suelo…';
+    arStatusText.textContent = 'Escaneando nuevo cauce…';
     arPillDot.style.background = '#d4af37';
     detenerAudioAmbiente();
   }
@@ -1085,11 +1201,11 @@
   closeButton.addEventListener('click', () => {
     exitModal.classList.add('active');
   });
-  
+
   btnCancelExit.addEventListener('click', () => {
     exitModal.classList.remove('active');
   });
-  
+
   btnConfirmExit.addEventListener('click', () => {
     exitModal.classList.remove('active');
     endAR();
@@ -1232,11 +1348,9 @@
         captureCanvas.height = h;
       }
 
-      // Captura stream de Video
       const canvasStream = captureCanvas.captureStream(30);
       const tracks = [...canvasStream.getVideoTracks()];
-      
-      // Integración de Audio proveniente de Web Audio API
+
       if (mediaStreamDestination && mediaStreamDestination.stream) {
         tracks.push(...mediaStreamDestination.stream.getAudioTracks());
       }
@@ -1250,25 +1364,25 @@
         'video/webm'
       ];
       const mimeType = mimeTypes.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-      const options = { videoBitsPerSecond: 8000000 };
+      const options = { videoBitsPerSecond: 5000000 };
       if (mimeType) options.mimeType = mimeType;
 
       recordedChunks = [];
       mediaRecorder = new MediaRecorder(combinedStream, options);
-      
+
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) recordedChunks.push(e.data);
       };
-      
+
       mediaRecorder.onstop = () => {
         const finalMime = mediaRecorder.mimeType || 'video/webm';
         const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(recordedChunks, { type: finalMime });
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-        saveFileToPhone(blob, `LeonoraCarrington_SLP_${stamp}.${ext}`, finalMime);
+        saveFileToPhone(blob, `LaBarcaDeLasGrullas_SLP_${stamp}.${ext}`, finalMime);
       };
 
-      mediaRecorder.start(200);
+      mediaRecorder.start(250);
       isRecording = true;
       videoButton.classList.add('recording');
       recStart = performance.now();
@@ -1281,7 +1395,7 @@
         videoLabel.textContent = `${mm}:${ss}`;
       }, 500);
 
-      showToast('Grabando video…');
+      showToast('Grabando navegación…');
     } catch (e) {
       showToast('Video no disponible en este navegador');
     }
@@ -1306,7 +1420,7 @@
     isPlaced = false;
     revealProgress = 0;
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando entorno. Apunta hacia el suelo…';
+    arStatusText.textContent = 'Apunta al suelo junto a La Barca de las Grullas…';
 
     if (!activeSession) return;
 
@@ -1381,7 +1495,7 @@
       captureCanvas.toBlob((blob) => {
         if (!blob) return;
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-        saveFileToPhone(blob, `LeonoraCarrington_SLP_${stamp}.jpg`, 'image/jpeg');
+        saveFileToPhone(blob, `LaBarcaDeLasGrullas_SLP_${stamp}.jpg`, 'image/jpeg');
       }, 'image/jpeg', 0.95);
     } else if (isRecording) {
       renderSceneToCaptureCanvas(frame, refSpace);
@@ -1401,8 +1515,6 @@
     startButton.textContent = 'Solicitando permiso de cámara…';
 
     await requestCameraPermissionPreFlight();
-    
-    // Inicia enrutamiento de audio aquí (requiere interacción previa del usuario)
     initAudioCapture();
 
     startButton.textContent = 'Iniciando AR…';

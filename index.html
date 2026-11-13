@@ -537,11 +537,11 @@
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Escaneando el suelo…</span>
+          <span id="ar-status-text">Escaneando el suelo frente a la escultura…</span>
         </div>
 
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Reposicionar a 2.5 m">
+          <button id="reset" type="button" class="icon-btn" title="Recalibrar suelo a 2.5 m">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -599,7 +599,7 @@
     audioRemote: `${REPO_RAW}bosque_noche.mp3`
   };
 
-  // Distancia inicial exacta de 2.5 metros respecto al usuario y escala proporcionada para exploración AR
+  // Distancia inicial de 2.5 metros respecto al visitante en el museo
   const INITIAL_USER_DISTANCE = 2.50;
   const BOAT_TARGET_LENGTH    = 3.20;
   const WATER_SURFACE_Y       = 0.04;
@@ -771,7 +771,6 @@
   const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 150);
   captureCamera.matrixAutoUpdate = false;
 
-  // Plano de recorte horizontal exacto en la superficie del agua para ocultar los pies de la escultura
   const waterlineClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   scene.add(new THREE.HemisphereLight(0xd2efff, 0x10314a, 1.85));
@@ -784,9 +783,12 @@
   rimLight.position.set(4.0, 3.5, -3.5);
   scene.add(rimLight);
 
-  /* ---------------- Navegación Caminando para Modo iOS / Fallback (Giroscopio + Podómetro) ---------------- */
-  const iosWalkPos = new THREE.Vector3(0, 0, 0);
-  const iosWalkTarget = new THREE.Vector3(0, 0, 0);
+  /* ---------------- Navegación Caminando (Acercarse/Alejarse) y Giroscopio ---------------- */
+  let userDistanceToSculpture = INITIAL_USER_DISTANCE;
+  let targetDistanceToSculpture = INITIAL_USER_DISTANCE;
+  const anchorCamOrigin = new THREE.Vector3(0, 0, 0);
+  let lockedFloorY = -1.35;
+
   const deviceEuler = new THREE.Euler();
   const deviceQuat = new THREE.Quaternion();
   const screenTransform = new THREE.Quaternion();
@@ -809,10 +811,9 @@
     camera.quaternion.copy(deviceQuat);
   });
 
-  // Podómetro físico para caminar acercándose/alejándose en iOS
+  // Podómetro para caminar hacia la escultura en dispositivos sin seguimiento 6DoF
   let gravityFiltered = 9.81;
   let lastStepTime = 0;
-  const _stepDir = new THREE.Vector3();
 
   window.addEventListener('devicemotion', (e) => {
     if (!iosCameraARActive || !isPlaced) return;
@@ -823,27 +824,22 @@
     const now = performance.now();
     if (Math.abs(rawMag - gravityFiltered) > 0.85 && now - lastStepTime > 290) {
       lastStepTime = now;
-      camera.getWorldDirection(_stepDir);
-      _stepDir.y = 0;
-      if (_stepDir.lengthSq() > 0.001) _stepDir.normalize();
-      iosWalkTarget.addScaledVector(_stepDir, 0.55);
+      targetDistanceToSculpture = THREE.MathUtils.clamp(targetDistanceToSculpture - 0.35, 0.9, 6.0);
     }
   });
 
+  // Gesto pellizcar en pantalla para ajustar distancia si el usuario está estático
   let prevPinchDist = null;
   window.addEventListener('touchmove', (e) => {
-    if (!iosCameraARActive || !isPlaced) return;
+    if (!isPlaced) return;
     if (e.touches.length === 2) {
       const d = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       if (prevPinchDist !== null) {
-        const delta = (d - prevPinchDist) * 0.012;
-        camera.getWorldDirection(_stepDir);
-        _stepDir.y = 0;
-        if (_stepDir.lengthSq() > 0.001) _stepDir.normalize();
-        iosWalkTarget.addScaledVector(_stepDir, delta);
+        const delta = (prevPinchDist - d) * 0.01;
+        targetDistanceToSculpture = THREE.MathUtils.clamp(targetDistanceToSculpture + delta, 0.9, 6.0);
       }
       prevPinchDist = d;
     }
@@ -998,17 +994,15 @@
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Agua Azul en Corriente Contra la Barca + Colisión Frontal ---------------- */
+  /* ---------------- Agua Azul en Corriente + Colisión Central (Barca 3D Oculta) ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
+    // Contenedor de la barca oculto visualmente para que en el museo luzca la escultura física real
     const boatAnchor = new THREE.Group();
     boatAnchor.position.set(0, 0, 0);
+    boatAnchor.visible = false;
     group.add(boatAnchor);
-
-    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.2, 16.0);
-    boatSpotLight.position.set(-2.0, 5.0, 2.0);
-    boatAnchor.add(boatSpotLight);
 
     const waterNormal = createFallbackWaterNormal();
     const textureLoader = new THREE.TextureLoader();
@@ -1040,7 +1034,7 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
-        uFlowSpeed: { value: 1.32 }, // Velocidad de corriente continua en contra de la barca (hacia +X)
+        uFlowSpeed: { value: 1.32 },
         uBoatHalfSize: { value: new THREE.Vector2(1.55, 0.65) },
         uColorDeep: { value: new THREE.Color(0x041d3d) },
         uColorMid: { value: new THREE.Color(0x0d58ab) },
@@ -1069,7 +1063,7 @@
           vec2 q = pos.xz / hull;
           float r = length(q);
 
-          // 1. Tren de olas avanzando de izquierda (-X) a derecha (+X) en contra de la proa
+          // 1. Tren de olas avanzando de izquierda (-X) a derecha (+X) en contra de la escultura
           float xPhase1 = pos.x - flow * 2.2 + sin(pos.z * 0.45) * 0.5;
           float xPhase2 = pos.x * 1.35 - flow * 2.8 - cos(pos.z * 0.8) * 0.35;
           float wave1 = sin(xPhase1 * 0.75 + pos.z * 0.25) * 0.036;
@@ -1131,18 +1125,17 @@
           float flow = uTime * uFlowSpeed;
           vec2 localXZ = vLocalPos.xz;
 
-          // 1. DEFLEXIÓN HIDRODINÁMICA DE LA CORRIENTE AL CHOCAR CONTRA LA BARCA
+          // 1. DEFLEXIÓN HIDRODINÁMICA DE LA CORRIENTE AL CHOCAR CONTRA LA BARCA EN EL CENTRO (0, 0)
           vec2 hullScale = max(uBoatHalfSize, vec2(0.4));
           vec2 qHull = localXZ / hullScale;
           float rHull = length(qHull);
 
-          // La corriente viene desde -X hacia +X y se abre al impactar con el frente de la barca
           float deflect = exp(-max(0.0, rHull - 0.72) * 1.45) * 1.15;
           vec2 deflectedXZ = localXZ;
           deflectedXZ.y -= sign(localXZ.y) * deflect * hullScale.y * smoothstep(-1.6, 0.9, qHull.x);
           deflectedXZ.x += deflect * 0.35 * (1.0 - smoothstep(-1.2, 0.1, qHull.x));
 
-          // Coordenadas del río fluyendo claramente de izquierda (-X) a derecha (+X)
+          // Coordenadas del río fluyendo de izquierda (-X) a derecha (+X)
           vec2 p = (vUv - 0.5) * 2.0 * 28.0;
           p.x -= flow * 2.15;
           p.y -= sign(localXZ.y) * deflect * 0.75;
@@ -1152,11 +1145,9 @@
           vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.5), fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.3));
           float height = fbm(p + 4.0 * r);
 
-          // Líneas longitudinales de corriente rápida para acentuar visualmente el flujo en contra de la barca
           float streamLines = fbm(vec2(deflectedXZ.x * 0.55 - flow * 2.4, deflectedXZ.y * 2.2));
           height = mix(height, streamLines, 0.38);
 
-          // Doble capa de normales desplazándose hacia +X
           vec2 uvNorm1 = vUv * 42.0 + vec2(-flow * 0.48, sin(t * 2.0) * 0.08);
           vec2 uvNorm2 = vUv * 68.0 + vec2(-flow * 0.78, -cos(t * 1.7) * 0.06);
           vec3 texN1 = texture2D(uNormalMap, uvNorm1).xyz * 2.0 - 1.0;
@@ -1168,7 +1159,6 @@
           float bowRollerWaves = 0.55 + 0.45 * sin(length(bowPoint) * 14.0 - uTime * 8.0 + texN1.x * 2.5);
           float frontCollisionFoam = bowHeadOn * bowRollerWaves * 1.30 + vBowImpact * 0.90;
 
-          // Anillo de espuma alrededor del casco (usando smoothstep con edge0 < edge1 estricto)
           float outerHullFade = 1.0 - smoothstep(0.78, 1.95, rHull);
           float innerHullCut  = smoothstep(0.30, 0.95, rHull);
           float hullRing = outerHullFade * innerHullCut;
@@ -1176,7 +1166,6 @@
           float bowBias = 0.55 + 0.55 * (1.0 - smoothstep(-1.0, 0.4, qHull.x));
           float hullSideFoam = hullRing * hullRipples * bowBias;
 
-          // Estela de Kelvin en "V" abriéndose desde la proa (-X) hacia la derecha (+X)
           float trailX = localXZ.x + hullScale.x * 0.90;
           float rightSideMask = smoothstep(-0.35, 0.65, trailX);
           float wakeDecay = exp(-max(0.0, trailX) * 0.085);
@@ -1185,11 +1174,9 @@
           float kelvinWave = max(0.0, cos((abs(localXZ.y) - wakeArmZ) * 8.0 - uTime * 6.8 + texN1.y * 1.6));
           float kelvinWake = kelvinWave * exp(-distToArm * 1.30) * rightSideMask * wakeDecay;
 
-          // Estela central turbulenta detrás de la barca (+X)
           float sternTrail = exp(-abs(localXZ.y) / max(0.35, hullScale.y * 0.85)) * smoothstep(0.0, 1.4, trailX) * wakeDecay;
           float sternFoam = sternTrail * smoothstep(0.25, 0.78, height + texN2.x * 0.35) * 0.70;
 
-          // Vetas blancas de espuma arrastradas por la corriente en todo el río
           float riverCurrentFoam = smoothstep(0.68, 0.88, streamLines) * 0.25;
           float wakeFoam = clamp(frontCollisionFoam + hullSideFoam + kelvinWake * 0.90 + sternFoam + riverCurrentFoam, 0.0, 1.0);
 
@@ -1394,7 +1381,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Carga de models/barcagrullas.glb Fija en el Centro del Agua ---------------- */
+  /* ---------------- Carga de models/barcagrullas.glb (Oculta Visualmente pero Activa en Físicas) ---------------- */
   async function loadBarcaGrullasModel() {
     await MeshoptDecoder.ready;
 
@@ -1421,7 +1408,6 @@
     const boatModel = gltf.scene;
     boatModel.updateMatrixWorld(true);
 
-    // Orientar la proa de la barca hacia la izquierda (-X), de frente a la corriente que avanza hacia +X
     const rawBox = new THREE.Box3().setFromObject(boatModel);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     if (rawSize.z > rawSize.x) {
@@ -1431,7 +1417,6 @@
     }
     boatModel.updateMatrixWorld(true);
 
-    // Escalar la barca a BOAT_TARGET_LENGTH (3.20 m) ideal para iniciar a 2.5 m del visitante
     const rotBox = new THREE.Box3().setFromObject(boatModel);
     const rotSize = rotBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(rotSize.x, rotSize.y, rotSize.z) || 1.0;
@@ -1439,7 +1424,6 @@
     boatModel.scale.setScalar(scaleFactor);
     boatModel.updateMatrixWorld(true);
 
-    // Centrar en (0, 0) y sumergir el 20% inferior bajo WATER_SURFACE_Y para ocultar los pies
     const finalBox = new THREE.Box3().setFromObject(boatModel);
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
     const finalSize = finalBox.getSize(new THREE.Vector3());
@@ -1452,20 +1436,12 @@
     );
     boatModel.updateMatrixWorld(true);
 
-    boatModel.traverse((node) => {
-      node.frustumCulled = false;
-      if (node.isMesh && node.material) {
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        mats.forEach((m) => {
-          m.clippingPlanes = [waterlineClipPlane];
-          m.clipShadows = true;
-          m.needsUpdate = true;
-        });
-      }
-    });
-
+    // Ocultar el modelo 3D de la barca para que solo se vea la escultura real del museo con la colisión del agua
+    boatModel.visible = false;
+    placedEffect.userData.boatAnchor.visible = false;
     placedEffect.userData.boatAnchor.add(boatModel);
 
+    // Mantener las dimensiones exactas del modelo en los shaders de agua y colisión
     const halfX = Math.max(0.85, finalSize.x * 0.48);
     const halfZ = Math.max(0.42, finalSize.z * 0.46);
     placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
@@ -1474,7 +1450,7 @@
     dracoLoader.dispose();
   }
 
-  /* ---------------- Anclaje Exacto a 2.5 Metros del Usuario y Exploración Libre Caminando ---------------- */
+  /* ---------------- Colisión Siempre en el Centro de la Pantalla + Exploración Caminando ---------------- */
   let hitTestSource = null;
   let activeSession = null;
   let elapsed = 0;
@@ -1486,6 +1462,8 @@
   let pendingPhotoCapture = false;
   const _camWorldPos = new THREE.Vector3();
   const _camForward = new THREE.Vector3();
+  const _horizDir = new THREE.Vector3();
+  const _targetCenterPos = new THREE.Vector3();
   const _hitPos = new THREE.Vector3();
 
   function showFallback(text) {
@@ -1493,34 +1471,37 @@
     fallback.style.display = 'flex';
   }
 
-  // Coloca la barca en la altura del suelo detectado (floorY) pero siempre a 2.5 metros horizontales del usuario
   function placeBoatAt2_5Meters(floorY) {
     isPlaced = true;
     reticle.visible = false;
+    lockedFloorY = floorY - 0.01;
 
     const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
     activeCam.getWorldPosition(_camWorldPos);
     activeCam.getWorldDirection(_camForward);
 
-    const horiz = new THREE.Vector3(_camForward.x, 0, _camForward.z);
-    if (horiz.lengthSq() < 0.001) horiz.set(0, 0, -1);
-    else horiz.normalize();
+    anchorCamOrigin.set(_camWorldPos.x, 0, _camWorldPos.z);
+    userDistanceToSculpture = INITIAL_USER_DISTANCE;
+    targetDistanceToSculpture = INITIAL_USER_DISTANCE;
+
+    _horizDir.set(_camForward.x, 0, _camForward.z);
+    if (_horizDir.lengthSq() < 0.001) _horizDir.set(0, 0, -1);
+    else _horizDir.normalize();
 
     placedEffect.position.set(
-      _camWorldPos.x + horiz.x * INITIAL_USER_DISTANCE,
-      floorY - 0.01,
-      _camWorldPos.z + horiz.z * INITIAL_USER_DISTANCE
+      _camWorldPos.x + _horizDir.x * INITIAL_USER_DISTANCE,
+      lockedFloorY,
+      _camWorldPos.z + _horizDir.z * INITIAL_USER_DISTANCE
     );
-
-    placedEffect.rotation.set(0, Math.atan2(-horiz.x, -horiz.z), 0);
+    placedEffect.rotation.set(0, Math.atan2(-_horizDir.x, -_horizDir.z), 0);
     placedEffect.updateMatrixWorld(true);
 
-    waterlineClipPlane.constant = -(placedEffect.position.y + WATER_SURFACE_Y - 0.015);
+    waterlineClipPlane.constant = -(lockedFloorY + WATER_SURFACE_Y - 0.015);
 
     placedEffect.visible = true;
     revealProgress = 0.04;
 
-    arStatusText.textContent = 'Barca anclada a 2.5 m · Camina para acercarte o rodearla';
+    arStatusText.textContent = 'Apunta a la escultura · Camina para acercarte o rodearla';
     arPillDot.style.background = '#74c7ff';
     setTimeout(() => { arStatusPill.style.opacity = '0'; }, 3000);
 
@@ -1544,15 +1525,12 @@
     reticle.visible = false;
 
     if (iosCameraARActive) {
-      iosWalkPos.set(0, 0, 0);
-      iosWalkTarget.set(0, 0, 0);
-      camera.position.set(0, 0, 0);
       setTimeout(() => placeBoatAt2_5Meters(-1.35), 350);
       return;
     }
 
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando nuevo suelo…';
+    arStatusText.textContent = 'Escaneando el suelo frente a la escultura…';
     arPillDot.style.background = '#d4af37';
     detenerAudioAmbiente();
   }
@@ -1800,7 +1778,7 @@
     hitFramesCount = 0;
     revealProgress = 0;
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando el suelo para ubicar la barca a 2.5 m…';
+    arStatusText.textContent = 'Escaneando el suelo frente a la escultura…';
 
     if (!activeSession) return;
 
@@ -1848,7 +1826,7 @@
     }, { once: true });
   });
 
-  /* ---------------- Bucle de Render ---------------- */
+  /* ---------------- Bucle de Render: Colisión Centrada en Pantalla + Caminata 6DoF ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
@@ -1863,9 +1841,35 @@
     placedEffect.userData.splashMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
 
-    if (iosCameraARActive && isPlaced) {
-      iosWalkPos.lerp(iosWalkTarget, 0.12);
-      camera.position.copy(iosWalkPos);
+    // Mantener el efecto de colisión con la barca siempre en el centro horizontal de la pantalla a nivel del suelo,
+    // permitiendo al mismo tiempo acercarse o alejarse caminando hacia la escultura real
+    if (isPlaced) {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      activeCam.getWorldPosition(_camWorldPos);
+      activeCam.getWorldDirection(_camForward);
+
+      _horizDir.set(_camForward.x, 0, _camForward.z);
+      if (_horizDir.lengthSq() < 0.001) _horizDir.set(0, 0, -1);
+      else _horizDir.normalize();
+
+      if (renderer.xr.isPresenting) {
+        // En WebXR 6DoF, calcular cuánto ha caminado el usuario hacia adelante/atrás respecto a su punto inicial
+        const dx = _camWorldPos.x - anchorCamOrigin.x;
+        const dz = _camWorldPos.z - anchorCamOrigin.z;
+        const walkedForward = dx * _horizDir.x + dz * _horizDir.z;
+        targetDistanceToSculpture = THREE.MathUtils.clamp(INITIAL_USER_DISTANCE - walkedForward, 0.85, 6.0);
+      }
+
+      userDistanceToSculpture = THREE.MathUtils.lerp(userDistanceToSculpture, targetDistanceToSculpture, 0.16);
+
+      _targetCenterPos.set(
+        _camWorldPos.x + _horizDir.x * userDistanceToSculpture,
+        lockedFloorY,
+        _camWorldPos.z + _horizDir.z * userDistanceToSculpture
+      );
+
+      placedEffect.position.lerp(_targetCenterPos, 0.22);
+      placedEffect.rotation.set(0, Math.atan2(-_horizDir.x, -_horizDir.z), 0);
     }
 
     const refSpace = renderer.xr.getReferenceSpace();
@@ -1924,8 +1928,6 @@
     document.body.classList.add('ar-active');
     fallback.style.display = 'none';
 
-    iosWalkPos.set(0, 0, 0);
-    iosWalkTarget.set(0, 0, 0);
     camera.position.set(0, 0, 0);
     if (!hasDeviceGyro) {
       camera.rotation.set(-0.18, 0, 0, 'YXZ');
@@ -1981,7 +1983,7 @@
   });
 
   loadBarcaGrullasModel().catch((err) => {
-    console.warn('Aviso al cargar barcagrullas.glb:', err);
+    console.warn('Aviso al calcular dimensiones de barcagrullas.glb:', err);
   });
 
   if (navigator.xr) {

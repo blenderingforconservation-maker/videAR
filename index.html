@@ -31,24 +31,12 @@
     html, body {
       margin: 0;
       width: 100%;
-      min-height: 100%;
+      height: 100svh;
+      overflow: hidden;
       background: #07191d;
       color: #effbf9;
       font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      min-height: 100svh;
-      overflow: hidden;
-    }
-
-    /* Garantiza que el DOM Overlay sea 100% transparente al abrir la cámara AR */
-    html.ar-active,
-    body.ar-active,
-    body.ar-active #app {
-      background: transparent !important;
-      background-color: transparent !important;
-      background-image: none !important;
+      touch-action: none;
     }
 
     #app {
@@ -57,19 +45,29 @@
       overflow: hidden;
     }
 
-    canvas {
-      display: block;
-      touch-action: none;
-    }
-
-    /* Video oculto de respaldo */
-    #cam-fallback-video {
+    /* Cámara trasera directa en 100svh: evita el modo pantalla completa forzado y su aviso del sistema */
+    #ar-camera-video {
       position: fixed;
-      width: 1px;
-      height: 1px;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       opacity: 0;
       pointer-events: none;
-      z-index: -1;
+      z-index: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    body.ar-active #ar-camera-video {
+      opacity: 1;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+      z-index: 1;
+      touch-action: none;
     }
 
     /* Efecto Flash al tomar fotografía */
@@ -91,15 +89,14 @@
     /* UI PRINCIPAL Y HUD CENTRADO                       */
     /* ================================================= */
     #hud {
-      position: absolute;
-      z-index: 5;
+      position: fixed;
+      z-index: 10;
       inset: 0;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       padding: calc(22px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
       pointer-events: none;
-      transition: opacity 0.3s ease;
     }
 
     .top, .bottom {
@@ -221,7 +218,7 @@
       background: linear-gradient(135deg, #e7c96b 0%, #d4af37 48%, #8ce7d5 100%);
       box-shadow: 0 10px 26px rgba(212, 175, 55, 0.25);
       cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.15s ease;
+      transition: opacity 0.2s ease;
     }
 
     #start:disabled {
@@ -256,8 +253,6 @@
       border-radius: 999px;
       background: var(--glass);
       border: 1px solid rgba(140, 231, 213, 0.3);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
       font-size: 12px;
       color: #effbf9;
       transition: opacity 0.4s ease;
@@ -272,8 +267,6 @@
       border-radius: 999px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
       box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
     }
 
@@ -353,14 +346,12 @@
       inset: 0;
       z-index: 100;
       background: rgba(5, 22, 27, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
     }
 
     #exit-modal.active {
@@ -377,12 +368,6 @@
       width: 85%;
       max-width: 320px;
       box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
-      transform: scale(0.95);
-      transition: transform 0.3s ease;
-    }
-
-    #exit-modal.active .modal-panel {
-      transform: scale(1);
     }
 
     .modal-panel h3 {
@@ -424,7 +409,6 @@
     .btn-confirm {
       background: linear-gradient(135deg, #e7c96b 0%, #d4af37 48%, #8ce7d5 100%);
       color: #041816;
-      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
     }
 
     /* Toast de confirmación */
@@ -450,33 +434,6 @@
       opacity: 1;
       transform: translate(-50%, 0);
     }
-
-    /* Fallback de compatibilidad */
-    #fallback {
-      position: absolute;
-      z-index: 15;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: linear-gradient(160deg, #0b282d, #07191d);
-    }
-    #fallback .panel {
-      max-width: 440px;
-      text-align: center;
-    }
-    #fallback h2 {
-      font-family: 'Cormorant Garamond', serif;
-      margin: 8px 0 10px;
-      font-size: 26px;
-    }
-    #fallback p {
-      color: #c3d9d7;
-      font-size: 14px;
-      line-height: 1.55;
-      margin: 0 0 16px;
-    }
   </style>
 
   <script type="importmap">
@@ -490,7 +447,7 @@
 </head>
 <body>
 <div id="app">
-  <video id="cam-fallback-video" autoplay muted playsinline></video>
+  <video id="ar-camera-video" autoplay muted playsinline></video>
   <div id="camera-flash"></div>
   <div id="toast">Guardado en el teléfono</div>
 
@@ -529,11 +486,11 @@
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Apunta al suelo o toca la pantalla para colocar la barca…</span>
+          <span id="ar-status-text">La Barca de las Grullas navegando a contracorriente</span>
         </div>
 
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Reposicionar">
+          <button id="reset" type="button" class="icon-btn" title="Reubicar frente a mí">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -562,14 +519,6 @@
       </div>
     </div>
   </div>
-
-  <div id="fallback">
-    <div class="panel">
-      <div class="museum-badge">Compatibilidad del dispositivo</div>
-      <h2>AR espacial no disponible aquí</h2>
-      <p id="fallbackText">Este navegador no expone WebXR immersive-ar.</p>
-    </div>
-  </div>
 </div>
 
 <!-- Audio en la raíz del repositorio videAR -->
@@ -581,7 +530,7 @@
   import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
   import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-  // Rutas exactas basadas en la estructura del repositorio blenderingforconservation-maker/videAR
+  // Rutas exactas del repositorio blenderingforconservation-maker/videAR
   const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main/';
   const ASSET_PATHS = {
     boatModelLocal: 'models/barcagrullas.glb',
@@ -590,6 +539,11 @@
     waterNormalRemote: `${REPO_RAW}image_c713d6.png`,
     audioRemote: `${REPO_RAW}bosque_noche.mp3`
   };
+
+  // Escala 4x respecto al tamaño anterior (1.85m * 4 = 7.40m de eslora)
+  const BOAT_TARGET_LENGTH = 7.40;
+  const AR_ANCHOR_DISTANCE = 5.80;
+  const AR_FLOOR_Y         = -1.45;
 
   const app            = document.querySelector('#app');
   const statusEl       = document.querySelector('#status');
@@ -604,16 +558,13 @@
   const videoLabel     = document.querySelector('#video-label');
   const cameraFlash    = document.querySelector('#camera-flash');
   const toastEl        = document.querySelector('#toast');
-  const fallback       = document.querySelector('#fallback');
-  const fallbackText   = document.querySelector('#fallbackText');
   const audioBosque    = document.querySelector('#audioBosque');
-  const fallbackVideo  = document.querySelector('#cam-fallback-video');
+  const arCameraVideo  = document.querySelector('#ar-camera-video');
 
   const exitModal      = document.querySelector('#exit-modal');
   const btnCancelExit  = document.querySelector('#btn-cancel-exit');
   const btnConfirmExit = document.querySelector('#btn-confirm-exit');
 
-  // Respaldo automático si bosque_noche.mp3 se ejecuta fuera del dominio de GitHub Pages
   audioBosque.addEventListener('error', () => {
     if (audioBosque.src !== ASSET_PATHS.audioRemote) {
       audioBosque.src = ASSET_PATHS.audioRemote;
@@ -625,72 +576,40 @@
     toastEl.textContent = msg;
     toastEl.classList.add('visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 3000);
+    toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2800);
   }
 
-  /* ---------------- Permisos de Cámara y Respaldo getUserMedia ---------------- */
-  let fallbackStream = null;
-  let usingFallbackCameraMode = false;
+  /* ---------------- Cámara Trasera Directa (Sin Fullscreen forzoso) ---------------- */
+  let cameraStream = null;
+  let arActive = false;
 
-  async function requestCameraPermissionPreFlight() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  async function startCameraFeed() {
+    if (cameraStream || !navigator.mediaDevices?.getUserMedia) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (err) {
-      console.warn('Permiso de cámara denegado o no disponible:', err);
-      return false;
+      arCameraVideo.srcObject = cameraStream;
+      await arCameraVideo.play();
+    } catch (e) {
+      console.warn('Cámara no disponible:', e);
     }
   }
 
-  async function startFallbackVideoStream(showAsBackground = false) {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    if (!fallbackStream) {
-      try {
-        fallbackStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        });
-        fallbackVideo.srcObject = fallbackStream;
-        await fallbackVideo.play();
-      } catch (e) {
-        console.warn('El SO reservó la cámara exclusivamente para WebXR:', e);
-      }
+  function stopCameraFeed() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
     }
-    if (showAsBackground && fallbackStream) {
-      Object.assign(fallbackVideo.style, {
-        width: '100vw',
-        height: '100vh',
-        objectFit: 'cover',
-        opacity: '1',
-        zIndex: '0'
-      });
-    }
+    arCameraVideo.srcObject = null;
   }
 
-  function stopFallbackVideoStream() {
-    if (fallbackStream) {
-      fallbackStream.getTracks().forEach(t => t.stop());
-      fallbackStream = null;
-    }
-    fallbackVideo.srcObject = null;
-    Object.assign(fallbackVideo.style, {
-      width: '1px',
-      height: '1px',
-      opacity: '0',
-      zIndex: '-1'
-    });
-  }
-
-  /* ---------------- Sistema de Audio Suave y Captura Web Audio API ---------------- */
+  /* ---------------- Audio Nocturno + Web Audio API para Grabación ---------------- */
   let fadeAudioInterval = null;
   let audioCtx, mediaStreamDestination, sourceNode;
   let audioInitialized = false;
@@ -704,13 +623,11 @@
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       mediaStreamDestination = audioCtx.createMediaStreamDestination();
       sourceNode = audioCtx.createMediaElementSource(audioBosque);
-
       sourceNode.connect(audioCtx.destination);
       sourceNode.connect(mediaStreamDestination);
-
       audioInitialized = true;
     } catch (e) {
-      console.warn('Captura de audio no soportada / ya enrutada:', e);
+      console.warn('Web Audio ya inicializado:', e);
     }
   }
 
@@ -726,7 +643,7 @@
           if (audioBosque.volume < 0.85) audioBosque.volume = Math.min(0.85, audioBosque.volume + 0.05);
           else clearInterval(fadeAudioInterval);
         }, 150);
-      }).catch(e => console.warn('Interacción requerida', e));
+      }).catch(() => {});
     }
   }
 
@@ -744,130 +661,83 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / Escena e Iluminación Museográfica ---------------- */
+  /* ---------------- Escena y Renderer Optimizado ---------------- */
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false,
     powerPreference: 'high-performance'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.22;
   renderer.setClearColor(0x000000, 0);
-  renderer.xr.enabled = true;
-  renderer.xr.setReferenceSpaceType('local');
   app.prepend(renderer.domElement);
 
-  const scene  = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x071e2b, 0.022);
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 150);
-  // Posición de cámara inicial para vista previa antes de entrar a AR
-  camera.position.set(0, 1.15, 2.85);
-  camera.lookAt(0, 0.35, 0);
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x071e2b, 0.015);
 
-  const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 150);
-  captureCamera.matrixAutoUpdate = false;
+  const camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.05, 180);
+  camera.position.set(0, 1.4, 6.2);
+  camera.lookAt(0, 0.4, 0);
 
-  // Iluminación para resaltar el bronce/textura de La Barca de las Grullas sobre el río
-  const hemiLight = new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.85);
-  scene.add(hemiLight);
+  // Iluminación escénica para resaltar la escultura monumental de 7.4m
+  scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.9));
 
-  const keyLight = new THREE.DirectionalLight(0xfff4d6, 2.4);
-  keyLight.position.set(-2.5, 5.0, 3.0);
+  const keyLight = new THREE.DirectionalLight(0xfff4d6, 2.5);
+  keyLight.position.set(-4.0, 8.0, 5.0);
   scene.add(keyLight);
 
-  const rimLight = new THREE.DirectionalLight(0x64f4d6, 1.35);
-  rimLight.position.set(3.0, 2.5, -2.5);
+  const rimLight = new THREE.DirectionalLight(0x64f4d6, 1.45);
+  rimLight.position.set(5.0, 4.0, -4.0);
   scene.add(rimLight);
 
-  /* ---------------- Pipeline WebGL2 para dibujar la Cámara XR de Fondo ---------------- */
-  const gl = renderer.getContext();
-  let xrGlBinding = null;
-  let camShaderProgram = null;
-  let camVao = null;
-  let camScaleUniform = null;
-  let camTexUniform = null;
+  /* ---------------- Giroscopio Espacial 3DoF para AR sin Fullscreen ---------------- */
+  let hasGyro = false;
+  const deviceEuler = new THREE.Euler();
+  const deviceQuat = new THREE.Quaternion();
+  const screenTransform = new THREE.Quaternion();
+  const worldTransform = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  const _zAxis = new THREE.Vector3(0, 0, 1);
 
-  function initCameraBackgroundGL() {
-    const vsSource = `#version 300 es
-      out vec2 vUv;
-      uniform vec2 uScale;
-      void main() {
-        vec2 pos[6] = vec2[6](
-          vec2(-1.0, -1.0), vec2( 1.0, -1.0), vec2(-1.0,  1.0),
-          vec2(-1.0,  1.0), vec2( 1.0, -1.0), vec2( 1.0,  1.0)
-        );
-        vec2 p = pos[gl_VertexID];
-        vUv = (p * uScale) * 0.5 + 0.5;
-        gl_Position = vec4(p, 0.9999, 1.0);
-      }
-    `;
-    const fsSource = `#version 300 es
-      precision highp float;
-      in vec2 vUv;
-      uniform sampler2D uCamTex;
-      out vec4 fragColor;
-      void main() {
-        fragColor = texture(uCamTex, vUv);
-      }
-    `;
+  window.addEventListener('deviceorientation', (e) => {
+    if (!arActive || e.alpha === null || e.beta === null || e.gamma === null) return;
+    hasGyro = true;
+    const alpha = THREE.MathUtils.degToRad(e.alpha);
+    const beta = THREE.MathUtils.degToRad(e.beta);
+    const gamma = THREE.MathUtils.degToRad(e.gamma);
+    const orient = THREE.MathUtils.degToRad(window.screen?.orientation?.angle || window.orientation || 0);
 
-    const compile = (type, src) => {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      return s;
-    };
+    deviceEuler.set(beta, alpha, -gamma, 'YXZ');
+    deviceQuat.setFromEuler(deviceEuler);
+    deviceQuat.multiply(worldTransform);
+    deviceQuat.multiply(screenTransform.setFromAxisAngle(_zAxis, -orient));
+    camera.quaternion.copy(deviceQuat);
+  });
 
-    camShaderProgram = gl.createProgram();
-    gl.attachShader(camShaderProgram, compile(gl.VERTEX_SHADER, vsSource));
-    gl.attachShader(camShaderProgram, compile(gl.FRAGMENT_SHADER, fsSource));
-    gl.linkProgram(camShaderProgram);
-
-    camScaleUniform = gl.getUniformLocation(camShaderProgram, 'uScale');
-    camTexUniform = gl.getUniformLocation(camShaderProgram, 'uCamTex');
-    camVao = gl.createVertexArray();
-  }
-  initCameraBackgroundGL();
-
-  function drawXrCameraTextureToFramebuffer(cameraWebGLTexture, camW, camH, targetW, targetH) {
-    if (!camShaderProgram || !cameraWebGLTexture) return;
-
-    const canvasAspect = targetW / Math.max(1, targetH);
-    const camAspect = camW / Math.max(1, camH);
-    let scaleX = 1.0;
-    let scaleY = 1.0;
-    if (canvasAspect > camAspect) {
-      scaleY = camAspect / canvasAspect;
-    } else {
-      scaleX = canvasAspect / camAspect;
+  // Rotación táctil de respaldo para dispositivos sin giroscopio
+  let lastTouchX = null;
+  let lastTouchY = null;
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
     }
+  }, { passive: true });
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, targetW, targetH);
-    gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
-    gl.disable(gl.CULL_FACE);
+  window.addEventListener('touchmove', (e) => {
+    if (!arActive || hasGyro || e.touches.length !== 1 || lastTouchX === null) return;
+    const dx = e.touches[0].clientX - lastTouchX;
+    const dy = e.touches[0].clientY - lastTouchY;
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+    camera.rotation.y -= dx * 0.005;
+    camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x - dy * 0.005, -1.2, 0.8);
+  }, { passive: true });
 
-    gl.useProgram(camShaderProgram);
-    gl.bindVertexArray(camVao);
-    gl.uniform2f(camScaleUniform, scaleX, scaleY);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, cameraWebGLTexture);
-    gl.uniform1i(camTexUniform, 0);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindVertexArray(null);
-    renderer.resetState();
-  }
-
-  /* ---------------- Texturas Procedurales y Mapa Normal de Respaldo ---------------- */
+  /* ---------------- Texturas Procedurales y Mapa Normal ---------------- */
   function makeParticleTexture() {
     const size = 128;
     const c = document.createElement('canvas');
@@ -920,36 +790,22 @@
     return tex;
   }
 
-  /* ---------------- Reticle ---------------- */
-  const reticleGeo = new THREE.RingGeometry(0.18, 0.24, 48);
-  reticleGeo.rotateX(-Math.PI / 2);
-  const reticle = new THREE.Mesh(
-    reticleGeo,
-    new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
-  );
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
-
-  /* ---------------- Escena Fluvial: Barca en el Centro (0,0) + Flujo Superficial hacia la Derecha (+X) ---------------- */
+  /* ---------------- Escena Fluvial + Barca Monumental (4x) de Frente a la Corriente ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // Nodo pivote en el centro exacto del agua (0, 0, 0) donde se aloja models/barcagrullas.glb
     const boatPivot = new THREE.Group();
     boatPivot.position.set(0, 0.02, 0);
     group.add(boatPivot);
 
-    // Luz cálida cenital y reflejo turquesa inferior sobre el casco de la barca
-    const boatSpotLight = new THREE.PointLight(0xffe6a3, 2.6, 8.0);
-    boatSpotLight.position.set(0, 2.4, 0.6);
+    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.4, 18.0);
+    boatSpotLight.position.set(-2.0, 5.5, 2.0);
     boatPivot.add(boatSpotLight);
 
-    const waterBounceLight = new THREE.PointLight(0x28d7c6, 1.4, 5.0);
-    waterBounceLight.position.set(0, 0.15, 0);
+    const waterBounceLight = new THREE.PointLight(0x28d7c6, 2.0, 12.0);
+    waterBounceLight.position.set(0, 0.4, 0);
     boatPivot.add(waterBounceLight);
 
-    // Carga de image_c713d6.png con respaldo procedural y remoto
     const waterNormal = createFallbackWaterNormal();
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin('anonymous');
@@ -970,8 +826,8 @@
       }
     );
 
-    // Malla subdividida (72x72) para olas superficiales reales desplazándose hacia la derecha (+X)
-    const waterGeo = new THREE.PlaneGeometry(80.0, 80.0, 72, 72);
+    // Superficie amplia (140m x 140m) para albergar la barca 4x más grande
+    const waterGeo = new THREE.PlaneGeometry(140.0, 140.0, 72, 72);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
@@ -981,15 +837,15 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 1.0 },
-        uFlowSpeed: { value: 1.45 }, // Velocidad del flujo superficial hacia la derecha (+X)
-        uBoatPos: { value: new THREE.Vector2(0.0, 0.0) }, // Posición central de la barca en el agua
-        uBoatHalfSize: { value: new THREE.Vector2(0.95, 0.38) }, // Semiejes del casco (actualizados al cargar el GLB)
+        uFlowSpeed: { value: 1.65 }, // Velocidad del río avanzando hacia la derecha (+X)
+        uBoatPos: { value: new THREE.Vector2(0.0, 0.0) },
+        uBoatHalfSize: { value: new THREE.Vector2(3.60, 1.35) }, // Semiejes para la barca 4x
         uColorDeep: { value: new THREE.Color(0x041b22) },
         uColorShallow: { value: new THREE.Color(0x189ca6) },
         uFoamColor: { value: new THREE.Color(0xe2fffb) },
         uLightColor: { value: new THREE.Color(0xbdf7ff) },
         uFogColor: { value: new THREE.Color(0x071e2b) },
-        uFogDensity: { value: 0.024 },
+        uFogDensity: { value: 0.015 },
         uNormalMap: { value: waterNormal }
       },
       vertexShader: `
@@ -1005,19 +861,16 @@
           vUv = uv;
           vec3 pos = position;
 
-          // El flujo superficial avanza hacia la DERECHA (+X):
-          // En f(x - v * t), al crecer t la cresta se desplaza hacia +X
+          // La corriente avanza de izquierda (-X) hacia la derecha (+X)
           float rightFlow = uTime * uFlowSpeed;
-          float xPhase = pos.x - rightFlow * 2.2;
+          float xPhase = pos.x - rightFlow * 2.4;
 
-          // Tren de olas superficiales viajando de izquierda (-X) a derecha (+X)
-          float wave1 = sin(xPhase * 0.85 + pos.z * 0.30) * 0.030;
-          float wave2 = cos(xPhase * 1.65 - pos.z * 0.85 + uTime * 1.1) * 0.016;
+          float wave1 = sin(xPhase * 0.55 + pos.z * 0.22) * 0.048;
+          float wave2 = cos(xPhase * 1.15 - pos.z * 0.55 + uTime * 1.2) * 0.024;
 
-          // Desplazamiento hidrodinámico alrededor de la posición central de la barca (uBoatPos)
           vec2 relBoat = pos.xz - uBoatPos;
           float distBoat = length(relBoat);
-          float boatSwell = exp(-distBoat * 0.65) * sin(distBoat * 5.0 - uTime * 4.2) * 0.026;
+          float boatSwell = exp(-distBoat * 0.28) * sin(distBoat * 2.6 - uTime * 4.2) * 0.042;
 
           float h = wave1 + wave2 + boatSwell;
           pos.y += h;
@@ -1050,18 +903,16 @@
         varying float vWaveHeight;
 
         void main() {
-          // Coordenadas relativas a la posición central de la Barca de las Grullas (0, 0)
           vec2 p = vLocalPos.xz - uBoatPos;
           float flow = uTime * uFlowSpeed;
 
-          // 1. FLUJO SUPERFICIAL DEL RÍO MOVIÉNDOSE HACIA LA DERECHA (+X)
-          // Restar (flow) en la coordenada U desplaza toda la textura superficial hacia +X (derecha)
-          float meanderZ = sin(p.x * 0.22 - flow * 0.6) * 0.25;
+          // 1. FLUJO SUPERFICIAL HACIA LA DERECHA (+X)
+          float meanderZ = sin(p.x * 0.14 - flow * 0.55) * 0.35;
           vec2 streamCoord = vec2(p.x, p.y + meanderZ);
 
-          vec2 uvLayer1 = vec2(streamCoord.x * 0.28 - flow * 0.38, streamCoord.y * 0.34 + sin(uTime * 0.3) * 0.04);
-          vec2 uvLayer2 = vec2(streamCoord.x * 0.56 - flow * 0.64, streamCoord.y * 0.62 - cos(uTime * 0.4) * 0.05);
-          vec2 uvLayer3 = vec2(streamCoord.x * 0.40 - flow * 0.95, streamCoord.y * 1.05);
+          vec2 uvLayer1 = vec2(streamCoord.x * 0.18 - flow * 0.38, streamCoord.y * 0.22 + sin(uTime * 0.3) * 0.04);
+          vec2 uvLayer2 = vec2(streamCoord.x * 0.38 - flow * 0.64, streamCoord.y * 0.44 - cos(uTime * 0.4) * 0.05);
+          vec2 uvLayer3 = vec2(streamCoord.x * 0.26 - flow * 0.96, streamCoord.y * 0.72);
 
           vec3 n1 = texture2D(uNormalMap, uvLayer1).xyz * 2.0 - 1.0;
           vec3 n2 = texture2D(uNormalMap, uvLayer2).xyz * 2.0 - 1.0;
@@ -1069,40 +920,37 @@
 
           vec2 normalXY = (n1.xy * 0.48 + n2.xy * 0.34 + n3.xy * 0.24) * 1.65;
 
-          // 2. INTERACCIÓN HIDRODINÁMICA CON LA BARCA EN EL CENTRO (0, 0)
-          // Como el agua fluye hacia la derecha (+X), la proa corta el agua en el lado izquierdo (-X)
-          // y la estela en "V" (Kelvin Wake) se abre y corre hacia la derecha (+X)
-          vec2 hullNorm = p / max(uBoatHalfSize, vec2(0.25));
+          // 2. ROMPIMIENTO DE PROA EN LA IZQUIERDA (-X) Y ESTELA EN "V" CORRIENDO A LA DERECHA (+X)
+          vec2 hullNorm = p / max(uBoatHalfSize, vec2(0.5));
           float hullDist = length(hullNorm);
 
-          // Anillo de espuma pegado al contorno del casco de la barca
-          float hullRing = smoothstep(2.1, 0.85, hullDist) * smoothstep(0.45, 0.98, hullDist);
-          float hullRipples = 0.5 + 0.5 * sin(hullDist * 10.0 - uTime * 5.8 + n1.x * 2.0);
-          float bowSplash = hullRing * hullRipples * (0.65 + 0.35 * smoothstep(0.5, -1.0, hullNorm.x));
+          // Espuma más intensa en la proa (-X) donde la barca corta de frente la corriente
+          float hullRing = smoothstep(1.95, 0.85, hullDist) * smoothstep(0.45, 0.98, hullDist);
+          float hullRipples = 0.5 + 0.5 * sin(hullDist * 9.0 - uTime * 5.8 + n1.x * 2.0);
+          float bowFactor = 0.55 + 0.45 * smoothstep(0.6, -1.0, hullNorm.x);
+          float bowSplash = hullRing * hullRipples * bowFactor;
 
-          // Estela en V que nace en la barca y se extiende hacia la derecha (+X)
-          float trailX = p.x + uBoatHalfSize.x * 0.75;
-          float rightSideMask = smoothstep(-0.35, 0.45, trailX);
-          float wakeDecay = exp(-max(0.0, trailX) * 0.16);
+          // Estela hidrodinámica Kelvin abriéndose desde la proa (-X) hacia la derecha (+X)
+          float trailX = p.x + uBoatHalfSize.x * 0.80;
+          float rightSideMask = smoothstep(-0.6, 0.8, trailX);
+          float wakeDecay = exp(-max(0.0, trailX) * 0.065);
 
-          // Brazos laterales de la estela abriéndose hacia +X
-          float wakeArmZ = max(uBoatHalfSize.y * 0.55, trailX * 0.36);
+          float wakeArmZ = max(uBoatHalfSize.y * 0.50, trailX * 0.34);
           float distToArm = abs(abs(p.y) - wakeArmZ);
-          float kelvinWave = cos((abs(p.y) - wakeArmZ) * 12.0 - uTime * 6.5 + n2.y * 1.5);
-          float kelvinMask = exp(-distToArm * 2.1) * rightSideMask * wakeDecay;
+          float kelvinWave = cos((abs(p.y) - wakeArmZ) * 6.5 - uTime * 6.5 + n2.y * 1.5);
+          float kelvinMask = exp(-distToArm * 0.95) * rightSideMask * wakeDecay;
           float kelvinWake = max(0.0, kelvinWave) * kelvinMask;
 
-          // Canal turbulento de espuma detrás de la popa fluyendo hacia la derecha (+X)
-          float centerSlipstream = exp(-abs(p.y) / max(0.25, uBoatHalfSize.y * 0.9)) * smoothstep(0.0, 0.9, trailX) * wakeDecay;
-          float slipstreamFoam = centerSlipstream * smoothstep(0.05, 0.65, n2.x + n3.y) * 0.65;
+          // Turbulencia de popa hacia la derecha (+X)
+          float centerSlipstream = exp(-abs(p.y) / max(0.5, uBoatHalfSize.y * 0.85)) * smoothstep(0.0, 2.0, trailX) * wakeDecay;
+          float slipstreamFoam = centerSlipstream * smoothstep(0.05, 0.65, n2.x + n3.y) * 0.68;
 
-          // Perturbar las normales con la estela para reflejos especulares realistas
           normalXY.y += sign(p.y) * kelvinWave * kelvinMask * 0.9;
           normalXY.x += kelvinWave * kelvinMask * 0.45;
 
           vec3 normal = normalize(vec3(normalXY.x, 1.0, normalXY.y));
 
-          // 3. COLOR DEL AGUA, VETAS DE CORRIENTE HORIZONTAL (+X) Y ESPUMA
+          // 3. REFLEJOS Y ESPUMA DE CORRIENTE
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 lightDir = normalize(vec3(-0.4, 1.0, 0.45));
           vec3 halfVec = normalize(lightDir + viewDir);
@@ -1110,21 +958,20 @@
           float spec = pow(max(dot(normal, halfVec), 0.0), 32.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          // Vetas superficiales alargadas en el eje X para acentuar el flujo hacia la derecha
-          float flowStreaks = smoothstep(-0.25, 0.55, n1.x * 0.6 + n3.x * 0.6 + vWaveHeight * 9.0);
+          float flowStreaks = smoothstep(-0.25, 0.55, n1.x * 0.6 + n3.x * 0.6 + vWaveHeight * 6.0);
           vec3 baseWater = mix(uColorDeep, uColorShallow, flowStreaks);
 
           float surfaceCrestFoam = smoothstep(0.56, 0.86, n1.x * 0.5 + n2.y * 0.5 + flowStreaks * 0.3) * 0.26;
-          float totalFoam = clamp(bowSplash + kelvinWake * 0.82 + slipstreamFoam + surfaceCrestFoam, 0.0, 1.0);
+          float totalFoam = clamp(bowSplash + kelvinWake * 0.85 + slipstreamFoam + surfaceCrestFoam, 0.0, 1.0);
 
-          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.80);
+          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.82);
           color += uLightColor * spec * (1.4 + totalFoam * 0.75);
           color = mix(color, uLightColor, fresnel * 0.38);
 
-          // 4. NIEBLA ATMOSFÉRICA Y BORDES SUAVES
+          // 4. NIEBLA SUAVE Y BORDES
           float dist = length(cameraPosition - vWorldPosition);
           float fogFactor = 1.0 - exp(-pow(dist * uFogDensity, 2.0));
-          float mist = smoothstep(-0.15, 0.65, n1.y + n2.x) * 0.25;
+          float mist = smoothstep(-0.15, 0.65, n1.y + n2.x) * 0.24;
           color = mix(color, uFogColor, clamp(fogFactor * 0.65 + mist, 0.0, 0.80));
 
           float alpha = mix(0.84, 0.97, flowStreaks);
@@ -1145,15 +992,15 @@
     water.frustumCulled = false;
     group.add(water);
 
-    /* ---------------- Partículas Superficiales Fluyendo hacia la Derecha (+X) ---------------- */
+    /* ---------------- Partículas Fluyendo hacia la Derecha (+X) ---------------- */
     const particleCount = 1600;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3]     = (Math.random() - 0.5) * 60.0;
-      particlePositions[i * 3 + 1] = 0.06 + Math.random() * 2.2;
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 50.0;
+      particlePositions[i * 3]     = (Math.random() - 0.5) * 90.0;
+      particlePositions[i * 3 + 1] = 0.10 + Math.random() * 4.2;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 70.0;
       particleSeeds[i] = Math.random() * Math.PI * 2;
     }
 
@@ -1168,10 +1015,10 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 1.0 },
-        uFlowSpeed: { value: 1.45 },
+        uFlowSpeed: { value: 1.65 },
         uTexture: { value: particleTexture },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.6) },
-        uFogDensity: { value: 0.025 }
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
+        uFogDensity: { value: 0.015 }
       },
       vertexShader: `
         uniform float uTime;
@@ -1185,18 +1032,17 @@
         void main() {
           vec3 pos = position;
 
-          // Deriva continua hacia la derecha (+X) acompañando la corriente del río
-          float rightDrift = uTime * uFlowSpeed * (1.25 + 0.35 * sin(aSeed));
-          pos.x = mod(pos.x + rightDrift + 30.0, 60.0) - 30.0;
-          pos.y += cos(uTime * 0.6 + aSeed * 2.0) * 0.18;
-          pos.z += sin(uTime * 0.5 + aSeed + pos.x * 0.15) * 0.30;
+          float rightDrift = uTime * uFlowSpeed * (1.45 + 0.4 * sin(aSeed));
+          pos.x = mod(pos.x + rightDrift + 45.0, 90.0) - 45.0;
+          pos.y += cos(uTime * 0.6 + aSeed * 2.0) * 0.22;
+          pos.z += sin(uTime * 0.5 + aSeed + pos.x * 0.12) * 0.35;
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           float dist = length(mvPosition.xyz);
           float fogAtten = exp(-pow(dist * uFogDensity, 2.0));
 
-          gl_PointSize = 95.0 * uPixelRatio * (1.0 / max(0.35, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.0, 52.0);
+          gl_PointSize = 110.0 * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
+          gl_PointSize = clamp(gl_PointSize, 3.0, 56.0);
 
           vAlpha = (0.45 + 0.55 * sin(uTime * 1.8 + aSeed * 5.0)) * fogAtten * uReveal;
           gl_Position = projectionMatrix * mvPosition;
@@ -1220,8 +1066,7 @@
     group.userData.particleMaterial = particleMat;
     group.userData.boatPivot = boatPivot;
 
-    // Visible desde el inicio como vista previa antes de pulsar "Iniciar realidad aumentada"
-    group.position.set(0, -0.35, 0);
+    group.position.set(0, AR_FLOOR_Y, -AR_ANCHOR_DISTANCE);
     group.visible = true;
     scene.add(group);
     return group;
@@ -1229,7 +1074,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Carga del Modelo GLB: models/barcagrullas.glb ---------------- */
+  /* ---------------- Carga de models/barcagrullas.glb (4x más grande y encarando la corriente) ---------------- */
   async function loadBarcaGrullasModel() {
     await MeshoptDecoder.ready;
 
@@ -1266,32 +1111,33 @@
     const boatModel = gltf.scene;
     boatModel.updateMatrixWorld(true);
 
-    // 1. Medir dimensiones originales y orientar la eslora sobre el eje X
-    // (para que la barca apunte hacia la izquierda -X mientras el agua fluye hacia la derecha +X)
+    // 1. Orientar la proa de la barca hacia la izquierda (-X), es decir, DE FRENTE a la corriente que fluye hacia +X
+    // (Se invierte exactamente 180° respecto a la orientación previa que estaba al contrario)
     const rawBox = new THREE.Box3().setFromObject(boatModel);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     if (rawSize.z > rawSize.x) {
-      boatModel.rotation.y = -Math.PI / 2;
-      boatModel.updateMatrixWorld(true);
+      boatModel.rotation.y = Math.PI / 2;
+    } else {
+      boatModel.rotation.y = Math.PI;
     }
+    boatModel.updateMatrixWorld(true);
 
-    // 2. Escalar a proporción escultórica (1.85 m de eslora en espacio AR)
+    // 2. Aumentar el tamaño 4 veces (BOAT_TARGET_LENGTH = 7.40 m)
     const rotBox = new THREE.Box3().setFromObject(boatModel);
     const rotSize = rotBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(rotSize.x, rotSize.y, rotSize.z) || 1.0;
-    const targetLength = 1.85;
-    const scaleFactor = targetLength / maxDim;
+    const scaleFactor = BOAT_TARGET_LENGTH / maxDim;
     boatModel.scale.setScalar(scaleFactor);
     boatModel.updateMatrixWorld(true);
 
-    // 3. Centrar exactamente en (0, 0) sobre el agua y apoyar la quilla en la superficie
+    // 3. Centrar en (0, 0) sobre el plano del agua y asentar la quilla
     const finalBox = new THREE.Box3().setFromObject(boatModel);
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
     const finalSize = finalBox.getSize(new THREE.Vector3());
 
     boatModel.position.set(
       -finalCenter.x,
-      -finalBox.min.y - 0.015, // Ligeramente inmersa en la lámina de agua para realismo
+      -finalBox.min.y - 0.04,
       -finalCenter.z
     );
     boatModel.updateMatrixWorld(true);
@@ -1301,7 +1147,7 @@
       if (node.isMesh && node.material) {
         const mats = Array.isArray(node.material) ? node.material : [node.material];
         mats.forEach((m) => {
-          m.envMapIntensity = 1.35;
+          m.envMapIntensity = 1.4;
           m.needsUpdate = true;
         });
       }
@@ -1309,125 +1155,95 @@
 
     placedEffect.userData.boatPivot.add(boatModel);
 
-    // Informar al shader del agua las dimensiones reales del casco de barcagrullas.glb
+    // Actualizar las dimensiones del casco en el shader para la estela 4x
     placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(
-      Math.max(0.45, finalSize.x * 0.48),
-      Math.max(0.22, finalSize.z * 0.46)
+      Math.max(1.80, finalSize.x * 0.48),
+      Math.max(0.85, finalSize.z * 0.46)
     );
 
     dracoLoader.dispose();
   }
 
-  /* ---------------- Estado y Colocación en el Centro del Agua ---------------- */
-  let hitTestSource = null;
-  let activeSession = null;
+  /* ---------------- Anclaje Espacial Frente al Usuario ---------------- */
   let elapsed = 0;
-  let xrSessionStarting = false;
-  let isPlaced = false;
   let revealProgress = 1.0;
   let pendingPhotoCapture = false;
   const _camForward = new THREE.Vector3();
-  const _camPos = new THREE.Vector3();
 
-  function placeBoatAndRiverAtMatrix(poseMatrixArray) {
-    isPlaced = true;
-    reticle.visible = false;
-
-    reticle.matrix.fromArray(poseMatrixArray);
-    placedEffect.position.setFromMatrixPosition(reticle.matrix);
-    placedEffect.position.y -= 0.01;
-
-    // Orientar el sistema para que el eje +X quede hacia la derecha de la vista del usuario
-    camera.getWorldDirection(_camForward);
-    const yaw = Math.atan2(_camForward.x, _camForward.z) + Math.PI;
-    placedEffect.rotation.set(0, yaw, 0);
-
-    placedEffect.visible = true;
-    revealProgress = 0.05;
-
-    arStatusText.textContent = 'La Barca de las Grullas navegando';
-    arPillDot.style.background = '#8ce7d5';
-    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2600);
-
-    iniciarAudioAmbiente();
-  }
-
-  // Permite colocar también con un toque en pantalla si el suelo tarda en escanearse
-  function placeBoatInFrontOfUser() {
-    if (isPlaced) return;
-    isPlaced = true;
-    reticle.visible = false;
-
-    camera.getWorldPosition(_camPos);
+  function anchorSceneInFrontOfCamera() {
     camera.getWorldDirection(_camForward);
     const horiz = new THREE.Vector3(_camForward.x, 0, _camForward.z);
     if (horiz.lengthSq() < 0.001) horiz.set(0, 0, -1);
     else horiz.normalize();
 
     placedEffect.position.set(
-      _camPos.x + horiz.x * 2.4,
-      _camPos.y - 1.25,
-      _camPos.z + horiz.z * 2.4
+      horiz.x * AR_ANCHOR_DISTANCE,
+      AR_FLOOR_Y,
+      horiz.z * AR_ANCHOR_DISTANCE
     );
-    const yaw = Math.atan2(horiz.x, horiz.z) + Math.PI;
+
+    // Alinear el sistema local de modo que +X apunte siempre hacia la derecha de la cámara
+    const yaw = Math.atan2(-horiz.x, -horiz.z);
     placedEffect.rotation.set(0, yaw, 0);
 
-    placedEffect.visible = true;
     revealProgress = 0.05;
+    placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
+    placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
 
-    arStatusText.textContent = 'La Barca de las Grullas navegando';
+    arStatusPill.style.opacity = '1';
+    arStatusText.textContent = 'La Barca de las Grullas navegando a contracorriente';
     arPillDot.style.background = '#8ce7d5';
     setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2600);
+  }
 
+  async function beginAR() {
+    if (arActive) return;
+    startButton.disabled = true;
+    startButton.textContent = 'Activando cámara AR…';
+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
+    }
+
+    await startCameraFeed();
+    initAudioCapture();
+
+    arActive = true;
+    document.documentElement.classList.add('ar-active');
+    document.body.classList.add('ar-active');
+
+    camera.position.set(0, 0, 0);
+    if (!hasGyro) {
+      camera.rotation.set(-0.18, 0, 0, 'YXZ');
+    }
+
+    anchorSceneInFrontOfCamera();
     iniciarAudioAmbiente();
   }
 
-  function clearEffect() {
-    isPlaced = false;
-    revealProgress = 0;
-    placedEffect.visible = false;
-    placedEffect.userData.waterMaterial.uniforms.uReveal.value = 0;
-    placedEffect.userData.particleMaterial.uniforms.uReveal.value = 0;
-    reticle.visible = false;
-
-    arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Apunta al suelo o toca para colocar la barca…';
-    arPillDot.style.background = '#d4af37';
-    detenerAudioAmbiente();
-  }
-
-  async function endAR() {
+  function endAR() {
     if (isRecording) stopVideoRecording();
     detenerAudioAmbiente();
-    stopFallbackVideoStream();
-    usingFallbackCameraMode = false;
-    if (activeSession) {
-      try { await activeSession.end(); } catch (_) {}
-    } else {
-      document.documentElement.classList.remove('ar-active');
-      document.body.classList.remove('ar-active');
-      placedEffect.position.set(0, -0.35, 0);
-      placedEffect.rotation.set(0, 0, 0);
-      placedEffect.visible = true;
-      revealProgress = 1.0;
-      placedEffect.userData.waterMaterial.uniforms.uReveal.value = 1.0;
-      placedEffect.userData.particleMaterial.uniforms.uReveal.value = 1.0;
-      camera.position.set(0, 1.15, 2.85);
-      camera.lookAt(0, 0.35, 0);
-      startButton.disabled = false;
-      startButton.textContent = 'Iniciar realidad aumentada';
-    }
+    stopCameraFeed();
+    arActive = false;
+
+    document.documentElement.classList.remove('ar-active');
+    document.body.classList.remove('ar-active');
+
+    camera.position.set(0, 1.4, 6.2);
+    camera.lookAt(0, 0.4, 0);
+    placedEffect.position.set(0, AR_FLOOR_Y, -AR_ANCHOR_DISTANCE);
+    placedEffect.rotation.set(0, 0, 0);
+    revealProgress = 1.0;
+    placedEffect.userData.waterMaterial.uniforms.uReveal.value = 1.0;
+    placedEffect.userData.particleMaterial.uniforms.uReveal.value = 1.0;
+
+    startButton.disabled = false;
+    startButton.textContent = 'Iniciar realidad aumentada';
   }
 
-  /* Lógica Modal Salida */
-  closeButton.addEventListener('click', () => {
-    exitModal.classList.add('active');
-  });
-
-  btnCancelExit.addEventListener('click', () => {
-    exitModal.classList.remove('active');
-  });
-
+  closeButton.addEventListener('click', () => exitModal.classList.add('active'));
+  btnCancelExit.addEventListener('click', () => exitModal.classList.remove('active'));
   btnConfirmExit.addEventListener('click', () => {
     exitModal.classList.remove('active');
     endAR();
@@ -1448,7 +1264,7 @@
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
   }
 
-  function renderSceneToCaptureCanvas(frame, refSpace) {
+  function renderSceneToCaptureCanvas() {
     const w = renderer.domElement.width;
     const h = renderer.domElement.height;
     if (captureCanvas.width !== w || captureCanvas.height !== h) {
@@ -1456,58 +1272,13 @@
       captureCanvas.height = h;
     }
 
-    let xrCameraTexture = null;
-    let camW = w;
-    let camH = h;
-    let activeView = null;
-
-    if (frame && refSpace) {
-      const viewerPose = frame.getViewerPose(refSpace);
-      if (viewerPose && viewerPose.views && viewerPose.views.length > 0) {
-        activeView = viewerPose.views[0];
-        if (activeView.camera && xrGlBinding) {
-          try {
-            xrCameraTexture = xrGlBinding.getCameraImage(activeView.camera);
-            camW = activeView.camera.width;
-            camH = activeView.camera.height;
-          } catch (_) {}
-        }
-      }
-    }
-
-    const prevXrEnabled = renderer.xr.enabled;
-    const prevAutoClear = renderer.autoClear;
-    renderer.xr.enabled = false;
-    renderer.setRenderTarget(null);
-
-    if (xrCameraTexture) {
-      drawXrCameraTextureToFramebuffer(xrCameraTexture, camW, camH, w, h);
-      renderer.autoClear = false;
-      renderer.clearDepth();
-    } else {
-      renderer.autoClear = true;
-      renderer.setClearColor(0x000000, 0);
-      renderer.clear(true, true, true);
-      if (!fallbackStream) startFallbackVideoStream(false);
-    }
-
-    if (activeView) {
-      captureCamera.projectionMatrix.fromArray(activeView.projectionMatrix);
-      captureCamera.projectionMatrixInverse.copy(captureCamera.projectionMatrix).invert();
-      captureCamera.matrixWorld.fromArray(activeView.transform.matrix);
-      captureCamera.matrixWorldInverse.fromArray(activeView.transform.inverse.matrix);
-      renderer.render(scene, captureCamera);
-    } else {
-      renderer.render(scene, camera);
-    }
-
-    renderer.autoClear = prevAutoClear;
-    renderer.xr.enabled = prevXrEnabled;
-
     captureCtx.clearRect(0, 0, w, h);
 
-    if (!xrCameraTexture && fallbackVideo.readyState >= 2) {
-      drawVideoCover(captureCtx, fallbackVideo, w, h);
+    if (arCameraVideo.readyState >= 2) {
+      drawVideoCover(captureCtx, arCameraVideo, w, h);
+    } else {
+      captureCtx.fillStyle = '#07191d';
+      captureCtx.fillRect(0, 0, w, h);
     }
 
     captureCtx.drawImage(renderer.domElement, 0, 0, w, h);
@@ -1549,7 +1320,6 @@
     pendingPhotoCapture = true;
   }
 
-  // Grabación de Video con Audio Integrado
   let mediaRecorder = null;
   let recordedChunks = [];
   let isRecording = false;
@@ -1563,13 +1333,7 @@
 
   function startVideoRecording() {
     try {
-      const w = renderer.domElement.width;
-      const h = renderer.domElement.height;
-      if (captureCanvas.width !== w || captureCanvas.height !== h) {
-        captureCanvas.width = w;
-        captureCanvas.height = h;
-      }
-
+      renderSceneToCaptureCanvas();
       const canvasStream = captureCanvas.captureStream(30);
       const tracks = [...canvasStream.getVideoTracks()];
 
@@ -1578,7 +1342,6 @@
       }
 
       const combinedStream = new MediaStream(tracks);
-
       const mimeTypes = [
         'video/mp4',
         'video/webm;codecs=vp9',
@@ -1586,7 +1349,7 @@
         'video/webm'
       ];
       const mimeType = mimeTypes.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-      const options = { videoBitsPerSecond: 5500000 };
+      const options = { videoBitsPerSecond: 4500000 };
       if (mimeType) options.mimeType = mimeType;
 
       recordedChunks = [];
@@ -1632,82 +1395,11 @@
     videoLabel.textContent = 'VIDEO';
   }
 
-  /* ---------------- Eventos de Sesión WebXR ---------------- */
-  renderer.xr.addEventListener('sessionstart', async () => {
-    activeSession = renderer.xr.getSession();
-    document.documentElement.classList.add('ar-active');
-    document.body.classList.add('ar-active');
-    fallback.style.display = 'none';
-
-    isPlaced = false;
-    revealProgress = 0;
-    placedEffect.visible = false;
-    arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Apunta al suelo o toca la pantalla para colocar la barca…';
-
-    if (!activeSession) return;
-
-    // Permitir colocar con un toque en pantalla si el usuario no desea esperar el hit-test
-    activeSession.addEventListener('select', () => {
-      if (!isPlaced) {
-        if (reticle.visible) {
-          placeBoatAndRiverAtMatrix(reticle.matrix.elements);
-        } else {
-          placeBoatInFrontOfUser();
-        }
-      }
-    });
-
-    if (typeof XRWebGLBinding !== 'undefined') {
-      try {
-        xrGlBinding = new XRWebGLBinding(activeSession, gl);
-      } catch (e) {
-        xrGlBinding = null;
-      }
-    }
-
-    try {
-      const viewerSpace = await activeSession.requestReferenceSpace('viewer');
-      if (activeSession) {
-        hitTestSource = await activeSession.requestHitTestSource({ space: viewerSpace });
-      }
-    } catch (err) {
-      // Si hit-test falla, colocamos automáticamente frente al usuario
-      setTimeout(() => { if (!isPlaced) placeBoatInFrontOfUser(); }, 800);
-    }
-
-    activeSession.addEventListener('end', () => {
-      if (isRecording) stopVideoRecording();
-      detenerAudioAmbiente();
-      stopFallbackVideoStream();
-      hitTestSource = null;
-      xrGlBinding = null;
-      activeSession = null;
-      xrSessionStarting = false;
-      isPlaced = false;
-      reticle.visible = false;
-
-      // Restaurar vista previa 3D
-      placedEffect.position.set(0, -0.35, 0);
-      placedEffect.rotation.set(0, 0, 0);
-      placedEffect.visible = true;
-      revealProgress = 1.0;
-      placedEffect.userData.waterMaterial.uniforms.uReveal.value = 1.0;
-      placedEffect.userData.particleMaterial.uniforms.uReveal.value = 1.0;
-
-      document.documentElement.classList.remove('ar-active');
-      document.body.classList.remove('ar-active');
-      startButton.disabled = false;
-      startButton.textContent = 'Iniciar realidad aumentada';
-      statusEl.textContent = 'La Barca de las Grullas lista en el centro del río.';
-    }, { once: true });
-  });
-
   /* ---------------- Bucle Principal de Render y Flotación de la Barca ---------------- */
-  renderer.setAnimationLoop((time, frame) => {
+  renderer.setAnimationLoop((time) => {
     elapsed = time * 0.001;
 
-    if ((isPlaced || !renderer.xr.isPresenting) && revealProgress < 1.0) {
+    if (revealProgress < 1.0) {
       revealProgress = Math.min(1.0, revealProgress + 0.025);
       placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
       placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
@@ -1716,128 +1408,38 @@
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
 
-    // Movimiento orgánico de flotación y cabeceo de La Barca de las Grullas sincronizado con el flujo hacia +X
+    // Cabeceo y flotación hidrodinámica de la barca enfrentando las olas que corren hacia +X
     const boatPivot = placedEffect.userData.boatPivot;
     if (boatPivot) {
       const flowSpeed = placedEffect.userData.waterMaterial.uniforms.uFlowSpeed.value;
-      const wavePhase = -elapsed * flowSpeed * 2.2;
-      // Elevación vertical (heave) siguiendo la ola en (0, 0)
-      boatPivot.position.y = 0.02 + Math.sin(wavePhase * 0.85) * 0.024 + Math.cos(wavePhase * 1.65) * 0.012;
-      // Cabeceo longitudinal (pitch sobre Z) al cortar las olas que viajan hacia la derecha (+X)
-      boatPivot.rotation.z = Math.cos(wavePhase * 0.85) * 0.032;
-      // Balanceo lateral sutil (roll sobre X)
-      boatPivot.rotation.x = Math.sin(elapsed * 1.35) * 0.020;
-    }
-
-    const refSpace = renderer.xr.getReferenceSpace();
-
-    if (frame && !isPlaced && hitTestSource && refSpace) {
-      const results = frame.getHitTestResults(hitTestSource);
-      if (results.length > 0) {
-        const pose = results[0].getPose(refSpace);
-        if (pose) {
-          placeBoatAndRiverAtMatrix(pose.transform.matrix);
-        }
-      }
+      const wavePhase = -elapsed * flowSpeed * 2.4;
+      boatPivot.position.y = 0.02 + Math.sin(wavePhase * 0.55) * 0.042 + Math.cos(wavePhase * 1.15) * 0.020;
+      boatPivot.rotation.z = -Math.cos(wavePhase * 0.55) * 0.028;
+      boatPivot.rotation.x = Math.sin(elapsed * 1.25) * 0.016;
     }
 
     renderer.render(scene, camera);
 
     if (pendingPhotoCapture) {
       pendingPhotoCapture = false;
-      renderSceneToCaptureCanvas(frame, refSpace);
+      renderSceneToCaptureCanvas();
       captureCanvas.toBlob((blob) => {
         if (!blob) return;
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
         saveFileToPhone(blob, `LaBarcaDeLasGrullas_SLP_${stamp}.jpg`, 'image/jpeg');
       }, 'image/jpeg', 0.95);
     } else if (isRecording) {
-      renderSceneToCaptureCanvas(frame, refSpace);
-    }
-  });
-
-  /* ---------------- Inicialización AR (WebXR Nativo + Respaldo Cámara Directa) ---------------- */
-  async function startFallbackCameraARMode() {
-    usingFallbackCameraMode = true;
-    await startFallbackVideoStream(true);
-    document.documentElement.classList.add('ar-active');
-    document.body.classList.add('ar-active');
-    fallback.style.display = 'none';
-
-    camera.position.set(0, 1.25, 2.75);
-    camera.lookAt(0, 0.25, 0);
-
-    placedEffect.position.set(0, -0.15, 0);
-    placedEffect.rotation.set(0, 0, 0);
-    placedEffect.visible = true;
-    isPlaced = true;
-    revealProgress = 0.05;
-
-    arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'La Barca de las Grullas navegando';
-    arPillDot.style.background = '#8ce7d5';
-    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2600);
-
-    iniciarAudioAmbiente();
-  }
-
-  async function beginAR() {
-    if (xrSessionStarting || renderer.xr.isPresenting || activeSession) return;
-
-    xrSessionStarting = true;
-    startButton.disabled = true;
-    startButton.textContent = 'Solicitando permiso de cámara…';
-
-    await requestCameraPermissionPreFlight();
-    initAudioCapture();
-
-    if (navigator.xr) {
-      try {
-        const ok = await navigator.xr.isSessionSupported('immersive-ar');
-        if (ok) {
-          startButton.textContent = 'Iniciando AR…';
-          const session = await navigator.xr.requestSession('immersive-ar', {
-            requiredFeatures: ['hit-test'],
-            optionalFeatures: ['dom-overlay', 'camera-access'],
-            domOverlay: { root: document.body }
-          });
-          await renderer.xr.setSession(session);
-          xrSessionStarting = false;
-          return;
-        }
-      } catch (err) {
-        console.warn('WebXR no disponible, activando cámara AR directa:', err);
-      }
-    }
-
-    // Si el navegador no soporta WebXR immersive-ar, abre el modo cámara trasera directo
-    await startFallbackCameraARMode();
-    xrSessionStarting = false;
-  }
-
-  // Permitir tocar el lienzo para colocar en modo AR si aún está escaneando
-  renderer.domElement.addEventListener('click', () => {
-    if ((renderer.xr.isPresenting || usingFallbackCameraMode) && !isPlaced) {
-      placeBoatInFrontOfUser();
+      renderSceneToCaptureCanvas();
     }
   });
 
   startButton.addEventListener('click', beginAR);
   resetButton.addEventListener('click', () => {
-    if (usingFallbackCameraMode) {
-      revealProgress = 0.05;
-      showToast('Corriente reiniciada');
-    } else {
-      clearEffect();
-    }
+    anchorSceneInFrontOfCamera();
+    showToast('Barca reubicada frente a ti');
   });
   photoButton.addEventListener('click', triggerPhoto);
   videoButton.addEventListener('click', toggleVideo);
-
-  document.body.addEventListener('beforexrselect', (e) => {
-    const t = e.target;
-    if (t && t.closest && t.closest('button, .media-bar, .panel, .modal-panel')) e.preventDefault();
-  });
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -1845,7 +1447,6 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Inicializar cargando primero models/barcagrullas.glb en el centro del agua
   loadBarcaGrullasModel()
     .then(() => {
       statusEl.textContent = 'Listo. Pulsa “Iniciar realidad aumentada”.';

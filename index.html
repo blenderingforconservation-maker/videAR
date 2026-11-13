@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#07191d">
+  <meta name="theme-color" content="#051317">
   <title>Museo Leonora Carrington SLP · La Barca de las Grullas AR</title>
 
   <!-- Tipografías Museográficas -->
@@ -16,8 +16,9 @@
       color-scheme: dark;
       --mint: #8ce7d5;
       --gold: #d4af37;
-      --glass: rgba(5, 22, 27, 0.78);
-      --glass-border: rgba(212, 175, 55, 0.3);
+      --gold-bright: #f5d97e;
+      --obsidian: rgba(4, 17, 21, 0.90);
+      --gold-border: rgba(212, 175, 55, 0.48);
       --danger: #ff5a5f;
     }
 
@@ -33,9 +34,9 @@
       width: 100%;
       height: 100svh;
       overflow: hidden;
-      background: #07191d;
+      background: #051317;
       color: #effbf9;
-      font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       touch-action: none;
     }
 
@@ -45,7 +46,7 @@
       overflow: hidden;
     }
 
-    /* Video de cámara trasera en 100svh sin forzar pantalla completa del sistema */
+    /* Cámara trasera directa en 100svh sin pantalla completa forzosa */
     #ar-camera-video {
       position: fixed;
       inset: 0;
@@ -55,7 +56,7 @@
       opacity: 0;
       pointer-events: none;
       z-index: 0;
-      transition: opacity 0.35s ease;
+      transition: opacity 0.3s ease;
     }
 
     body.ar-active #ar-camera-video {
@@ -77,7 +78,7 @@
       background: #ffffff;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease-out;
+      transition: opacity 0.22s ease-out;
     }
     #camera-flash.active {
       opacity: 0.85;
@@ -85,7 +86,8 @@
     }
 
     /* ================================================= */
-    /* UI PRINCIPAL Y HUD CENTRADO                       */
+    /* HUD Y ESTÉTICA ALQUÍMICA DE LEONORA CARRINGTON    */
+    /* (Sin backdrop-filter para 60 FPS en Android)      */
     /* ================================================= */
     #hud {
       position: fixed;
@@ -94,12 +96,12 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: calc(18px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
       pointer-events: none;
     }
 
     .top, .bottom {
-      width: min(100%, 540px);
+      width: min(100%, 520px);
       margin-inline: auto;
     }
 
@@ -108,23 +110,22 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .museum-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      padding: 6px 15px;
       border-radius: 999px;
-      background: rgba(5, 22, 27, 0.72);
-      border: 1px solid var(--glass-border);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: var(--obsidian);
+      border: 1px solid var(--gold-border);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(212, 175, 55, 0.12);
       font-size: 10px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: var(--gold);
+      color: var(--gold-bright);
       font-weight: 700;
     }
 
@@ -138,14 +139,14 @@
 
     h1.editorial-title {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: clamp(36px, 9vw, 54px);
+      font-size: clamp(36px, 9vw, 52px);
       font-weight: 600;
       line-height: 0.98;
       margin: 4px 0 0;
       letter-spacing: -0.02em;
       text-align: center;
       color: #f4f9f8;
-      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
     }
 
     h1.editorial-title em {
@@ -159,13 +160,11 @@
     }
 
     .panel {
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
+      background: var(--obsidian);
+      border: 1px solid var(--gold-border);
       border-radius: 22px;
       padding: 16px 18px;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
       pointer-events: auto;
     }
 
@@ -183,14 +182,8 @@
       height: 8px;
       border-radius: 50%;
       background: var(--gold);
-      box-shadow: 0 0 10px var(--gold);
-      animation: pulseDot 1.6s infinite ease-in-out;
+      box-shadow: 0 0 8px var(--gold);
       flex-shrink: 0;
-    }
-
-    @keyframes pulseDot {
-      0%, 100% { transform: scale(0.85); opacity: 0.5; }
-      50% { transform: scale(1.25); opacity: 1; }
     }
 
     #status {
@@ -204,20 +197,19 @@
     #start {
       width: 100%;
       appearance: none;
-      border: 1px solid rgba(212, 175, 55, 0.55);
+      border: 1px solid rgba(245, 217, 126, 0.7);
       border-radius: 999px;
       padding: 15px 20px;
       min-height: 50px;
       font-family: inherit;
       font-weight: 700;
       font-size: 13px;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
       color: #041816;
-      background: linear-gradient(135deg, #e7c96b 0%, #d4af37 48%, #8ce7d5 100%);
-      box-shadow: 0 10px 26px rgba(212, 175, 55, 0.25);
+      background: linear-gradient(135deg, #f5d97e 0%, #d4af37 50%, #8ce7d5 100%);
+      box-shadow: 0 10px 26px rgba(212, 175, 55, 0.28);
       cursor: pointer;
-      transition: opacity 0.2s ease;
     }
 
     #start:disabled {
@@ -226,7 +218,7 @@
     }
 
     /* ================================================= */
-    /* CONTROLES EN SESIÓN AR (CAMINATA + FOTO + VIDEO)  */
+    /* CONSOLA SURREALISTA LEONORA CARRINGTON            */
     /* ================================================= */
     #ar-dock {
       display: none;
@@ -244,76 +236,112 @@
       display: flex;
     }
 
-    #ar-status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 15px;
-      border-radius: 999px;
-      background: var(--glass);
-      border: 1px solid rgba(140, 231, 213, 0.3);
-      font-size: 11px;
-      color: #effbf9;
-      transition: opacity 0.4s ease;
-    }
-
-    /* Consola de exploración de sala para caminar alrededor de la escultura fija */
-    .walk-pad {
+    /* Astrolabio de Navegación Surrealista */
+    .carrington-astrolabe {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 6px 12px;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+      max-width: 410px;
+      padding: 7px 10px;
       border-radius: 999px;
-      background: rgba(5, 22, 27, 0.82);
-      border: 1px solid rgba(140, 231, 213, 0.28);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+      background: linear-gradient(180deg, rgba(8, 31, 36, 0.92) 0%, rgba(3, 14, 17, 0.95) 100%);
+      border: 1px solid var(--gold-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(245, 217, 126, 0.25);
     }
 
-    .walk-btn {
+    .tarot-nav-btn {
       appearance: none;
-      border: 1px solid rgba(212, 175, 55, 0.35);
-      background: radial-gradient(circle at 50% 0%, rgba(140, 231, 213, 0.22), rgba(5, 22, 27, 0.9) 80%);
-      color: #effbf9;
-      height: 36px;
-      padding: 0 13px;
+      position: relative;
+      border: 1px solid rgba(212, 175, 55, 0.38);
+      background: radial-gradient(circle at 50% 0%, rgba(140, 231, 213, 0.18), rgba(5, 22, 27, 0.92) 78%);
+      color: #f4f9f8;
+      height: 40px;
+      padding: 0 12px;
       border-radius: 999px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 5px;
       cursor: pointer;
-      transition: transform 0.12s ease, border-color 0.2s ease;
+      transition: transform 0.1s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .walk-btn:active, .walk-btn.pressing {
+    .tarot-nav-btn svg {
+      color: var(--gold-bright);
+      flex-shrink: 0;
+    }
+
+    .tarot-nav-btn:active,
+    .tarot-nav-btn.pressing {
       transform: scale(0.92);
-      border-color: var(--mint);
-      background: rgba(140, 231, 213, 0.28);
+      border-color: var(--gold-bright);
+      background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.32), rgba(8, 36, 41, 0.95));
+      box-shadow: 0 0 16px rgba(212, 175, 55, 0.45);
     }
 
+    /* Orbe central indicador de caminata física y distancia */
+    .alchemical-core {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(140, 231, 213, 0.32);
+      background: rgba(3, 12, 15, 0.9);
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .alchemical-core.step-pulse {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 14px rgba(245, 217, 126, 0.5);
+    }
+
+    .alchemical-core .core-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--mint);
+      font-weight: 700;
+    }
+
+    .alchemical-core .core-dist {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold-bright);
+      line-height: 1.1;
+    }
+
+    /* Barra Multimedia de Galería */
     .media-bar {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14px;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border-radius: 999px;
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+      background: var(--obsidian);
+      border: 1px solid var(--gold-border);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 
     .icon-btn {
       appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: rgba(255, 255, 255, 0.08);
-      color: #effbf9;
-      width: 44px;
-      height: 44px;
+      border: 1px solid rgba(212, 175, 55, 0.32);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--gold-bright);
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -322,13 +350,17 @@
       padding: 0;
     }
 
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
     .shutter-photo {
-      width: 58px;
-      height: 58px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
-      padding: 4px;
+      padding: 3px;
       background: transparent;
-      border: 2.5px solid var(--gold);
+      border: 2px solid var(--gold-bright);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -339,40 +371,40 @@
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: radial-gradient(circle, #ffffff 0%, #dff5f0 100%);
+      background: radial-gradient(circle, #ffffff 0%, #e7c96b 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #06201e;
+      color: #041816;
     }
 
     .shutter-video {
-      height: 44px;
-      padding: 0 15px;
+      height: 42px;
+      padding: 0 14px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 90, 95, 0.45);
+      border: 1px solid rgba(255, 90, 95, 0.5);
       background: rgba(255, 90, 95, 0.16);
       color: #ffdede;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       cursor: pointer;
     }
 
     .shutter-video .rec-dot {
-      width: 9px;
-      height: 9px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--danger);
       box-shadow: 0 0 8px var(--danger);
     }
 
     .shutter-video.recording {
-      background: rgba(255, 90, 95, 0.38);
+      background: rgba(255, 90, 95, 0.42);
       border-color: var(--danger);
       color: #ffffff;
     }
@@ -382,13 +414,13 @@
       position: fixed;
       inset: 0;
       z-index: 100;
-      background: rgba(5, 22, 27, 0.85);
+      background: rgba(4, 15, 19, 0.88);
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.22s ease;
     }
 
     #exit-modal.active {
@@ -397,14 +429,14 @@
     }
 
     .modal-panel {
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
+      background: var(--obsidian);
+      border: 1px solid var(--gold-border);
       border-radius: 22px;
       padding: 24px;
       text-align: center;
       width: 85%;
       max-width: 320px;
-      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
     }
 
     .modal-panel h3 {
@@ -450,20 +482,20 @@
 
     #toast {
       position: fixed;
-      top: calc(68px + env(safe-area-inset-top));
+      top: calc(62px + env(safe-area-inset-top));
       left: 50%;
       transform: translate(-50%, -10px);
       z-index: 30;
-      background: rgba(5, 22, 27, 0.92);
-      border: 1px solid var(--mint);
+      background: var(--obsidian);
+      border: 1px solid var(--gold-bright);
       color: #effbf9;
-      padding: 8px 16px;
+      padding: 7px 16px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
       opacity: 0;
       pointer-events: none;
-      transition: all 0.25s ease;
+      transition: all 0.22s ease;
       white-space: nowrap;
     }
     #toast.visible {
@@ -520,50 +552,65 @@
       </div>
 
       <div id="ar-dock">
-        <div id="ar-status-pill">
-          <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Escultura fija en el suelo · Camina para explorar la sala</span>
-        </div>
+        <!-- Astrolabio de Navegación inspirado en la estética surrealista de Leonora Carrington -->
+        <div class="carrington-astrolabe">
+          <button id="btn-walk-left" type="button" class="tarot-nav-btn" title="Desplazarse a Babor (Izquierda)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>Babor</span>
+          </button>
 
-        <!-- Controles para caminar y rodear la escultura fija como una sala interactiva -->
-        <div class="walk-pad">
-          <button id="btn-walk-left" type="button" class="walk-btn" title="Caminar a la izquierda">
-            <span>◀ Izq</span>
+          <button id="btn-walk-back" type="button" class="tarot-nav-btn" title="Alejarse">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
           </button>
-          <button id="btn-walk-back" type="button" class="walk-btn" title="Retroceder">
-            <span>▼ Atrás</span>
+
+          <!-- Orbe Alquímico: Pulsa al detectar tus pasos físicos o tócalo para volver al centro -->
+          <div id="step-core" class="alchemical-core" title="Camina físicamente o toca para centrar">
+            <span class="core-label" id="step-mode-label">Camina o Toca</span>
+            <span class="core-dist" id="step-dist-readout">0.0 m</span>
+          </div>
+
+          <button id="btn-walk-forward" type="button" class="tarot-nav-btn" title="Avanzar hacia la Barca">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
+            </svg>
+            <span>Avanzar</span>
           </button>
-          <button id="btn-walk-forward" type="button" class="walk-btn" title="Avanzar hacia la barca">
-            <span>▲ Avanzar</span>
-          </button>
-          <button id="btn-walk-right" type="button" class="walk-btn" title="Caminar a la derecha">
-            <span>Der ▶</span>
+
+          <button id="btn-walk-right" type="button" class="tarot-nav-btn" title="Desplazarse a Estribor (Derecha)">
+            <span>Estribor</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
           </button>
         </div>
 
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Centrar escultura frente a mí">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button id="reset" type="button" class="icon-btn" title="Reanclar escultura frente a mí">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
           </button>
 
-          <button id="btn-photo" type="button" class="shutter-photo" title="Tomar Foto">
+          <button id="btn-photo" type="button" class="shutter-photo" title="Tomar Fotografía">
             <span class="inner">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                 <circle cx="12" cy="13" r="3"/>
               </svg>
             </span>
           </button>
 
-          <button id="btn-video" type="button" class="shutter-video" title="Grabar Video">
+          <button id="btn-video" type="button" class="shutter-video" title="Grabar Video Ligero MP4">
             <span class="rec-dot"></span>
             <span id="video-label">VIDEO</span>
           </button>
 
           <button id="close" type="button" class="icon-btn" title="Salir" style="border-color: rgba(255,90,95,0.4); color: #ffb4b4;">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
@@ -573,7 +620,7 @@
   </div>
 </div>
 
-<!-- Audio en la raíz del repositorio videAR -->
+<!-- Audio nocturno en la raíz del repositorio videAR -->
 <audio id="audioBosque" src="bosque_noche.mp3" preload="auto" crossorigin="anonymous" loop></audio>
 
 <script type="module">
@@ -582,7 +629,6 @@
   import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
   import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-  // Rutas exactas del repositorio blenderingforconservation-maker/videAR
   const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main/';
   const ASSET_PATHS = {
     boatModelLocal: 'models/barcagrullas.glb',
@@ -592,17 +638,14 @@
     audioRemote: `${REPO_RAW}bosque_noche.mp3`
   };
 
-  // Escala 4x de la escultura (7.40 m de eslora) fija en el suelo
+  // Escala monumental 4x (7.40 m de eslora) fija en el suelo con pies cubiertos por el río
   const BOAT_TARGET_LENGTH = 7.40;
   const AR_ANCHOR_DISTANCE = 6.20;
   const AR_FLOOR_Y         = -1.48;
-  const WATER_SURFACE_Y    = 0.04; // Nivel del agua que cubre los pies/base de la escultura
+  const WATER_SURFACE_Y    = 0.05;
 
   const app            = document.querySelector('#app');
   const statusEl       = document.querySelector('#status');
-  const arStatusPill   = document.querySelector('#ar-status-pill');
-  const arStatusText   = document.querySelector('#ar-status-text');
-  const arPillDot      = document.querySelector('#ar-pill-dot');
   const startButton    = document.querySelector('#start');
   const resetButton    = document.querySelector('#reset');
   const closeButton    = document.querySelector('#close');
@@ -618,6 +661,9 @@
   const btnWalkBack    = document.querySelector('#btn-walk-back');
   const btnWalkLeft    = document.querySelector('#btn-walk-left');
   const btnWalkRight   = document.querySelector('#btn-walk-right');
+  const stepCore       = document.querySelector('#step-core');
+  const stepModeLabel  = document.querySelector('#step-mode-label');
+  const stepDistReadout= document.querySelector('#step-dist-readout');
 
   const exitModal      = document.querySelector('#exit-modal');
   const btnCancelExit  = document.querySelector('#btn-cancel-exit');
@@ -634,10 +680,10 @@
     toastEl.textContent = msg;
     toastEl.classList.add('visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2800);
+    toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2600);
   }
 
-  /* ---------------- Cámara Trasera Directa (Sin Fullscreen Forzoso) ---------------- */
+  /* ---------------- Cámara Trasera Ligera ---------------- */
   let cameraStream = null;
   let arActive = false;
 
@@ -648,7 +694,8 @@
         video: {
           facingMode: { ideal: 'environment' },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 60 }
         },
         audio: false
       });
@@ -719,19 +766,20 @@
     }, 100);
   }
 
-  /* ---------------- Escena, Renderer y Plano de Ocultación Bajo el Agua ---------------- */
+  /* ---------------- Renderer Optimizado para Procesadores Móviles ---------------- */
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
     preserveDrawingBuffer: false,
     powerPreference: 'high-performance'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  // PixelRatio 1.4 ofrece nitidez excelente manteniendo 60 FPS sin calentar el teléfono
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.22;
-  renderer.localClippingEnabled = true; // Recorta todo lo que esté debajo de la superficie del agua (pies/base)
+  renderer.localClippingEnabled = true;
   renderer.setClearColor(0x000000, 0);
   app.prepend(renderer.domElement);
 
@@ -742,8 +790,7 @@
   camera.position.set(0, 0, 0);
   scene.add(camera);
 
-  // Plano de corte horizontal exacto en la superficie del agua:
-  // Oculta los pies/soporte inferiores sumergidos para que solo se vea la barca sobre el agua
+  // Plano de corte horizontal exacto en la superficie del río para ocultar los pies bajo el agua
   const waterlineClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(AR_FLOOR_Y + WATER_SURFACE_Y - 0.02));
 
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.9));
@@ -756,9 +803,7 @@
   rimLight.position.set(5.0, 4.0, -4.0);
   scene.add(rimLight);
 
-  /* ---------------- Jerarquía de Sala Interactiva (Ancla Fija + Caminata Libre) ---------------- */
-  // worldAnchorGroup: Fijo en el suelo físico en el centro inicial de la pantalla
-  // walkStageGroup: Permite caminar por la sala alrededor de la escultura fija
+  /* ---------------- Jerarquía de Sala Interactiva (Ancla Fija + Caminata Física/Controles) ---------------- */
   const worldAnchorGroup = new THREE.Group();
   worldAnchorGroup.position.set(0, AR_FLOOR_Y, -AR_ANCHOR_DISTANCE);
   scene.add(worldAnchorGroup);
@@ -769,14 +814,19 @@
   const targetWalkOffset = new THREE.Vector3(0, 0, 0);
   const currentWalkOffset = new THREE.Vector3(0, 0, 0);
   const activeWalkInput = { forward: 0, strafe: 0 };
+  let stepBobPhase = 0;
 
-  /* ---------------- Sensores de Sala Interactiva: Giroscopio 3DoF + Podómetro de Caminata ---------------- */
+  /* ---------------- Giroscopio 3DoF + Podómetro Físico de Alta Sensibilidad ---------------- */
   let hasGyro = false;
+  let manualYawOffset = 0;
+  let manualPitchOffset = 0;
   const deviceEuler = new THREE.Euler();
   const deviceQuat = new THREE.Quaternion();
   const screenTransform = new THREE.Quaternion();
   const worldTransform = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  const yawQuat = new THREE.Quaternion();
   const _zAxis = new THREE.Vector3(0, 0, 1);
+  const _yAxis = new THREE.Vector3(0, 1, 0);
   const _viewDir = new THREE.Vector3();
   const _horizForward = new THREE.Vector3();
   const _horizRight = new THREE.Vector3();
@@ -794,28 +844,53 @@
     deviceQuat.setFromEuler(deviceEuler);
     deviceQuat.multiply(worldTransform);
     deviceQuat.multiply(screenTransform.setFromAxisAngle(_zAxis, -orient));
-    camera.quaternion.copy(deviceQuat);
+    yawQuat.setFromAxisAngle(_yAxis, manualYawOffset);
+    camera.quaternion.multiplyQuaternions(yawQuat, deviceQuat);
   });
 
-  // Podómetro físico por acelerómetro: al caminar con el teléfono te desplazas dentro de la sala hacia donde miras
-  let gravityMag = 9.81;
-  let lastStepTime = 0;
+  // Podómetro biomecánico: detecta pasos reales (linearAcceleration o accelerationIncludingGravity)
+  let gravityLP = 9.81;
+  let lastStepTimestamp = 0;
+  let pulseTimer = null;
+
+  function triggerStepVisualPulse() {
+    stepCore.classList.add('step-pulse');
+    stepModeLabel.textContent = 'Paso AR';
+    clearTimeout(pulseTimer);
+    pulseTimer = setTimeout(() => {
+      stepCore.classList.remove('step-pulse');
+      stepModeLabel.textContent = 'Camina o Toca';
+    }, 550);
+  }
+
   window.addEventListener('devicemotion', (e) => {
     if (!arActive) return;
-    const acc = e.accelerationIncludingGravity;
-    if (!acc) return;
-    const rawMag = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
-    gravityMag = gravityMag * 0.88 + rawMag * 0.12;
-    const deltaAcc = Math.abs(rawMag - gravityMag);
-
     const now = performance.now();
-    if (deltaAcc > 1.18 && now - lastStepTime > 300) {
-      lastStepTime = now;
-      stepInRoom(1.25, 0);
+    if (now - lastStepTimestamp < 260) return;
+
+    let stepDetected = false;
+    // 1. Si el navegador expone aceleración lineal sin gravedad, es aún más preciso
+    if (e.acceleration && e.acceleration.x !== null) {
+      const linMag = Math.hypot(e.acceleration.x || 0, e.acceleration.y || 0, e.acceleration.z || 0);
+      if (linMag > 1.05) stepDetected = true;
+    }
+
+    // 2. Filtro de paso bajo sobre aceleración con gravedad para máxima compatibilidad
+    if (!stepDetected && e.accelerationIncludingGravity) {
+      const acc = e.accelerationIncludingGravity;
+      const rawMag = Math.hypot(acc.x || 0, acc.y || 0, acc.z || 0);
+      gravityLP = gravityLP * 0.86 + rawMag * 0.14;
+      if (Math.abs(rawMag - gravityLP) > 0.82) stepDetected = true;
+    }
+
+    if (stepDetected) {
+      lastStepTimestamp = now;
+      stepInRoom(1.45, 0);
+      stepBobPhase += Math.PI;
+      triggerStepVisualPulse();
     }
   });
 
-  // Desplazamiento en el plano del suelo relativo a hacia dónde mira el visitante
   function stepInRoom(forwardMeters, strafeMeters) {
     camera.getWorldDirection(_viewDir);
     _horizForward.set(_viewDir.x, 0, _viewDir.z);
@@ -832,15 +907,14 @@
 
     _horizRight.set(-_horizForward.z, 0, _horizForward.x);
 
-    // Mover walkStageGroup en sentido opuesto equivale a que el visitante camine en el espacio
     targetWalkOffset.x -= (_horizForward.x * forwardMeters + _horizRight.x * strafeMeters);
     targetWalkOffset.z -= (_horizForward.z * forwardMeters + _horizRight.z * strafeMeters);
 
-    targetWalkOffset.x = THREE.MathUtils.clamp(targetWalkOffset.x, -35.0, 35.0);
-    targetWalkOffset.z = THREE.MathUtils.clamp(targetWalkOffset.z, -35.0, 35.0);
+    targetWalkOffset.x = THREE.MathUtils.clamp(targetWalkOffset.x, -45.0, 45.0);
+    targetWalkOffset.z = THREE.MathUtils.clamp(targetWalkOffset.z, -45.0, 45.0);
   }
 
-  // Giro táctil en pantalla para explorar 360° también sin mover el teléfono
+  // Arrastrar en pantalla permite girar la vista suavemente en cualquier dispositivo
   let lastTouchX = null;
   let lastTouchY = null;
   window.addEventListener('touchstart', (e) => {
@@ -852,32 +926,32 @@
 
   window.addEventListener('touchmove', (e) => {
     if (e.touches.length !== 1 || lastTouchX === null) return;
-    if (e.target && e.target.closest && e.target.closest('button, .walk-pad, .media-bar')) return;
+    if (e.target && e.target.closest && e.target.closest('button, .carrington-astrolabe, .media-bar')) return;
     const dx = e.touches[0].clientX - lastTouchX;
     const dy = e.touches[0].clientY - lastTouchY;
     lastTouchX = e.touches[0].clientX;
     lastTouchY = e.touches[0].clientY;
 
-    if (!hasGyro) {
-      camera.rotation.y -= dx * 0.005;
-      camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x - dy * 0.005, -1.1, 0.75);
+    if (hasGyro) {
+      manualYawOffset -= dx * 0.0045;
     } else {
-      // Si tiene giroscopio, deslizar horizontalmente permite rodear suavemente la escultura
-      stepInRoom(0, -dx * 0.025);
+      manualYawOffset -= dx * 0.005;
+      manualPitchOffset = THREE.MathUtils.clamp(manualPitchOffset - dy * 0.005, -1.1, 0.75);
+      camera.rotation.set(manualPitchOffset, manualYawOffset, 0, 'YXZ');
     }
   }, { passive: true });
 
   /* ---------------- Texturas Procedurales y Mapa Normal ---------------- */
   function makeParticleTexture() {
-    const size = 128;
+    const size = 64;
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
     g.addColorStop(0.0, 'rgba(255, 255, 255, 1)');
-    g.addColorStop(0.15, 'rgba(160, 255, 220, 0.95)');
-    g.addColorStop(0.6, 'rgba(50, 230, 160, 0.3)');
-    g.addColorStop(1.0, 'rgba(0, 120, 80, 0)');
+    g.addColorStop(0.25, 'rgba(210, 255, 245, 0.92)');
+    g.addColorStop(0.65, 'rgba(80, 235, 195, 0.32)');
+    g.addColorStop(1.0, 'rgba(0, 120, 90, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
     const tex = new THREE.CanvasTexture(c);
@@ -920,21 +994,20 @@
     return tex;
   }
 
-  /* ---------------- Escena Fluvial + Barca Fija Anclada al Suelo ---------------- */
+  /* ---------------- Simulación Hidrodinámica de Colisión Agua-Barca + Rocío Balístico GPU ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // Nodo estático de la escultura fijo en (0, 0, 0)
     const boatStaticAnchor = new THREE.Group();
     boatStaticAnchor.position.set(0, 0, 0);
     group.add(boatStaticAnchor);
 
-    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.5, 20.0);
-    boatSpotLight.position.set(-2.2, 5.8, 2.2);
+    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.6, 22.0);
+    boatSpotLight.position.set(-2.4, 6.0, 2.2);
     boatStaticAnchor.add(boatSpotLight);
 
-    const waterBounceLight = new THREE.PointLight(0x28d7c6, 2.1, 14.0);
-    waterBounceLight.position.set(0, 0.5, 0);
+    const waterBounceLight = new THREE.PointLight(0x28d7c6, 2.2, 14.0);
+    waterBounceLight.position.set(-1.2, 0.55, 0);
     boatStaticAnchor.add(waterBounceLight);
 
     const waterNormal = createFallbackWaterNormal();
@@ -957,23 +1030,24 @@
       }
     );
 
-    const waterGeo = new THREE.PlaneGeometry(150.0, 150.0, 72, 72);
+    // Malla 84x84 para elevar tridimensionalmente la cresta de choque en la proa y los brazos del río
+    const waterGeo = new THREE.PlaneGeometry(150.0, 150.0, 84, 84);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
       transparent: true,
-      depthWrite: true, // Oculta en el buffer de profundidad cualquier geometría debajo del agua
+      depthWrite: true,
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 1.0 },
-        uFlowSpeed: { value: 1.75 }, // Velocidad del río avanzando hacia la derecha (+X)
+        uFlowSpeed: { value: 2.55 }, // Velocidad aumentada del caudal hacia +X
         uBoatPos: { value: new THREE.Vector2(0.0, 0.0) },
         uBoatHalfSize: { value: new THREE.Vector2(3.60, 1.35) },
-        uColorDeep: { value: new THREE.Color(0x041b22) },
-        uColorShallow: { value: new THREE.Color(0x189ca6) },
-        uFoamColor: { value: new THREE.Color(0xe6fffc) },
-        uLightColor: { value: new THREE.Color(0xbdf7ff) },
+        uColorDeep: { value: new THREE.Color(0x03171e) },
+        uColorShallow: { value: new THREE.Color(0x18a3ad) },
+        uFoamColor: { value: new THREE.Color(0xf0fffe) },
+        uLightColor: { value: new THREE.Color(0xc4f9ff) },
         uFogColor: { value: new THREE.Color(0x071e2b) },
         uFogDensity: { value: 0.014 },
         uNormalMap: { value: waterNormal }
@@ -982,31 +1056,39 @@
         uniform float uTime;
         uniform float uFlowSpeed;
         uniform vec2 uBoatPos;
+        uniform vec2 uBoatHalfSize;
         varying vec2 vUv;
         varying vec3 vWorldPosition;
         varying vec3 vLocalPos;
         varying float vWaveHeight;
+        varying float vCollisionJump;
 
         void main() {
           vUv = uv;
           vec3 pos = position;
 
-          // La corriente avanza continuamente de izquierda (-X) hacia la derecha (+X)
+          vec2 p = pos.xz - uBoatPos;
+          vec2 q = p / max(uBoatHalfSize, vec2(0.5));
+          float r = length(q);
+
+          // 1. Olas rápidas avanzando de izquierda (-X) hacia la derecha (+X)
           float rightFlow = uTime * uFlowSpeed;
-          float xPhase = pos.x - rightFlow * 2.5;
+          float xPhase = pos.x - rightFlow * 2.8;
 
-          float wave1 = sin(xPhase * 0.55 + pos.z * 0.22) * 0.045;
-          float wave2 = cos(xPhase * 1.15 - pos.z * 0.55 + uTime * 1.2) * 0.022;
+          float wave1 = sin(xPhase * 0.62 + pos.z * 0.25) * 0.055;
+          float wave2 = cos(xPhase * 1.28 - pos.z * 0.60 + uTime * 1.6) * 0.028;
 
-          // Cresta de choque estacionaria alrededor del casco fijo en (0, 0)
-          vec2 relBoat = pos.xz - uBoatPos;
-          float distBoat = length(relBoat);
-          float bowWave = exp(-distBoat * 0.30) * sin(distBoat * 2.8 - uTime * 4.5) * 0.038;
+          // 2. FÍSICA DE COLISIÓN: Salto hidráulico (Bow Pile-Up) cuando la corriente choca con la proa (-X)
+          float bowZone = exp(-pow((q.x + 1.02) * 2.6, 2.0)) * exp(-pow(q.y * 1.35, 2.0));
+          float sideWave = exp(-pow((r - 1.08) * 3.2, 2.0)) * smoothstep(0.6, -1.0, q.x);
+          float collisionTurbulence = 0.72 + 0.28 * sin(uTime * 9.5 + pos.z * 4.5);
+          float hydraulicJump = (bowZone * 0.22 + sideWave * 0.11) * collisionTurbulence;
 
-          float h = wave1 + wave2 + bowWave;
+          float h = wave1 + wave2 + hydraulicJump;
           pos.y += h;
 
           vWaveHeight = h;
+          vCollisionJump = hydraulicJump;
           vLocalPos = pos;
 
           vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
@@ -1032,81 +1114,100 @@
         varying vec3 vWorldPosition;
         varying vec3 vLocalPos;
         varying float vWaveHeight;
+        varying float vCollisionJump;
 
         void main() {
           vec2 p = vLocalPos.xz - uBoatPos;
           float flow = uTime * uFlowSpeed;
 
-          // 1. FLUJO SUPERFICIAL MOVIÉNDOSE HACIA LA DERECHA (+X)
-          float meanderZ = sin(p.x * 0.14 - flow * 0.55) * 0.32;
-          vec2 streamCoord = vec2(p.x, p.y + meanderZ);
+          // Coordenadas normalizadas al casco elíptico de la barca
+          vec2 hullScale = max(uBoatHalfSize, vec2(0.5));
+          vec2 q = p / hullScale;
+          float r2 = dot(q, q);
+          float r = sqrt(r2);
 
-          vec2 uvLayer1 = vec2(streamCoord.x * 0.18 - flow * 0.40, streamCoord.y * 0.22 + sin(uTime * 0.3) * 0.04);
-          vec2 uvLayer2 = vec2(streamCoord.x * 0.38 - flow * 0.68, streamCoord.y * 0.44 - cos(uTime * 0.4) * 0.05);
-          vec2 uvLayer3 = vec2(streamCoord.x * 0.26 - flow * 1.02, streamCoord.y * 0.72);
+          // 1. DEFLEXIÓN HIDRODINÁMICA DE FLUJO POTENCIAL ALREDEDOR DE LA BARCA
+          // Las líneas de agua se abren físicamente hacia los lados (±Z) al chocar contra el casco
+          float deflectStrength = exp(-max(0.0, r - 0.75) * 1.45) * 1.35;
+          vec2 deflectedP = p;
+          deflectedP.y -= sign(p.y) * deflectStrength * hullScale.y * smoothstep(-1.6, 0.8, q.x);
+          deflectedP.x += deflectStrength * 0.45 * smoothstep(0.2, -1.2, q.x);
+
+          // Vórtices de Kármán desprendiéndose detrás de la popa (+X)
+          float vortexStreet = sin(p.x * 1.4 - flow * 3.2) * exp(-abs(q.y) * 1.2) * smoothstep(0.0, 2.5, q.x) * 0.42;
+          vec2 streamCoord = vec2(deflectedP.x, deflectedP.y + vortexStreet);
+
+          vec2 uvLayer1 = vec2(streamCoord.x * 0.19 - flow * 0.45, streamCoord.y * 0.24);
+          vec2 uvLayer2 = vec2(streamCoord.x * 0.40 - flow * 0.78, streamCoord.y * 0.46 - cos(uTime * 0.5) * 0.05);
+          vec2 uvLayer3 = vec2(streamCoord.x * 0.28 - flow * 1.18, streamCoord.y * 0.76);
 
           vec3 n1 = texture2D(uNormalMap, uvLayer1).xyz * 2.0 - 1.0;
           vec3 n2 = texture2D(uNormalMap, uvLayer2).xyz * 2.0 - 1.0;
           vec3 n3 = texture2D(uNormalMap, uvLayer3).xyz * 2.0 - 1.0;
 
-          vec2 normalXY = (n1.xy * 0.48 + n2.xy * 0.34 + n3.xy * 0.24) * 1.65;
+          vec2 normalXY = (n1.xy * 0.48 + n2.xy * 0.34 + n3.xy * 0.24) * 1.75;
 
-          // 2. COLLAR DE ESPUMA QUE CUBRE LA BASE Y ESTELA EN "V" HACIA LA DERECHA (+X)
-          vec2 hullNorm = p / max(uBoatHalfSize, vec2(0.5));
-          float hullDist = length(hullNorm);
+          // 2. IMPACTO DE ESPUMA BLANCA EN PROA (-X) Y COSTADOS DEL CASCO
+          float hullContactBand = smoothstep(2.05, 0.78, r) * smoothstep(0.28, 0.94, r);
+          float impactRipples = 0.55 + 0.45 * sin(r * 11.5 - uTime * 8.2 + n1.x * 2.5);
+          // Mayor presión de choque en el frente (-X) y flancos
+          float bowPressure = 0.65 + 0.75 * smoothstep(0.4, -1.1, q.x);
+          float collisionFoam = hullContactBand * impactRipples * bowPressure + vCollisionJump * 3.2;
 
-          // Anillo denso de agua y espuma en el perímetro del casco donde la barca toca el río
-          float hullRing = smoothstep(1.95, 0.75, hullDist) * smoothstep(0.30, 0.92, hullDist);
-          float hullRipples = 0.55 + 0.45 * sin(hullDist * 9.5 - uTime * 6.0 + n1.x * 2.0);
-          float bowFactor = 0.60 + 0.40 * smoothstep(0.6, -1.0, hullNorm.x);
-          float bowSplash = hullRing * hullRipples * bowFactor;
+          // 3. DOBLE ONDA DE CHOQUE EN "V" (KELVIN WAKE) CORRIENDO HACIA +X
+          float trailX = p.x + hullScale.x * 0.88;
+          float rightSideMask = smoothstep(-0.5, 0.7, trailX);
+          float wakeDecay = exp(-max(0.0, trailX) * 0.058);
 
-          // Estela hidrodinámica Kelvin abriéndose desde la proa (-X) hacia la derecha (+X)
-          float trailX = p.x + uBoatHalfSize.x * 0.82;
-          float rightSideMask = smoothstep(-0.6, 0.8, trailX);
-          float wakeDecay = exp(-max(0.0, trailX) * 0.062);
+          // Brazo primario y secundario de la onda de choque
+          float wakeArm1 = max(hullScale.y * 0.46, trailX * 0.33);
+          float wakeArm2 = max(hullScale.y * 0.72, trailX * 0.52);
 
-          float wakeArmZ = max(uBoatHalfSize.y * 0.48, trailX * 0.34);
-          float distToArm = abs(abs(p.y) - wakeArmZ);
-          float kelvinWave = cos((abs(p.y) - wakeArmZ) * 6.5 - uTime * 6.8 + n2.y * 1.5);
-          float kelvinMask = exp(-distToArm * 0.95) * rightSideMask * wakeDecay;
-          float kelvinWake = max(0.0, kelvinWave) * kelvinMask;
+          float distArm1 = abs(abs(p.y) - wakeArm1);
+          float distArm2 = abs(abs(p.y) - wakeArm2);
 
-          // Estela turbulenta central hacia +X
-          float centerSlipstream = exp(-abs(p.y) / max(0.5, uBoatHalfSize.y * 0.85)) * smoothstep(-0.2, 2.0, trailX) * wakeDecay;
-          float slipstreamFoam = centerSlipstream * smoothstep(0.05, 0.65, n2.x + n3.y) * 0.72;
+          float kWave1 = cos((abs(p.y) - wakeArm1) * 7.2 - uTime * 8.5 + n2.y * 1.8);
+          float kWave2 = cos((abs(p.y) - wakeArm2) * 5.4 - uTime * 7.0 + n1.x * 1.5);
 
-          normalXY.y += sign(p.y) * kelvinWave * kelvinMask * 0.9;
-          normalXY.x += kelvinWave * kelvinMask * 0.45;
+          float kMask1 = exp(-distArm1 * 1.05) * rightSideMask * wakeDecay;
+          float kMask2 = exp(-distArm2 * 1.25) * rightSideMask * wakeDecay * 0.65;
+
+          float kelvinWake = max(0.0, kWave1) * kMask1 + max(0.0, kWave2) * kMask2;
+
+          // Canal central de turbulencia blanca tras la barca
+          float sternTurbulence = exp(-abs(p.y) / max(0.5, hullScale.y * 0.92)) * smoothstep(-0.3, 1.8, trailX) * wakeDecay;
+          float slipstreamFoam = sternTurbulence * smoothstep(0.0, 0.62, n2.x + n3.y + 0.25) * 0.82;
+
+          // Inclinación de normales en la onda de choque para reflejos reales de agua rota
+          normalXY.y += sign(p.y) * (kWave1 * kMask1 + vCollisionJump * 4.0) * 1.05;
+          normalXY.x += (kWave1 * kMask1 - vCollisionJump * 3.5) * 0.55;
 
           vec3 normal = normalize(vec3(normalXY.x, 1.0, normalXY.y));
 
-          // 3. COLOR DEL AGUA, VETAS HORIZONTALES Y REFLEJOS
+          // 4. SOMBREADO HIDRÁULICO Y ESPUMA
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-          vec3 lightDir = normalize(vec3(-0.4, 1.0, 0.45));
+          vec3 lightDir = normalize(vec3(-0.45, 1.0, 0.40));
           vec3 halfVec = normalize(lightDir + viewDir);
 
-          float spec = pow(max(dot(normal, halfVec), 0.0), 32.0);
+          float spec = pow(max(dot(normal, halfVec), 0.0), 34.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          float flowStreaks = smoothstep(-0.25, 0.55, n1.x * 0.6 + n3.x * 0.6 + vWaveHeight * 6.0);
+          float flowStreaks = smoothstep(-0.22, 0.52, n1.x * 0.65 + n3.x * 0.65 + vWaveHeight * 6.5);
           vec3 baseWater = mix(uColorDeep, uColorShallow, flowStreaks);
 
-          float surfaceCrestFoam = smoothstep(0.54, 0.85, n1.x * 0.5 + n2.y * 0.5 + flowStreaks * 0.32) * 0.28;
-          float totalFoam = clamp(bowSplash + kelvinWake * 0.85 + slipstreamFoam + surfaceCrestFoam, 0.0, 1.0);
+          float surfaceCrestFoam = smoothstep(0.52, 0.84, n1.x * 0.5 + n2.y * 0.5 + flowStreaks * 0.35) * 0.30;
+          float totalFoam = clamp(collisionFoam + kelvinWake * 0.92 + slipstreamFoam + surfaceCrestFoam, 0.0, 1.0);
 
-          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.84);
-          color += uLightColor * spec * (1.4 + totalFoam * 0.75);
+          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.88);
+          color += uLightColor * spec * (1.45 + totalFoam * 0.85);
           color = mix(color, uLightColor, fresnel * 0.38);
 
-          // 4. NIEBLA Y OPACIDAD DENSA EN EL CENTRO PARA TAPAR LOS PIES
           float dist = length(cameraPosition - vWorldPosition);
           float fogFactor = 1.0 - exp(-pow(dist * uFogDensity, 2.0));
-          float mist = smoothstep(-0.15, 0.65, n1.y + n2.x) * 0.24;
-          color = mix(color, uFogColor, clamp(fogFactor * 0.65 + mist, 0.0, 0.80));
+          color = mix(color, uFogColor, clamp(fogFactor * 0.68, 0.0, 0.82));
 
-          float alpha = mix(0.92, 0.99, flowStreaks);
-          alpha = max(alpha, max(fresnel * 0.88, totalFoam * 0.98));
+          float alpha = mix(0.93, 0.99, flowStreaks);
+          alpha = max(alpha, max(fresnel * 0.9, totalFoam * 0.99));
 
           float edgeFade = 1.0 - smoothstep(0.65, 1.0, length(vUv - 0.5) * 2.0);
           alpha = clamp(alpha, 0.0, 0.98) * edgeFade * uReveal;
@@ -1123,14 +1224,95 @@
     water.frustumCulled = false;
     group.add(water);
 
-    /* ---------------- Partículas Fluyendo hacia la Derecha (+X) ---------------- */
-    const particleCount = 1600;
+    /* ---------------- Rocío Balístico GPU de Colisión en Proa y Costados ---------------- */
+    const splashCount = 480;
+    const splashSeeds = new Float32Array(splashCount * 4); // [angleAroundBow, speedSeed, phaseOffset, sideSign]
+    const splashDummyPos = new Float32Array(splashCount * 3);
+
+    for (let i = 0; i < splashCount; i++) {
+      // Distribuir en el arco frontal y flancos donde el agua choca con el casco
+      splashSeeds[i * 4]     = (Math.random() - 0.5) * 2.4; // ángulo en proa
+      splashSeeds[i * 4 + 1] = 0.65 + Math.random() * 0.75; // velocidad de eyección
+      splashSeeds[i * 4 + 2] = Math.random();               // fase de ciclo [0..1]
+      splashSeeds[i * 4 + 3] = Math.random() < 0.5 ? -1.0 : 1.0;
+    }
+
+    const splashGeo = new THREE.BufferGeometry();
+    splashGeo.setAttribute('position', new THREE.BufferAttribute(splashDummyPos, 3));
+    splashGeo.setAttribute('aSplash', new THREE.BufferAttribute(splashSeeds, 4));
+
+    const splashMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uReveal: { value: 1.0 },
+        uBoatHalfSize: { value: new THREE.Vector2(3.60, 1.35) },
+        uTexture: { value: particleTexture },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.4) }
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uReveal;
+        uniform vec2 uBoatHalfSize;
+        uniform float uPixelRatio;
+        attribute vec4 aSplash;
+        varying float vSplashAlpha;
+
+        void main() {
+          float bowAngle = aSplash.x;
+          float speedMul = aSplash.y;
+          float phase    = aSplash.z;
+
+          // Ciclo balístico rápido de cada gota de espuma al chocar con la proa
+          float life = fract(uTime * (0.95 * speedMul) + phase);
+
+          // Punto de impacto en el contorno frontal/lateral de la barca (-X)
+          float spawnX = -uBoatHalfSize.x * cos(bowAngle * 0.48) * 0.92;
+          float spawnZ =  uBoatHalfSize.y * sin(bowAngle * 0.75) * 1.02;
+
+          // Al chocar, el agua salta hacia arriba (parábola con gravedad) y es arrastrada hacia +X
+          float velX = (2.2 + 1.4 * speedMul);
+          float velZ = sign(spawnZ + 0.001) * (0.85 + 0.6 * speedMul);
+          float velY = 1.45 * speedMul;
+          float gravity = 3.6;
+
+          vec3 pos;
+          pos.x = spawnX + velX * life;
+          pos.z = spawnZ + velZ * life;
+          pos.y = ${WATER_SURFACE_Y.toFixed(3)} + max(0.0, velY * life - 0.5 * gravity * life * life);
+
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = (68.0 * speedMul * (1.0 - life * 0.4)) * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
+          gl_PointSize = clamp(gl_PointSize, 3.0, 44.0);
+
+          vSplashAlpha = sin(life * 3.14159) * 0.85 * uReveal;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        varying float vSplashAlpha;
+        void main() {
+          vec4 tex = texture2D(uTexture, gl_PointCoord);
+          gl_FragColor = vec4(vec3(0.92, 0.99, 1.0), tex.a * vSplashAlpha);
+        }
+      `
+    });
+
+    const bowSplashParticles = new THREE.Points(splashGeo, splashMat);
+    bowSplashParticles.frustumCulled = false;
+    group.add(bowSplashParticles);
+
+    /* ---------------- Partículas Bioluminiscentes del Río (Optimizadas) ---------------- */
+    const particleCount = 1200;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
       particlePositions[i * 3]     = (Math.random() - 0.5) * 90.0;
-      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.08 + Math.random() * 4.2;
+      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.10 + Math.random() * 4.2;
       particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 70.0;
       particleSeeds[i] = Math.random() * Math.PI * 2;
     }
@@ -1146,9 +1328,9 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 1.0 },
-        uFlowSpeed: { value: 1.75 },
+        uFlowSpeed: { value: 2.55 },
         uTexture: { value: particleTexture },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.4) },
         uFogDensity: { value: 0.014 }
       },
       vertexShader: `
@@ -1172,8 +1354,8 @@
           float dist = length(mvPosition.xyz);
           float fogAtten = exp(-pow(dist * uFogDensity, 2.0));
 
-          gl_PointSize = 110.0 * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.0, 56.0);
+          gl_PointSize = 105.0 * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
+          gl_PointSize = clamp(gl_PointSize, 3.0, 52.0);
 
           vAlpha = (0.45 + 0.55 * sin(uTime * 1.8 + aSeed * 5.0)) * fogAtten * uReveal;
           gl_Position = projectionMatrix * mvPosition;
@@ -1194,6 +1376,7 @@
     group.add(particles);
 
     group.userData.waterMaterial = waterMat;
+    group.userData.splashMaterial = splashMat;
     group.userData.particleMaterial = particleMat;
     group.userData.boatStaticAnchor = boatStaticAnchor;
     group.userData.waterMesh = water;
@@ -1204,7 +1387,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Carga de models/barcagrullas.glb (Fija al Suelo y Pies Cubiertos por el Agua) ---------------- */
+  /* ---------------- Carga de models/barcagrullas.glb (Fija y con Pies Ocultos bajo el Agua) ---------------- */
   async function loadBarcaGrullasModel() {
     await MeshoptDecoder.ready;
 
@@ -1241,7 +1424,7 @@
     const boatModel = gltf.scene;
     boatModel.updateMatrixWorld(true);
 
-    // 1. Orientar la proa de frente a la corriente (-X)
+    // Orientar proa de frente a la corriente (-X)
     const rawBox = new THREE.Box3().setFromObject(boatModel);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     if (rawSize.z > rawSize.x) {
@@ -1251,7 +1434,7 @@
     }
     boatModel.updateMatrixWorld(true);
 
-    // 2. Escalar a tamaño 4x (7.40 m de eslora)
+    // Escala 4x (7.40 m)
     const rotBox = new THREE.Box3().setFromObject(boatModel);
     const rotSize = rotBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(rotSize.x, rotSize.y, rotSize.z) || 1.0;
@@ -1259,8 +1442,7 @@
     boatModel.scale.setScalar(scaleFactor);
     boatModel.updateMatrixWorld(true);
 
-    // 3. Centrar en (0, 0) y sumergir el 20% inferior bajo el nivel del agua (WATER_SURFACE_Y)
-    // para que no se vean los pies/base y solo sobresalga el casco de la barca sobre el agua
+    // Sumergir el 20% inferior bajo WATER_SURFACE_Y para ocultar los pies/base
     const finalBox = new THREE.Box3().setFromObject(boatModel);
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
     const finalSize = finalBox.getSize(new THREE.Vector3());
@@ -1273,7 +1455,7 @@
     );
     boatModel.updateMatrixWorld(true);
 
-    // Congelar matriz de la escultura (100% fija al suelo, sin flotar) y recortar pies bajo el agua
+    // Congelar matrices para máximo rendimiento y 0 movimiento de la escultura
     boatModel.matrixAutoUpdate = false;
     boatModel.traverse((node) => {
       node.frustumCulled = false;
@@ -1292,15 +1474,15 @@
 
     placedEffect.userData.boatStaticAnchor.add(boatModel);
 
-    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(
-      Math.max(1.80, finalSize.x * 0.48),
-      Math.max(0.85, finalSize.z * 0.46)
-    );
+    const halfX = Math.max(1.80, finalSize.x * 0.48);
+    const halfZ = Math.max(0.85, finalSize.z * 0.46);
+    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
+    placedEffect.userData.splashMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
 
     dracoLoader.dispose();
   }
 
-  /* ---------------- Anclaje en el Centro de la Pantalla y Controles de Sala ---------------- */
+  /* ---------------- Anclaje y Controles Surrealistas ---------------- */
   let elapsed = 0;
   let lastFrameTime = performance.now();
   let revealProgress = 1.0;
@@ -1329,22 +1511,18 @@
 
     revealProgress = 0.05;
     placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
+    placedEffect.userData.splashMaterial.uniforms.uReveal.value = revealProgress;
     placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
-
-    arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escultura fija en el suelo · Camina para explorar la sala';
-    arPillDot.style.background = '#8ce7d5';
-    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 3000);
   }
 
-  // Botones de caminata continua y por pasos para rodear la escultura
   function bindWalkControl(btn, forwardVal, strafeVal) {
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       btn.classList.add('pressing');
       activeWalkInput.forward = forwardVal;
       activeWalkInput.strafe = strafeVal;
-      stepInRoom(forwardVal * 0.9, strafeVal * 0.9);
+      stepInRoom(forwardVal * 1.15, strafeVal * 1.05);
+      triggerStepVisualPulse();
     });
     const stop = () => {
       btn.classList.remove('pressing');
@@ -1361,6 +1539,11 @@
   bindWalkControl(btnWalkLeft, 0, -1);
   bindWalkControl(btnWalkRight, 0, 1);
 
+  stepCore.addEventListener('click', () => {
+    targetWalkOffset.set(0, 0, 0);
+    showToast('Posición de caminata centrada');
+  });
+
   async function beginAR() {
     if (arActive) return;
     startButton.disabled = true;
@@ -1368,6 +1551,9 @@
 
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
+    }
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try { await DeviceMotionEvent.requestPermission(); } catch (_) {}
     }
 
     await startCameraFeed();
@@ -1379,11 +1565,14 @@
 
     camera.position.set(0, 0, 0);
     if (!hasGyro) {
-      camera.rotation.set(-0.16, 0, 0, 'YXZ');
+      manualPitchOffset = -0.16;
+      manualYawOffset = 0;
+      camera.rotation.set(manualPitchOffset, manualYawOffset, 0, 'YXZ');
     }
 
     anchorSculptureInCenterOfView();
     iniciarAudioAmbiente();
+    showToast('Camina físicamente o usa el astrolabio');
   }
 
   function endAR() {
@@ -1395,8 +1584,10 @@
     document.documentElement.classList.remove('ar-active');
     document.body.classList.remove('ar-active');
 
+    manualPitchOffset = -0.16;
+    manualYawOffset = 0;
     camera.position.set(0, 0, 0);
-    camera.rotation.set(-0.16, 0, 0, 'YXZ');
+    camera.rotation.set(manualPitchOffset, 0, 0, 'YXZ');
     worldAnchorGroup.position.set(0, AR_FLOOR_Y, -AR_ANCHOR_DISTANCE);
     worldAnchorGroup.rotation.set(0, 0, 0);
     targetWalkOffset.set(0, 0, 0);
@@ -1405,6 +1596,7 @@
 
     revealProgress = 1.0;
     placedEffect.userData.waterMaterial.uniforms.uReveal.value = 1.0;
+    placedEffect.userData.splashMaterial.uniforms.uReveal.value = 1.0;
     placedEffect.userData.particleMaterial.uniforms.uReveal.value = 1.0;
 
     startButton.disabled = false;
@@ -1418,9 +1610,24 @@
     endAR();
   });
 
-  /* ---------------- Captura de Foto y Video con Cámara Real ---------------- */
+  /* ---------------- Captura de Foto y Video Ligero Universal (MP4 / 540p / 24FPS) ---------------- */
   const captureCanvas = document.createElement('canvas');
-  const captureCtx = captureCanvas.getContext('2d');
+  const captureCtx = captureCanvas.getContext('2d', { alpha: false });
+
+  function ensureCaptureCanvasSize(forVideo = false) {
+    const srcW = renderer.domElement.width;
+    const srcH = renderer.domElement.height;
+    // Para video usamos máx 854px (480p/540p con dimensiones pares) -> archivos muy ligeros y codificación sin lag
+    const maxDim = forVideo ? 854 : 1600;
+    const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+    const w = Math.max(2, Math.floor((srcW * scale) / 2) * 2);
+    const h = Math.max(2, Math.floor((srcH * scale) / 2) * 2);
+
+    if (captureCanvas.width !== w || captureCanvas.height !== h) {
+      captureCanvas.width = w;
+      captureCanvas.height = h;
+    }
+  }
 
   function drawVideoCover(ctx, video, targetW, targetH) {
     const vw = video.videoWidth || targetW;
@@ -1433,32 +1640,24 @@
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
   }
 
-  function renderSceneToCaptureCanvas() {
-    const w = renderer.domElement.width;
-    const h = renderer.domElement.height;
-    if (captureCanvas.width !== w || captureCanvas.height !== h) {
-      captureCanvas.width = w;
-      captureCanvas.height = h;
-    }
-
-    captureCtx.clearRect(0, 0, w, h);
+  function renderSceneToCaptureCanvas(forVideo = true) {
+    ensureCaptureCanvasSize(forVideo);
+    const w = captureCanvas.width;
+    const h = captureCanvas.height;
 
     if (arCameraVideo.readyState >= 2) {
       drawVideoCover(captureCtx, arCameraVideo, w, h);
     } else {
-      captureCtx.fillStyle = '#07191d';
+      captureCtx.fillStyle = '#051317';
       captureCtx.fillRect(0, 0, w, h);
     }
 
     captureCtx.drawImage(renderer.domElement, 0, 0, w, h);
 
-    const fontSize = Math.max(18, Math.round(w * 0.024));
+    const fontSize = Math.max(13, Math.round(w * 0.024));
     captureCtx.font = `600 ${fontSize}px "Cormorant Garamond", Georgia, serif`;
     captureCtx.fillStyle = 'rgba(244, 249, 248, 0.88)';
-    captureCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    captureCtx.shadowBlur = 8;
-    captureCtx.fillText('Museo Leonora Carrington · SLP', fontSize * 1.3, h - fontSize * 1.3);
-    captureCtx.shadowBlur = 0;
+    captureCtx.fillText('Museo Leonora Carrington · SLP', fontSize * 1.2, h - fontSize * 1.2);
   }
 
   async function saveFileToPhone(blob, filename, mimeType) {
@@ -1502,8 +1701,9 @@
 
   function startVideoRecording() {
     try {
-      renderSceneToCaptureCanvas();
-      const canvasStream = captureCanvas.captureStream(30);
+      renderSceneToCaptureCanvas(true);
+      // 24 FPS y 1.5 Mbps producen un archivo muy ligero y fluido en móviles Android e iOS
+      const canvasStream = captureCanvas.captureStream(24);
       const tracks = [...canvasStream.getVideoTracks()];
 
       if (mediaStreamDestination && mediaStreamDestination.stream) {
@@ -1512,13 +1712,14 @@
 
       const combinedStream = new MediaStream(tracks);
       const mimeTypes = [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4;codecs=avc1.42E01E',
         'video/mp4',
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
+        'video/webm;codecs=vp8,opus',
         'video/webm'
       ];
       const mimeType = mimeTypes.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-      const options = { videoBitsPerSecond: 4500000 };
+      const options = { videoBitsPerSecond: 1500000 };
       if (mimeType) options.mimeType = mimeType;
 
       recordedChunks = [];
@@ -1529,14 +1730,16 @@
       };
 
       mediaRecorder.onstop = () => {
-        const finalMime = mediaRecorder.mimeType || 'video/webm';
-        const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
-        const blob = new Blob(recordedChunks, { type: finalMime });
+        const finalMime = mediaRecorder.mimeType || mimeType || 'video/mp4';
+        const isMp4 = finalMime.includes('mp4');
+        const ext = isMp4 ? 'mp4' : 'webm';
+        const cleanMime = isMp4 ? 'video/mp4' : 'video/webm';
+        const blob = new Blob(recordedChunks, { type: cleanMime });
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-        saveFileToPhone(blob, `LaBarcaDeLasGrullas_SLP_${stamp}.${ext}`, finalMime);
+        saveFileToPhone(blob, `BarcaGrullas_SLP_${stamp}.${ext}`, cleanMime);
       };
 
-      mediaRecorder.start(250);
+      mediaRecorder.start(300);
       isRecording = true;
       videoButton.classList.add('recording');
       recStart = performance.now();
@@ -1549,7 +1752,7 @@
         videoLabel.textContent = `${mm}:${ss}`;
       }, 500);
 
-      showToast('Grabando video…');
+      showToast('Grabando video ligero…');
     } catch (e) {
       showToast('Video no disponible en este navegador');
     }
@@ -1564,54 +1767,63 @@
     videoLabel.textContent = 'VIDEO';
   }
 
-  /* ---------------- Bucle Principal: Barca 100% Fija + Agua en Movimiento + Exploración ---------------- */
+  /* ---------------- Bucle Principal Optimizado (0 Alocaciones por Frame) ---------------- */
   renderer.setAnimationLoop((time) => {
     const dt = Math.min(0.05, (time - lastFrameTime) / 1000 || 0.016);
     lastFrameTime = time;
     elapsed = time * 0.001;
 
     if (revealProgress < 1.0) {
-      revealProgress = Math.min(1.0, revealProgress + 0.025);
+      revealProgress = Math.min(1.0, revealProgress + 0.028);
       placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
+      placedEffect.userData.splashMaterial.uniforms.uReveal.value = revealProgress;
       placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
     }
 
-    // Avance continuo si el visitante mantiene presionado un botón de caminata
+    // Caminata continua al mantener presionados los botones del Astrolabio
     if (activeWalkInput.forward !== 0 || activeWalkInput.strafe !== 0) {
-      stepInRoom(activeWalkInput.forward * 3.6 * dt, activeWalkInput.strafe * 3.2 * dt);
+      stepInRoom(activeWalkInput.forward * 4.2 * dt, activeWalkInput.strafe * 3.6 * dt);
+      stepBobPhase += dt * 9.5;
     }
 
-    // Interpolación suave de caminata por la sala alrededor de la escultura fija
-    currentWalkOffset.lerp(targetWalkOffset, Math.min(1, dt * 8.5));
-    walkStageGroup.position.set(currentWalkOffset.x, 0, currentWalkOffset.z);
+    // Interpolación suave de caminata + ligero vaivén natural de paso humano para el visitante
+    currentWalkOffset.lerp(targetWalkOffset, Math.min(1, dt * 9.0));
+    const walkDelta = currentWalkOffset.distanceTo(targetWalkOffset);
+    const bobY = walkDelta > 0.02 ? Math.sin(stepBobPhase) * 0.028 : 0.0;
+    walkStageGroup.position.set(currentWalkOffset.x, bobY, currentWalkOffset.z);
 
-    // Mantener el plano de corte sincronizado con la superficie del agua para que jamás se vean los pies
+    // Actualizar lectura de metros caminados en el orbe alquímico
+    const distWalked = Math.hypot(currentWalkOffset.x, currentWalkOffset.z);
+    stepDistReadout.textContent = `${distWalked.toFixed(1)} m`;
+
+    // Sincronizar plano de recorte con la superficie del agua para mantener ocultos los pies
     placedEffect.userData.waterMesh.getWorldPosition(_waterWorldPos);
     waterlineClipPlane.constant = -(_waterWorldPos.y - 0.015);
 
-    // Solo el río y las partículas se mueven hacia la derecha (+X); la escultura permanece inmóvil en el suelo
+    // Actualizar shaders en GPU
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
+    placedEffect.userData.splashMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
 
     renderer.render(scene, camera);
 
     if (pendingPhotoCapture) {
       pendingPhotoCapture = false;
-      renderSceneToCaptureCanvas();
+      renderSceneToCaptureCanvas(false);
       captureCanvas.toBlob((blob) => {
         if (!blob) return;
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
         saveFileToPhone(blob, `LaBarcaDeLasGrullas_SLP_${stamp}.jpg`, 'image/jpeg');
-      }, 'image/jpeg', 0.95);
+      }, 'image/jpeg', 0.92);
     } else if (isRecording) {
-      renderSceneToCaptureCanvas();
+      renderSceneToCaptureCanvas(true);
     }
   });
 
   startButton.addEventListener('click', beginAR);
   resetButton.addEventListener('click', () => {
     anchorSculptureInCenterOfView();
-    showToast('Escultura centrada y fija en el suelo');
+    showToast('Escultura reanclada frente a ti');
   });
   photoButton.addEventListener('click', triggerPhoto);
   videoButton.addEventListener('click', toggleVideo);

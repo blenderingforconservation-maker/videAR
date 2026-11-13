@@ -17,8 +17,8 @@
       --mint: #8ce7d5;
       --gold: #d4af37;
       --gold-bright: #f5d97e;
-      --obsidian: rgba(4, 17, 21, 0.88);
-      --gold-border: rgba(212, 175, 55, 0.45);
+      --obsidian: rgba(4, 17, 21, 0.90);
+      --gold-border: rgba(212, 175, 55, 0.48);
       --danger: #ff5a5f;
     }
 
@@ -43,7 +43,7 @@
       overflow: hidden;
     }
 
-    /* Garantiza que el DOM Overlay sea transparente al abrir la cámara AR */
+    /* Garantiza que el DOM Overlay sea 100% transparente al abrir la cámara AR */
     html.ar-active,
     body.ar-active,
     body.ar-active #app {
@@ -63,7 +63,6 @@
       touch-action: none;
     }
 
-    /* Video oculto de respaldo para captura en dispositivos donde XRWebGLBinding no esté activo */
     #cam-fallback-video {
       position: fixed;
       width: 1px;
@@ -73,7 +72,6 @@
       z-index: -1;
     }
 
-    /* Efecto Flash al tomar fotografía */
     #camera-flash {
       position: fixed;
       inset: 0;
@@ -89,7 +87,7 @@
     }
 
     /* ================================================= */
-    /* HUD MINIMALISTA ESTÉTICA LEONORA CARRINGTON       */
+    /* UI PRINCIPAL Y HUD CENTRADO                       */
     /* ================================================= */
     #hud {
       position: absolute;
@@ -202,12 +200,13 @@
       font-weight: 500;
     }
 
-    #start {
+    #start,
+    #btn-place-ar {
       width: 100%;
       appearance: none;
-      border: 1px solid rgba(245, 217, 126, 0.65);
+      border: 1px solid rgba(245, 217, 126, 0.7);
       border-radius: 999px;
-      padding: 15px 20px;
+      padding: 15px 22px;
       min-height: 50px;
       font-family: inherit;
       font-weight: 700;
@@ -216,23 +215,24 @@
       text-transform: uppercase;
       color: #041816;
       background: linear-gradient(135deg, #f5d97e 0%, #d4af37 48%, #8ce7d5 100%);
-      box-shadow: 0 10px 26px rgba(212, 175, 55, 0.25);
+      box-shadow: 0 10px 26px rgba(212, 175, 55, 0.28);
       cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.2s ease;
     }
 
-    #start:disabled {
-      opacity: 0.55;
-      cursor: wait;
+    #start:active,
+    #btn-place-ar:active {
+      transform: scale(0.96);
     }
 
     /* ================================================= */
-    /* CONTROLES EN SESIÓN AR (SOLO FOTO, VIDEO Y SALIR) */
+    /* CONTROLES EN SESIÓN AR (ANCLAJE, FOTO, VIDEO)     */
     /* ================================================= */
     #ar-dock {
       display: none;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       pointer-events: auto;
     }
 
@@ -248,7 +248,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 7px 16px;
+      padding: 8px 16px;
       border-radius: 999px;
       background: var(--obsidian);
       border: 1px solid rgba(140, 231, 213, 0.35);
@@ -257,12 +257,17 @@
       transition: opacity 0.4s ease;
     }
 
+    #btn-place-ar {
+      display: none;
+      max-width: 300px;
+    }
+
     .media-bar {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14px;
-      padding: 9px 18px;
+      padding: 10px 18px;
       border-radius: 999px;
       background: var(--obsidian);
       border: 1px solid var(--gold-border);
@@ -282,10 +287,6 @@
       justify-content: center;
       cursor: pointer;
       padding: 0;
-    }
-
-    .icon-btn:active {
-      transform: scale(0.92);
     }
 
     .shutter-photo {
@@ -503,22 +504,27 @@
     </div>
 
     <div class="bottom">
+      <!-- Panel Previo con Botón de Iniciar AR Siempre Activo -->
       <div id="pre-ar-panel" class="panel">
         <div class="status-row">
           <span class="status-dot"></span>
-          <p id="status">Cargando escultura barcagrullas.glb…</p>
+          <p id="status">Preparando escultura barcagrullas.glb…</p>
         </div>
-        <button id="start" type="button" disabled>Cargando modelo 3D…</button>
+        <button id="start" type="button">Iniciar realidad aumentada</button>
       </div>
 
+      <!-- Dock en Sesión AR -->
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Apunta hacia el suelo para anclar la barca…</span>
+          <span id="ar-status-text">Apunta al suelo para ver la señal de detección…</span>
         </div>
 
+        <!-- Botón de Confirmación al Detectar el Suelo -->
+        <button id="btn-place-ar" type="button">Anclar Barca en el Suelo</button>
+
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Reubicar en el suelo">
+          <button id="reset" type="button" class="icon-btn" title="Volver a detectar el suelo">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -552,7 +558,7 @@
     <div class="panel">
       <div class="museum-badge">Compatibilidad del dispositivo</div>
       <h2>AR espacial no disponible aquí</h2>
-      <p id="fallbackText">Abre esta experiencia en Chrome para Android o Safari/WebXR para explorar caminando en realidad aumentada.</p>
+      <p id="fallbackText">Abre esta experiencia en Google Chrome sobre Android compatible con ARCore.</p>
     </div>
   </div>
 </div>
@@ -575,8 +581,8 @@
     audioRemote: `${REPO_RAW}bosque_noche.mp3`
   };
 
-  // Escala monumental 4x (5.80 m de eslora) fija en el suelo con pies cubiertos por el agua
-  const BOAT_TARGET_LENGTH = 5.80;
+  // Escala 4x (5.60 m de eslora) fija en el suelo con pies ocultos bajo el agua
+  const BOAT_TARGET_LENGTH = 5.60;
   const WATER_SURFACE_Y    = 0.05;
 
   const app            = document.querySelector('#app');
@@ -585,6 +591,7 @@
   const arStatusText   = document.querySelector('#ar-status-text');
   const arPillDot      = document.querySelector('#ar-pill-dot');
   const startButton    = document.querySelector('#start');
+  const placeArButton  = document.querySelector('#btn-place-ar');
   const resetButton    = document.querySelector('#reset');
   const closeButton    = document.querySelector('#close');
   const photoButton    = document.querySelector('#btn-photo');
@@ -615,23 +622,8 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2800);
   }
 
-  /* ---------------- Permisos de Cámara y Stream de Respaldo ---------------- */
+  /* ---------------- Stream de Respaldo sólo para Captura ---------------- */
   let fallbackStream = null;
-
-  async function requestCameraPermissionPreFlight() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false
-      });
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (err) {
-      console.warn('Permiso de cámara no disponible:', err);
-      return false;
-    }
-  }
 
   async function startFallbackVideoStream() {
     if (fallbackStream || !navigator.mediaDevices?.getUserMedia) return;
@@ -646,9 +638,7 @@
       });
       fallbackVideo.srcObject = fallbackStream;
       await fallbackVideo.play();
-    } catch (e) {
-      console.warn('Cámara reservada por WebXR:', e);
-    }
+    } catch (_) {}
   }
 
   function stopFallbackVideoStream() {
@@ -659,7 +649,7 @@
     fallbackVideo.srcObject = null;
   }
 
-  /* ---------------- Sistema de Audio y Captura Web Audio API ---------------- */
+  /* ---------------- Audio Nocturno + Web Audio API ---------------- */
   let fadeAudioInterval = null;
   let audioCtx, mediaStreamDestination, sourceNode;
   let audioInitialized = false;
@@ -676,9 +666,7 @@
       sourceNode.connect(audioCtx.destination);
       sourceNode.connect(mediaStreamDestination);
       audioInitialized = true;
-    } catch (e) {
-      console.warn('Captura de audio ya enrutada:', e);
-    }
+    } catch (_) {}
   }
 
   function iniciarAudioAmbiente() {
@@ -711,42 +699,43 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / Escena con Recorte de Pies Bajo el Agua ---------------- */
+  /* ---------------- Renderer / Escena (Optimizado Anti-Crash en Móviles) ---------------- */
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false, // Evita saturar la VRAM en WebXR móvil
     powerPreference: 'high-performance'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.22;
+  renderer.toneMappingExposure = 1.2;
   renderer.localClippingEnabled = true;
   renderer.setClearColor(0x000000, 0);
   renderer.xr.enabled = true;
   renderer.xr.setReferenceSpaceType('local');
   app.prepend(renderer.domElement);
 
+  renderer.domElement.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    showToast('Recuperando memoria gráfica…');
+  }, false);
+
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x071e2b, 0.016);
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 160);
-  const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 160);
+  scene.fog = new THREE.FogExp2(0x071e2b, 0.02);
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 120);
+  const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 120);
   captureCamera.matrixAutoUpdate = false;
 
-  // Plano de corte horizontal exacto en la superficie del agua para que no se vean los pies
+  // Plano de corte horizontal exacto en la superficie del agua para ocultar los pies
   const waterlineClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   scene.add(new THREE.HemisphereLight(0xd8fff7, 0x193c42, 1.85));
 
-  const keyLight = new THREE.DirectionalLight(0xfff4d6, 2.4);
+  const keyLight = new THREE.DirectionalLight(0xfff4d6, 2.3);
   keyLight.position.set(-4.0, 8.0, 5.0);
   scene.add(keyLight);
-
-  const rimLight = new THREE.DirectionalLight(0x64f4d6, 1.4);
-  rimLight.position.set(5.0, 4.0, -4.0);
-  scene.add(rimLight);
 
   /* ---------------- Pipeline WebGL2 para Capturar la Cámara XR de Fondo ---------------- */
   const gl = renderer.getContext();
@@ -771,7 +760,7 @@
       }
     `;
     const fsSource = `#version 300 es
-      precision highp float;
+      precision mediump float;
       in vec2 vUv;
       uniform sampler2D uCamTex;
       out vec4 fragColor;
@@ -832,7 +821,7 @@
     renderer.resetState();
   }
 
-  /* ---------------- Texturas Procedurales y Mapa Normal ---------------- */
+  /* ---------------- Texturas Ligeras ---------------- */
   function makeParticleTexture() {
     const size = 64;
     const c = document.createElement('canvas');
@@ -840,8 +829,8 @@
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
     g.addColorStop(0.0, 'rgba(255, 255, 255, 1)');
-    g.addColorStop(0.2, 'rgba(180, 255, 235, 0.92)');
-    g.addColorStop(0.65, 'rgba(50, 230, 175, 0.30)');
+    g.addColorStop(0.25, 'rgba(170, 255, 230, 0.9)');
+    g.addColorStop(0.65, 'rgba(50, 225, 170, 0.28)');
     g.addColorStop(1.0, 'rgba(0, 120, 80, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -852,7 +841,7 @@
   const particleTexture = makeParticleTexture();
 
   function createFallbackWaterNormal() {
-    const size = 256;
+    const size = 128;
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const ctx = c.getContext('2d');
@@ -861,15 +850,14 @@
     const tau = Math.PI * 2;
     const hFn = (u, v) =>
       Math.sin(u * tau * 3.0 + Math.cos(v * tau * 2.0) * 0.6) * 0.45 +
-      Math.cos(v * tau * 4.0 - u * tau * 2.0) * 0.35 +
-      Math.sin((u + v) * tau * 5.0) * 0.20;
+      Math.cos(v * tau * 4.0 - u * tau * 2.0) * 0.35;
     const eps = 1 / size;
     for (let y = 0; y < size; y++) {
       const v = y / size;
       for (let x = 0; x < size; x++) {
         const u = x / size;
-        const dx = (hFn(u + eps, v) - hFn(u - eps, v)) * 2.5;
-        const dy = (hFn(u, v + eps) - hFn(u, v - eps)) * 2.5;
+        const dx = (hFn(u + eps, v) - hFn(u - eps, v)) * 2.4;
+        const dy = (hFn(u, v + eps) - hFn(u, v - eps)) * 2.4;
         const inv = 1 / Math.sqrt(dx * dx + dy * dy + 1);
         const i = (y * size + x) * 4;
         d[i]     = Math.round(((-dx * inv) * 0.5 + 0.5) * 255);
@@ -885,18 +873,27 @@
     return tex;
   }
 
-  /* ---------------- Retícula de Suelo ---------------- */
-  const reticleGeo = new THREE.RingGeometry(0.18, 0.24, 48);
-  reticleGeo.rotateX(-Math.PI / 2);
-  const reticle = new THREE.Mesh(
-    reticleGeo,
-    new THREE.MeshBasicMaterial({ color: 0x9cf7e7, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
-  );
+  /* ---------------- SEÑAL DE DETECCIÓN DE SUELO (Retícula Restaurada y Visible) ---------------- */
+  const reticle = new THREE.Group();
   reticle.matrixAutoUpdate = false;
+
+  const outerRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.22, 0.28, 40).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0x8ce7d5, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+  );
+  const innerRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.08, 0.11, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xf5d97e, side: THREE.DoubleSide })
+  );
+  const centerGlow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.22, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0x8ce7d5, side: THREE.DoubleSide, transparent: true, opacity: 0.22 })
+  );
+  reticle.add(centerGlow, outerRing, innerRing);
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Escena Fluvial + Colisión Hidrodinámica sobre Barca 100% Fija ---------------- */
+  /* ---------------- Escena Fluvial Ligera + Barca 100% Fija ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
@@ -904,13 +901,9 @@
     boatStaticAnchor.position.set(0, 0, 0);
     group.add(boatStaticAnchor);
 
-    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.4, 20.0);
-    boatSpotLight.position.set(-2.2, 5.5, 2.0);
+    const boatSpotLight = new THREE.PointLight(0xffe6a3, 3.2, 18.0);
+    boatSpotLight.position.set(-2.0, 5.2, 2.0);
     boatStaticAnchor.add(boatSpotLight);
-
-    const waterBounceLight = new THREE.PointLight(0x28d7c6, 2.0, 14.0);
-    waterBounceLight.position.set(-1.0, 0.5, 0);
-    boatStaticAnchor.add(waterBounceLight);
 
     const waterNormal = createFallbackWaterNormal();
     const textureLoader = new THREE.TextureLoader();
@@ -932,7 +925,8 @@
       }
     );
 
-    const waterGeo = new THREE.PlaneGeometry(140.0, 140.0, 80, 80);
+    // Malla optimizada (48m x 48m, 32x32 segmentos) para fluidez total sin crashes
+    const waterGeo = new THREE.PlaneGeometry(48.0, 48.0, 32, 32);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
@@ -942,54 +936,43 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
-        uFlowSpeed: { value: 1.35 }, // Velocidad disminuida levemente para un flujo de río orgánico y realista
-        uBoatPos: { value: new THREE.Vector2(0.0, 0.0) },
-        uBoatHalfSize: { value: new THREE.Vector2(2.80, 1.10) },
+        uFlowSpeed: { value: 1.25 }, // Velocidad moderada y realista hacia la derecha (+X)
+        uBoatHalfSize: { value: new THREE.Vector2(2.70, 1.05) },
         uColorDeep: { value: new THREE.Color(0x03171e) },
         uColorShallow: { value: new THREE.Color(0x18a3ad) },
-        uFoamColor: { value: new THREE.Color(0xf0fffe) },
+        uFoamColor: { value: new THREE.Color(0xebfffe) },
         uLightColor: { value: new THREE.Color(0xc4f9ff) },
         uFogColor: { value: new THREE.Color(0x071e2b) },
-        uFogDensity: { value: 0.016 },
+        uFogDensity: { value: 0.024 },
         uNormalMap: { value: waterNormal }
       },
       vertexShader: `
         uniform float uTime;
         uniform float uFlowSpeed;
-        uniform vec2 uBoatPos;
         uniform vec2 uBoatHalfSize;
         varying vec2 vUv;
         varying vec3 vWorldPosition;
         varying vec3 vLocalPos;
         varying float vWaveHeight;
-        varying float vCollisionJump;
 
         void main() {
           vUv = uv;
           vec3 pos = position;
 
-          vec2 p = pos.xz - uBoatPos;
-          vec2 q = p / max(uBoatHalfSize, vec2(0.5));
-          float r = length(q);
-
-          // Corriente avanzando suavemente de izquierda (-X) hacia la derecha (+X)
           float rightFlow = uTime * uFlowSpeed;
-          float xPhase = pos.x - rightFlow * 2.2;
+          float xPhase = pos.x - rightFlow * 2.1;
 
-          float wave1 = sin(xPhase * 0.60 + pos.z * 0.25) * 0.042;
-          float wave2 = cos(xPhase * 1.25 - pos.z * 0.55 + uTime * 1.1) * 0.020;
+          float wave1 = sin(xPhase * 0.65 + pos.z * 0.28) * 0.038;
+          float wave2 = cos(xPhase * 1.30 - pos.z * 0.55 + uTime * 1.1) * 0.018;
 
-          // Elevación hidráulica de choque cuando el agua golpea la proa fija (-X)
-          float bowZone = exp(-pow((q.x + 1.02) * 2.5, 2.0)) * exp(-pow(q.y * 1.35, 2.0));
-          float sideWave = exp(-pow((r - 1.06) * 3.0, 2.0)) * smoothstep(0.6, -1.0, q.x);
-          float collisionTurbulence = 0.75 + 0.25 * sin(uTime * 6.5 + pos.z * 4.0);
-          float hydraulicJump = (bowZone * 0.18 + sideWave * 0.09) * collisionTurbulence;
+          // Cresta de choque en la proa fija (-X)
+          vec2 q = pos.xz / max(uBoatHalfSize, vec2(0.5));
+          float bowBump = exp(-dot(q + vec2(0.95, 0.0), q + vec2(0.95, 0.0)) * 2.2) * 0.14;
 
-          float h = wave1 + wave2 + hydraulicJump;
+          float h = wave1 + wave2 + bowBump;
           pos.y += h;
 
           vWaveHeight = h;
-          vCollisionJump = hydraulicJump;
           vLocalPos = pos;
 
           vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
@@ -998,10 +981,10 @@
         }
       `,
       fragmentShader: `
+        precision mediump float;
         uniform float uTime;
         uniform float uReveal;
         uniform float uFlowSpeed;
-        uniform vec2 uBoatPos;
         uniform vec2 uBoatHalfSize;
         uniform vec3 uColorDeep;
         uniform vec3 uColorShallow;
@@ -1015,93 +998,65 @@
         varying vec3 vWorldPosition;
         varying vec3 vLocalPos;
         varying float vWaveHeight;
-        varying float vCollisionJump;
 
         void main() {
-          vec2 p = vLocalPos.xz - uBoatPos;
+          vec2 p = vLocalPos.xz;
           float flow = uTime * uFlowSpeed;
 
           vec2 hullScale = max(uBoatHalfSize, vec2(0.5));
           vec2 q = p / hullScale;
           float r = length(q);
 
-          // 1. DEFLEXIÓN FÍSICA DE LA CORRIENTE AL CHOCAR CONTRA LA BARCA FIJA
-          float deflectStrength = exp(-max(0.0, r - 0.75) * 1.45) * 1.25;
-          vec2 deflectedP = p;
-          deflectedP.y -= sign(p.y) * deflectStrength * hullScale.y * smoothstep(-1.6, 0.8, q.x);
-          deflectedP.x += deflectStrength * 0.40 * smoothstep(0.2, -1.2, q.x);
+          // Deflexión ligera de la corriente al rodear la barca fija
+          float deflect = clamp(1.0 / (r * r + 0.65), 0.0, 1.1);
+          vec2 streamCoord = vec2(p.x, p.y - sign(p.y) * deflect * 0.55);
 
-          float vortexStreet = sin(p.x * 1.3 - flow * 2.5) * exp(-abs(q.y) * 1.2) * smoothstep(0.0, 2.5, q.x) * 0.35;
-          vec2 streamCoord = vec2(deflectedP.x, deflectedP.y + vortexStreet);
-
-          vec2 uvLayer1 = vec2(streamCoord.x * 0.19 - flow * 0.36, streamCoord.y * 0.24);
-          vec2 uvLayer2 = vec2(streamCoord.x * 0.40 - flow * 0.62, streamCoord.y * 0.46 - cos(uTime * 0.4) * 0.04);
-          vec2 uvLayer3 = vec2(streamCoord.x * 0.28 - flow * 0.92, streamCoord.y * 0.76);
+          vec2 uvLayer1 = vec2(streamCoord.x * 0.22 - flow * 0.36, streamCoord.y * 0.26);
+          vec2 uvLayer2 = vec2(streamCoord.x * 0.42 - flow * 0.65, streamCoord.y * 0.52);
 
           vec3 n1 = texture2D(uNormalMap, uvLayer1).xyz * 2.0 - 1.0;
           vec3 n2 = texture2D(uNormalMap, uvLayer2).xyz * 2.0 - 1.0;
-          vec3 n3 = texture2D(uNormalMap, uvLayer3).xyz * 2.0 - 1.0;
 
-          vec2 normalXY = (n1.xy * 0.48 + n2.xy * 0.34 + n3.xy * 0.24) * 1.70;
+          vec2 normalXY = (n1.xy * 0.6 + n2.xy * 0.4) * 1.55;
 
-          // 2. ESPUMA DE IMPACTO EN PROA (-X) Y COSTADOS DEL CASCO
-          float hullContactBand = smoothstep(2.0, 0.78, r) * smoothstep(0.28, 0.94, r);
-          float impactRipples = 0.55 + 0.45 * sin(r * 10.5 - uTime * 5.8 + n1.x * 2.2);
-          float bowPressure = 0.65 + 0.70 * smoothstep(0.4, -1.1, q.x);
-          float collisionFoam = hullContactBand * impactRipples * bowPressure + vCollisionJump * 3.0;
+          // Anillo de choque de agua contra el casco y la proa (-X)
+          float hullContact = smoothstep(1.9, 0.8, r) * smoothstep(0.3, 0.95, r);
+          float ripples = 0.5 + 0.5 * sin(r * 10.0 - uTime * 5.2 + n1.x * 2.0);
+          float bowSplash = hullContact * ripples * (0.65 + 0.55 * smoothstep(0.4, -1.0, q.x));
 
-          // 3. DOBLE ESTELA EN "V" (KELVIN WAKE) CORRIENDO HACIA LA DERECHA (+X)
-          float trailX = p.x + hullScale.x * 0.86;
-          float rightSideMask = smoothstep(-0.5, 0.7, trailX);
-          float wakeDecay = exp(-max(0.0, trailX) * 0.062);
+          // Estela en V abriéndose hacia la derecha (+X)
+          float trailX = p.x + hullScale.x * 0.85;
+          float rightMask = smoothstep(-0.4, 0.7, trailX);
+          float wakeDecay = clamp(1.0 - max(0.0, trailX) * 0.045, 0.0, 1.0);
+          float wakeArm = max(hullScale.y * 0.48, trailX * 0.34);
+          float distArm = abs(abs(p.y) - wakeArm);
+          float kWave = max(0.0, cos((abs(p.y) - wakeArm) * 6.5 - uTime * 5.8));
+          float kelvinWake = kWave * clamp(1.0 - distArm * 0.85, 0.0, 1.0) * rightMask * wakeDecay;
 
-          float wakeArm1 = max(hullScale.y * 0.46, trailX * 0.33);
-          float wakeArm2 = max(hullScale.y * 0.70, trailX * 0.50);
+          vec3 normal = normalize(vec3(normalXY.x, 1.0, normalXY.y + sign(p.y) * kelvinWake * 0.6));
 
-          float distArm1 = abs(abs(p.y) - wakeArm1);
-          float distArm2 = abs(abs(p.y) - wakeArm2);
-
-          float kWave1 = cos((abs(p.y) - wakeArm1) * 7.0 - uTime * 6.2 + n2.y * 1.6);
-          float kWave2 = cos((abs(p.y) - wakeArm2) * 5.2 - uTime * 5.0 + n1.x * 1.4);
-
-          float kMask1 = exp(-distArm1 * 1.05) * rightSideMask * wakeDecay;
-          float kMask2 = exp(-distArm2 * 1.25) * rightSideMask * wakeDecay * 0.62;
-
-          float kelvinWake = max(0.0, kWave1) * kMask1 + max(0.0, kWave2) * kMask2;
-
-          float sternTurbulence = exp(-abs(p.y) / max(0.5, hullScale.y * 0.90)) * smoothstep(-0.3, 1.8, trailX) * wakeDecay;
-          float slipstreamFoam = sternTurbulence * smoothstep(0.0, 0.62, n2.x + n3.y + 0.22) * 0.78;
-
-          normalXY.y += sign(p.y) * (kWave1 * kMask1 + vCollisionJump * 3.5) * 1.0;
-          normalXY.x += (kWave1 * kMask1 - vCollisionJump * 3.0) * 0.5;
-
-          vec3 normal = normalize(vec3(normalXY.x, 1.0, normalXY.y));
-
-          // 4. REFLEJOS Y OPACIDAD PROFUNDA QUE CUBRE LA BASE DE LA ESCULTURA
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-          vec3 lightDir = normalize(vec3(-0.45, 1.0, 0.40));
+          vec3 lightDir = normalize(vec3(-0.4, 1.0, 0.4));
           vec3 halfVec = normalize(lightDir + viewDir);
 
-          float spec = pow(max(dot(normal, halfVec), 0.0), 34.0);
+          float spec = pow(max(dot(normal, halfVec), 0.0), 24.0);
           float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          float flowStreaks = smoothstep(-0.22, 0.52, n1.x * 0.65 + n3.x * 0.65 + vWaveHeight * 6.5);
+          float flowStreaks = smoothstep(-0.25, 0.52, n1.x * 0.6 + n2.x * 0.5 + vWaveHeight * 6.0);
           vec3 baseWater = mix(uColorDeep, uColorShallow, flowStreaks);
 
-          float surfaceCrestFoam = smoothstep(0.54, 0.85, n1.x * 0.5 + n2.y * 0.5 + flowStreaks * 0.32) * 0.28;
-          float totalFoam = clamp(collisionFoam + kelvinWake * 0.90 + slipstreamFoam + surfaceCrestFoam, 0.0, 1.0);
+          float crestFoam = smoothstep(0.55, 0.85, n1.x * 0.5 + n2.y * 0.5) * 0.25;
+          float totalFoam = clamp(bowSplash + kelvinWake * 0.85 + crestFoam, 0.0, 1.0);
 
-          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.86);
-          color += uLightColor * spec * (1.42 + totalFoam * 0.80);
-          color = mix(color, uLightColor, fresnel * 0.38);
+          vec3 color = mix(baseWater, uFoamColor, totalFoam * 0.84);
+          color += uLightColor * spec * 1.35;
+          color = mix(color, uLightColor, fresnel * 0.35);
 
           float dist = length(cameraPosition - vWorldPosition);
-          float fogFactor = 1.0 - exp(-pow(dist * uFogDensity, 2.0));
-          color = mix(color, uFogColor, clamp(fogFactor * 0.68, 0.0, 0.82));
+          float fogFactor = clamp(dist * uFogDensity, 0.0, 0.78);
+          color = mix(color, uFogColor, fogFactor);
 
-          float alpha = mix(0.93, 0.99, flowStreaks);
-          alpha = max(alpha, max(fresnel * 0.9, totalFoam * 0.99));
-
+          float alpha = max(mix(0.92, 0.99, flowStreaks), totalFoam * 0.98);
           float edgeFade = 1.0 - smoothstep(0.65, 1.0, length(vUv - 0.5) * 2.0);
           alpha = clamp(alpha, 0.0, 0.98) * edgeFade * uReveal;
 
@@ -1117,92 +1072,15 @@
     water.frustumCulled = false;
     group.add(water);
 
-    /* ---------------- Rocío Balístico GPU al Chocar el Agua con la Proa ---------------- */
-    const splashCount = 380;
-    const splashSeeds = new Float32Array(splashCount * 4);
-    const splashDummyPos = new Float32Array(splashCount * 3);
-
-    for (let i = 0; i < splashCount; i++) {
-      splashSeeds[i * 4]     = (Math.random() - 0.5) * 2.3;
-      splashSeeds[i * 4 + 1] = 0.60 + Math.random() * 0.70;
-      splashSeeds[i * 4 + 2] = Math.random();
-      splashSeeds[i * 4 + 3] = Math.random() < 0.5 ? -1.0 : 1.0;
-    }
-
-    const splashGeo = new THREE.BufferGeometry();
-    splashGeo.setAttribute('position', new THREE.BufferAttribute(splashDummyPos, 3));
-    splashGeo.setAttribute('aSplash', new THREE.BufferAttribute(splashSeeds, 4));
-
-    const splashMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        uTime: { value: 0 },
-        uReveal: { value: 0 },
-        uBoatHalfSize: { value: new THREE.Vector2(2.80, 1.10) },
-        uTexture: { value: particleTexture },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) }
-      },
-      vertexShader: `
-        uniform float uTime;
-        uniform float uReveal;
-        uniform vec2 uBoatHalfSize;
-        uniform float uPixelRatio;
-        attribute vec4 aSplash;
-        varying float vSplashAlpha;
-
-        void main() {
-          float bowAngle = aSplash.x;
-          float speedMul = aSplash.y;
-          float phase    = aSplash.z;
-
-          float life = fract(uTime * (0.72 * speedMul) + phase);
-
-          float spawnX = -uBoatHalfSize.x * cos(bowAngle * 0.48) * 0.92;
-          float spawnZ =  uBoatHalfSize.y * sin(bowAngle * 0.75) * 1.02;
-
-          float velX = (1.65 + 1.1 * speedMul);
-          float velZ = sign(spawnZ + 0.001) * (0.65 + 0.45 * speedMul);
-          float velY = 1.25 * speedMul;
-          float gravity = 3.2;
-
-          vec3 pos;
-          pos.x = spawnX + velX * life;
-          pos.z = spawnZ + velZ * life;
-          pos.y = ${WATER_SURFACE_Y.toFixed(3)} + max(0.0, velY * life - 0.5 * gravity * life * life);
-
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = (62.0 * speedMul * (1.0 - life * 0.4)) * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.0, 42.0);
-
-          vSplashAlpha = sin(life * 3.14159) * 0.80 * uReveal;
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D uTexture;
-        varying float vSplashAlpha;
-        void main() {
-          vec4 tex = texture2D(uTexture, gl_PointCoord);
-          gl_FragColor = vec4(vec3(0.92, 0.99, 1.0), tex.a * vSplashAlpha);
-        }
-      `
-    });
-
-    const bowSplashParticles = new THREE.Points(splashGeo, splashMat);
-    bowSplashParticles.frustumCulled = false;
-    group.add(bowSplashParticles);
-
-    /* ---------------- Partículas Bioluminiscentes Fluyendo a la Derecha (+X) ---------------- */
-    const particleCount = 1200;
+    /* ---------------- Partículas Ligeras Fluyendo hacia la Derecha (+X) ---------------- */
+    const particleCount = 650;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3]     = (Math.random() - 0.5) * 80.0;
-      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.10 + Math.random() * 3.8;
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 65.0;
+      particlePositions[i * 3]     = (Math.random() - 0.5) * 44.0;
+      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.08 + Math.random() * 3.0;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 40.0;
       particleSeeds[i] = Math.random() * Math.PI * 2;
     }
 
@@ -1217,40 +1095,33 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
-        uFlowSpeed: { value: 1.35 },
+        uFlowSpeed: { value: 1.25 },
         uTexture: { value: particleTexture },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
-        uFogDensity: { value: 0.016 }
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.25) }
       },
       vertexShader: `
         uniform float uTime;
         uniform float uReveal;
         uniform float uFlowSpeed;
         uniform float uPixelRatio;
-        uniform float uFogDensity;
         attribute float aSeed;
         varying float vAlpha;
 
         void main() {
           vec3 pos = position;
-
-          float rightDrift = uTime * uFlowSpeed * (1.25 + 0.35 * sin(aSeed));
-          pos.x = mod(pos.x + rightDrift + 40.0, 80.0) - 40.0;
-          pos.y += cos(uTime * 0.55 + aSeed * 2.0) * 0.20;
-          pos.z += sin(uTime * 0.45 + aSeed + pos.x * 0.12) * 0.30;
+          float rightDrift = uTime * uFlowSpeed * (1.2 + 0.3 * sin(aSeed));
+          pos.x = mod(pos.x + rightDrift + 22.0, 44.0) - 22.0;
+          pos.y += cos(uTime * 0.5 + aSeed * 2.0) * 0.16;
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          float dist = length(mvPosition.xyz);
-          float fogAtten = exp(-pow(dist * uFogDensity, 2.0));
+          gl_PointSize = clamp(85.0 * uPixelRatio / max(0.5, -mvPosition.z), 3.0, 44.0);
 
-          gl_PointSize = 100.0 * uPixelRatio * (1.0 / max(0.4, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.0, 52.0);
-
-          vAlpha = (0.45 + 0.55 * sin(uTime * 1.6 + aSeed * 5.0)) * fogAtten * uReveal;
+          vAlpha = (0.45 + 0.55 * sin(uTime * 1.5 + aSeed * 4.0)) * uReveal;
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
+        precision mediump float;
         uniform sampler2D uTexture;
         varying float vAlpha;
         void main() {
@@ -1265,7 +1136,6 @@
     group.add(particles);
 
     group.userData.waterMaterial = waterMat;
-    group.userData.splashMaterial = splashMat;
     group.userData.particleMaterial = particleMat;
     group.userData.boatStaticAnchor = boatStaticAnchor;
     group.visible = false;
@@ -1275,7 +1145,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Carga de models/barcagrullas.glb (Fija y con Pies Cubiertos por el Agua) ---------------- */
+  /* ---------------- Carga Asíncrona de models/barcagrullas.glb ---------------- */
   async function loadBarcaGrullasModel() {
     await MeshoptDecoder.ready;
 
@@ -1312,7 +1182,7 @@
     const boatModel = gltf.scene;
     boatModel.updateMatrixWorld(true);
 
-    // Orientar proa hacia -X (de frente a la corriente que avanza hacia la derecha +X)
+    // Orientar proa de frente a la corriente (-X)
     const rawBox = new THREE.Box3().setFromObject(boatModel);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     if (rawSize.z > rawSize.x) {
@@ -1322,7 +1192,7 @@
     }
     boatModel.updateMatrixWorld(true);
 
-    // Escalar a tamaño monumental (5.80 m)
+    // Escalar 4x (5.60 m)
     const rotBox = new THREE.Box3().setFromObject(boatModel);
     const rotSize = rotBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(rotSize.x, rotSize.y, rotSize.z) || 1.0;
@@ -1330,7 +1200,7 @@
     boatModel.scale.setScalar(scaleFactor);
     boatModel.updateMatrixWorld(true);
 
-    // Sumergir el 20% inferior bajo la superficie del agua (WATER_SURFACE_Y) para ocultar los pies
+    // Sumergir el 20% inferior bajo el agua para que jamás se vean los pies
     const finalBox = new THREE.Box3().setFromObject(boatModel);
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
     const finalSize = finalBox.getSize(new THREE.Vector3());
@@ -1343,7 +1213,6 @@
     );
     boatModel.updateMatrixWorld(true);
 
-    // Congelar matriz del modelo para que permanezca 100% fijo
     boatModel.matrixAutoUpdate = false;
     boatModel.traverse((node) => {
       node.frustumCulled = false;
@@ -1354,7 +1223,6 @@
         mats.forEach((m) => {
           m.clippingPlanes = [waterlineClipPlane];
           m.clipShadows = true;
-          m.envMapIntensity = 1.4;
           m.needsUpdate = true;
         });
       }
@@ -1362,20 +1230,20 @@
 
     placedEffect.userData.boatStaticAnchor.add(boatModel);
 
-    const halfX = Math.max(1.45, finalSize.x * 0.48);
-    const halfZ = Math.max(0.70, finalSize.z * 0.46);
-    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
-    placedEffect.userData.splashMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
+    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(
+      Math.max(1.40, finalSize.x * 0.48),
+      Math.max(0.68, finalSize.z * 0.46)
+    );
 
     dracoLoader.dispose();
+    statusEl.textContent = 'Escultura lista. Pulsa “Iniciar realidad aumentada”.';
   }
 
-  /* ---------------- Anclaje Fijo e Inmóvil en el Suelo (WebXR 6DoF) ---------------- */
+  /* ---------------- Detección de Suelo con Retícula Visible y Anclaje Fijo ---------------- */
   let hitTestSource = null;
   let activeSession = null;
   let elapsed = 0;
   let xrSessionStarting = false;
-  let arSupported = null;
   let isPlaced = false;
   let revealProgress = 0;
   let pendingPhotoCapture = false;
@@ -1387,41 +1255,36 @@
     fallback.style.display = 'flex';
   }
 
-  function autoPlaceEffect(poseMatrixArray) {
+  // Se ejecuta al pulsar el botón "Anclar Barca en el Suelo" cuando la retícula ya detectó el piso
+  function lockBoatAtReticle() {
+    if (isPlaced || !reticle.visible) return;
     isPlaced = true;
     reticle.visible = false;
+    placeArButton.style.display = 'none';
 
-    reticle.matrix.fromArray(poseMatrixArray);
     _hitPos.setFromMatrixPosition(reticle.matrix);
 
-    // Orientar de frente a la cámara en el momento de anclar y colocar a distancia cómoda sobre el mismo plano Y del suelo
     camera.getWorldDirection(_camForward);
     const horiz = new THREE.Vector3(_camForward.x, 0, _camForward.z);
     if (horiz.lengthSq() < 0.001) horiz.set(0, 0, -1);
     else horiz.normalize();
 
     placedEffect.matrixAutoUpdate = true;
-    placedEffect.position.set(
-      _hitPos.x + horiz.x * 2.2,
-      _hitPos.y - 0.01,
-      _hitPos.z + horiz.z * 2.2
-    );
+    placedEffect.position.set(_hitPos.x, _hitPos.y - 0.01, _hitPos.z);
 
     const yaw = Math.atan2(-horiz.x, -horiz.z);
     placedEffect.rotation.set(0, yaw, 0);
 
-    // Congelar matriz mundial: la barca queda 100% fija e inmóvil en el suelo físico
+    // Congelar matriz mundial: la escultura queda 100% fija e inmóvil en el suelo físico
     placedEffect.updateMatrix();
     placedEffect.updateMatrixWorld(true);
     placedEffect.matrixAutoUpdate = false;
     placedEffect.visible = true;
 
-    // Fijar la altura exacta del plano de corte de agua en coordenadas mundiales
     waterlineClipPlane.constant = -(placedEffect.position.y + WATER_SURFACE_Y - 0.015);
-
     revealProgress = 0.02;
 
-    arStatusText.textContent = 'Barca fija en el suelo · Camina para explorar';
+    arStatusText.textContent = 'Barca anclada en el suelo · Camina para explorar';
     arPillDot.style.background = '#8ce7d5';
     setTimeout(() => { arStatusPill.style.opacity = '0'; }, 2800);
 
@@ -1433,12 +1296,12 @@
     revealProgress = 0;
     placedEffect.visible = false;
     placedEffect.userData.waterMaterial.uniforms.uReveal.value = 0;
-    placedEffect.userData.splashMaterial.uniforms.uReveal.value = 0;
     placedEffect.userData.particleMaterial.uniforms.uReveal.value = 0;
     reticle.visible = false;
+    placeArButton.style.display = 'none';
 
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Apunta hacia el suelo para anclar la barca…';
+    arStatusText.textContent = 'Apunta al suelo para ver la señal de detección…';
     arPillDot.style.background = '#d4af37';
     detenerAudioAmbiente();
   }
@@ -1459,14 +1322,14 @@
     endAR();
   });
 
-  /* ---------------- Captura de Foto y Video Ligero MP4 con Cámara Real ---------------- */
+  /* ---------------- Captura de Foto y Video Ligero MP4 ---------------- */
   const captureCanvas = document.createElement('canvas');
   const captureCtx = captureCanvas.getContext('2d', { alpha: false });
 
   function ensureCaptureCanvasSize(forVideo = false) {
     const srcW = renderer.domElement.width;
     const srcH = renderer.domElement.height;
-    const maxDim = forVideo ? 854 : 1600;
+    const maxDim = forVideo ? 854 : 1440;
     const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
     const w = Math.max(2, Math.floor((srcW * scale) / 2) * 2);
     const h = Math.max(2, Math.floor((srcH * scale) / 2) * 2);
@@ -1616,7 +1479,7 @@
         'video/webm'
       ];
       const mimeType = mimeTypes.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
-      const options = { videoBitsPerSecond: 1600000 };
+      const options = { videoBitsPerSecond: 1500000 };
       if (mimeType) options.mimeType = mimeType;
 
       recordedChunks = [];
@@ -1674,15 +1537,25 @@
     isPlaced = false;
     revealProgress = 0;
     placedEffect.visible = false;
+    reticle.visible = false;
+    placeArButton.style.display = 'none';
+
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Apunta hacia el suelo para anclar la barca…';
+    arStatusText.textContent = 'Apunta al suelo para ver la señal de detección…';
 
     if (!activeSession) return;
+
+    // Permitir también tocar la pantalla cuando la retícula esté visible para fijar la barca
+    activeSession.addEventListener('select', () => {
+      if (!isPlaced && reticle.visible) {
+        lockBoatAtReticle();
+      }
+    });
 
     if (typeof XRWebGLBinding !== 'undefined') {
       try {
         xrGlBinding = new XRWebGLBinding(activeSession, gl);
-      } catch (e) {
+      } catch (_) {
         xrGlBinding = null;
       }
     }
@@ -1692,7 +1565,7 @@
       if (activeSession) {
         hitTestSource = await activeSession.requestHitTestSource({ space: viewerSpace });
       }
-    } catch (err) {
+    } catch (_) {
       arStatusText.textContent = 'Buscando plano del suelo…';
     }
 
@@ -1707,6 +1580,7 @@
       isPlaced = false;
       placedEffect.visible = false;
       reticle.visible = false;
+      placeArButton.style.display = 'none';
 
       document.documentElement.classList.remove('ar-active');
       document.body.classList.remove('ar-active');
@@ -1716,31 +1590,37 @@
     }, { once: true });
   });
 
-  /* ---------------- Bucle de Render (Barca 100% Fija + Exploración Caminando 6DoF) ---------------- */
+  /* ---------------- Bucle de Render: Señal de Suelo Visible -> Anclaje Fijo ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
     if (isPlaced && revealProgress < 1.0) {
       revealProgress = Math.min(1.0, revealProgress + 0.025);
       placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
-      placedEffect.userData.splashMaterial.uniforms.uReveal.value = revealProgress;
       placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
     }
 
-    placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
-    placedEffect.userData.splashMaterial.uniforms.uTime.value = elapsed;
-    placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
+    if (isPlaced) {
+      placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
+      placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
+    }
 
     const refSpace = renderer.xr.getReferenceSpace();
 
-    // Detectar el suelo una sola vez y dejar la barca 100% fija en esa coordenada física
+    // Mostrar la retícula en el suelo y habilitar el botón "Anclar Barca en el Suelo"
     if (frame && !isPlaced && hitTestSource && refSpace) {
       const results = frame.getHitTestResults(hitTestSource);
       if (results.length > 0) {
         const pose = results[0].getPose(refSpace);
         if (pose) {
-          autoPlaceEffect(pose.transform.matrix);
+          reticle.visible = true;
+          reticle.matrix.fromArray(pose.transform.matrix);
+          placeArButton.style.display = 'block';
+          arStatusText.textContent = 'Suelo detectado · Pulsa “Anclar Barca en el Suelo”';
+          arPillDot.style.background = '#8ce7d5';
         }
+      } else {
+        reticle.visible = false;
       }
     }
 
@@ -1759,31 +1639,29 @@
     }
   });
 
-  /* ---------------- Inicialización AR ---------------- */
+  /* ---------------- Inicio Directo de Sesión WebXR (Sin bloquear el gesto táctil) ---------------- */
   async function beginAR() {
     if (xrSessionStarting || renderer.xr.isPresenting || activeSession) return;
-    if (!navigator.xr || arSupported === false) {
+    if (!navigator.xr) {
       showFallback('Este navegador no expone WebXR immersive-ar.');
       return;
     }
 
     xrSessionStarting = true;
     startButton.disabled = true;
-    startButton.textContent = 'Solicitando permiso de cámara…';
+    startButton.textContent = 'Iniciando AR…';
 
-    await requestCameraPermissionPreFlight();
     initAudioCapture();
 
-    startButton.textContent = 'Iniciando AR…';
     try {
       const session = await navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['hit-test'],
-        optionalFeatures: ['local-floor', 'dom-overlay', 'camera-access'],
+        optionalFeatures: ['dom-overlay', 'camera-access'],
         domOverlay: { root: document.body }
       });
       await renderer.xr.setSession(session);
     } catch (err) {
-      showFallback('No se pudo iniciar AR. Verifica los permisos de cámara.');
+      showFallback('No se pudo iniciar AR. Verifica los permisos de cámara en Chrome.');
       startButton.disabled = false;
       startButton.textContent = 'Intentar de nuevo';
     } finally {
@@ -1792,6 +1670,7 @@
   }
 
   startButton.addEventListener('click', beginAR);
+  placeArButton.addEventListener('click', lockBoatAtReticle);
   resetButton.addEventListener('click', clearEffect);
   photoButton.addEventListener('click', triggerPhoto);
   videoButton.addEventListener('click', toggleVideo);
@@ -1807,19 +1686,10 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  Promise.all([
-    loadBarcaGrullasModel().catch(e => console.warn('Aviso modelo:', e)),
-    navigator.xr ? navigator.xr.isSessionSupported('immersive-ar').catch(() => false) : Promise.resolve(false)
-  ]).then(([, ok]) => {
-    arSupported = ok;
-    startButton.disabled = false;
-    if (ok) {
-      statusEl.textContent = 'Escultura lista. Pulsa “Iniciar realidad aumentada”.';
-      startButton.textContent = 'Iniciar realidad aumentada';
-    } else {
-      statusEl.textContent = 'WebXR requiere Chrome en Android.';
-      startButton.textContent = 'Ver compatibilidad';
-    }
+  // Cargar modelo en segundo plano sin bloquear el botón de inicio AR
+  loadBarcaGrullasModel().catch((err) => {
+    console.warn('Aviso al cargar barcagrullas.glb:', err);
+    statusEl.textContent = 'Listo. Pulsa “Iniciar realidad aumentada”.';
   });
 </script>
 </body>

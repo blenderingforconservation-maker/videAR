@@ -39,7 +39,7 @@
     }
 
     body {
-      min-height: 100dvh;
+      min-height: 100svh;
       overflow: hidden;
       touch-action: none;
     }
@@ -67,7 +67,7 @@
       touch-action: none;
     }
 
-    /* Video de cámara trasera: oculto en WebXR nativo, visible como fondo AR en iOS */
+    /* Video de cámara trasera: oculto en WebXR nativo, visible como fondo AR en iOS/Universal */
     #cam-fallback-video {
       position: fixed;
       inset: 0;
@@ -235,11 +235,6 @@
       background: linear-gradient(135deg, #e7c96b 0%, #d4af37 45%, #74c7ff 100%);
       box-shadow: 0 10px 26px rgba(212, 175, 55, 0.25);
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.2s ease;
-    }
-
-    #start:active {
-      transform: scale(0.98);
     }
 
     /* ================================================= */
@@ -303,11 +298,6 @@
       justify-content: center;
       cursor: pointer;
       padding: 0;
-      transition: transform 0.15s ease, background 0.2s ease;
-    }
-
-    .icon-btn:active {
-      transform: scale(0.92);
     }
 
     .shutter-photo {
@@ -321,11 +311,6 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-
-    .shutter-photo:active {
-      transform: scale(0.93);
     }
 
     .shutter-photo .inner {
@@ -544,7 +529,7 @@
       <div id="pre-ar-panel" class="panel">
         <div class="status-row">
           <span class="status-dot"></span>
-          <p id="status">Preparando la experiencia…</p>
+          <p id="status">Listo. Pulsa “Iniciar realidad aumentada”.</p>
         </div>
         <button id="start" type="button">Iniciar realidad aumentada</button>
       </div>
@@ -552,11 +537,11 @@
       <div id="ar-dock">
         <div id="ar-status-pill">
           <span class="status-dot" id="ar-pill-dot"></span>
-          <span id="ar-status-text">Escaneando la sala frente a la escultura…</span>
+          <span id="ar-status-text">Escaneando el suelo frente a la escultura…</span>
         </div>
 
         <div class="media-bar">
-          <button id="reset" type="button" class="icon-btn" title="Recalibrar stencil y suelo a 3.8 m">
+          <button id="reset" type="button" class="icon-btn" title="Recalibrar suelo a 3.8 m">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -614,10 +599,10 @@
     audioRemote: `${REPO_RAW}bosque_noche.mp3`
   };
 
-  // PPOE: Stencil posicionado a 3.80 m para apreciarse con claridad dentro de una sala de 3+ metros
+  // PPOE: Stencil más lejos del usuario (3.80 metros) para que se distinga con claridad en toda la sala
   const INITIAL_USER_DISTANCE = 3.80;
-  const MIN_USER_DISTANCE     = 1.85;
-  const MAX_USER_DISTANCE     = 8.50;
+  const MIN_USER_DISTANCE     = 1.80;
+  const MAX_USER_DISTANCE     = 8.00;
   const BOAT_TARGET_LENGTH    = 3.20;
   const WATER_SURFACE_Y       = 0.04;
 
@@ -643,6 +628,8 @@
   const btnCancelExit  = document.querySelector('#btn-cancel-exit');
   const btnConfirmExit = document.querySelector('#btn-confirm-exit');
 
+  statusEl.textContent = 'Listo. Pulsa “Iniciar realidad aumentada”.';
+
   audioBosque.addEventListener('error', () => {
     if (audioBosque.src !== ASSET_PATHS.audioRemote) {
       audioBosque.src = ASSET_PATHS.audioRemote;
@@ -657,27 +644,12 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 3000);
   }
 
-  /* ---------------- Permisos de Cámara y Soporte Universal Android + iOS ---------------- */
+  /* ---------------- Cámara Trasera Universal (iOS y Fallback Android) ---------------- */
   let fallbackStream = null;
   let iosCameraARActive = false;
 
-  async function requestCameraPermissionPreFlight() {
-    if (!navigator.mediaDevices?.getUserMedia) return false;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false
-      });
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (err) {
-      console.warn('Permiso de cámara denegado o no disponible:', err);
-      return false;
-    }
-  }
-
   async function startFallbackVideoStream(showVisibleBackground = false) {
-    if (!navigator.mediaDevices?.getUserMedia) return false;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
     if (!fallbackStream) {
       try {
         fallbackStream = await navigator.mediaDevices.getUserMedia({
@@ -691,7 +663,7 @@
         fallbackVideo.srcObject = fallbackStream;
         await fallbackVideo.play();
       } catch (e) {
-        console.warn('Cámara reservada por el sistema:', e);
+        console.warn('Cámara reservada o permiso denegado:', e);
         return false;
       }
     }
@@ -717,7 +689,7 @@
 
   function initAudioCapture() {
     if (audioInitialized) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       return;
     }
     try {
@@ -764,11 +736,10 @@
     }, 100);
   }
 
-  /* ---------------- Renderer / Escena (Con Hardware Stencil Buffer Activo) ---------------- */
+  /* ---------------- Renderer / Escena (Optimizado para Android e iOS) ---------------- */
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    stencil: true,
     preserveDrawingBuffer: true,
     powerPreference: 'high-performance'
   });
@@ -784,7 +755,6 @@
   app.prepend(renderer.domElement);
 
   const scene  = new THREE.Scene();
-  // Niebla atmosférica ajustada para no oscurecer la cobertura de agua en los primeros 12 metros de sala
   scene.fog = new THREE.FogExp2(0x051b32, 0.012);
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 160);
   const captureCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 160);
@@ -792,13 +762,13 @@
 
   const waterlineClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-  scene.add(new THREE.HemisphereLight(0xd2efff, 0x10314a, 1.9));
+  scene.add(new THREE.HemisphereLight(0xd2efff, 0x10314a, 1.85));
 
   const keyLight = new THREE.DirectionalLight(0xfff4d6, 2.4);
   keyLight.position.set(-3.5, 7.0, 4.0);
   scene.add(keyLight);
 
-  const rimLight = new THREE.DirectionalLight(0x52b6ff, 1.5);
+  const rimLight = new THREE.DirectionalLight(0x52b6ff, 1.45);
   rimLight.position.set(4.0, 3.5, -3.5);
   scene.add(rimLight);
 
@@ -851,7 +821,7 @@
     }
   });
 
-  // Gesto pellizcar en pantalla para ajustar la lejanía del stencil manualmente si se desea
+  // Gesto pellizcar en pantalla para ajustar distancia si el usuario está estático
   let prevPinchDist = null;
   window.addEventListener('touchmove', (e) => {
     if (!isPlaced) return;
@@ -883,49 +853,54 @@
   let camTexUniform = null;
 
   function initCameraBackgroundGL() {
-    const vsSource = `#version 300 es
-      out vec2 vUv;
-      uniform vec2 uScale;
-      void main() {
-        vec2 pos[6] = vec2[6](
-          vec2(-1.0, -1.0), vec2( 1.0, -1.0), vec2(-1.0,  1.0),
-          vec2(-1.0,  1.0), vec2( 1.0, -1.0), vec2( 1.0,  1.0)
-        );
-        vec2 p = pos[gl_VertexID];
-        vUv = (p * uScale) * 0.5 + 0.5;
-        gl_Position = vec4(p, 0.9999, 1.0);
-      }
-    `;
-    const fsSource = `#version 300 es
-      precision highp float;
-      in vec2 vUv;
-      uniform sampler2D uCamTex;
-      out vec4 fragColor;
-      void main() {
-        fragColor = texture(uCamTex, vUv);
-      }
-    `;
+    try {
+      if (!gl || !gl.createVertexArray) return;
+      const vsSource = `#version 300 es
+        out vec2 vUv;
+        uniform vec2 uScale;
+        void main() {
+          vec2 pos[6] = vec2[6](
+            vec2(-1.0, -1.0), vec2( 1.0, -1.0), vec2(-1.0,  1.0),
+            vec2(-1.0,  1.0), vec2( 1.0, -1.0), vec2( 1.0,  1.0)
+          );
+          vec2 p = pos[gl_VertexID];
+          vUv = (p * uScale) * 0.5 + 0.5;
+          gl_Position = vec4(p, 0.9999, 1.0);
+        }
+      `;
+      const fsSource = `#version 300 es
+        precision highp float;
+        in vec2 vUv;
+        uniform sampler2D uCamTex;
+        out vec4 fragColor;
+        void main() {
+          fragColor = texture(uCamTex, vUv);
+        }
+      `;
 
-    const compile = (type, src) => {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      return s;
-    };
+      const compile = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+      };
 
-    camShaderProgram = gl.createProgram();
-    gl.attachShader(camShaderProgram, compile(gl.VERTEX_SHADER, vsSource));
-    gl.attachShader(camShaderProgram, compile(gl.FRAGMENT_SHADER, fsSource));
-    gl.linkProgram(camShaderProgram);
+      camShaderProgram = gl.createProgram();
+      gl.attachShader(camShaderProgram, compile(gl.VERTEX_SHADER, vsSource));
+      gl.attachShader(camShaderProgram, compile(gl.FRAGMENT_SHADER, fsSource));
+      gl.linkProgram(camShaderProgram);
 
-    camScaleUniform = gl.getUniformLocation(camShaderProgram, 'uScale');
-    camTexUniform = gl.getUniformLocation(camShaderProgram, 'uCamTex');
-    camVao = gl.createVertexArray();
+      camScaleUniform = gl.getUniformLocation(camShaderProgram, 'uScale');
+      camTexUniform = gl.getUniformLocation(camShaderProgram, 'uCamTex');
+      camVao = gl.createVertexArray();
+    } catch (e) {
+      console.warn('Shader de cámara XR omitido:', e);
+    }
   }
   initCameraBackgroundGL();
 
   function drawXrCameraTextureToFramebuffer(cameraWebGLTexture, camW, camH, targetW, targetH) {
-    if (!camShaderProgram || !cameraWebGLTexture) return;
+    if (!camShaderProgram || !cameraWebGLTexture || !camVao) return;
 
     const canvasAspect = targetW / Math.max(1, targetH);
     const camAspect = camW / Math.max(1, camH);
@@ -958,7 +933,7 @@
     renderer.resetState();
   }
 
-  /* ---------------- Texturas de Partícula Pulsante y Normal de Respaldo ---------------- */
+  /* ---------------- Texturas de Partícula y Normal de Respaldo ---------------- */
   function makeParticleTexture() {
     const size = 128;
     const c = document.createElement('canvas');
@@ -966,8 +941,8 @@
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     g.addColorStop(0.0, 'rgba(255, 255, 255, 1)');
-    g.addColorStop(0.22, 'rgba(205, 245, 255, 0.96)');
-    g.addColorStop(0.55, 'rgba(75, 195, 255, 0.48)');
+    g.addColorStop(0.22, 'rgba(195, 242, 255, 0.96)');
+    g.addColorStop(0.58, 'rgba(65, 185, 250, 0.45)');
     g.addColorStop(1.0, 'rgba(10, 70, 140, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -1021,78 +996,37 @@
   reticle.visible = false;
   scene.add(reticle);
 
-  /* ---------------- Agua Inmersiva de Sala Completa + Stencil y Partículas Pulsantes ---------------- */
+  /* ---------------- Agua Azul en Sala Completa + Stencil Lejano (3.8 m) + Partículas Pulsantes ---------------- */
   function createAtmosphere() {
     const group = new THREE.Group();
 
-    // Contenedor de la barca que escribe en el Stencil Buffer (invisible en RGB, activo en máscara Stencil)
+    // Contenedor de la barca oculto visualmente para que luzca la escultura física real dentro del hueco del Stencil
     const boatAnchor = new THREE.Group();
     boatAnchor.position.set(0, 0, 0);
-    boatAnchor.visible = true;
+    boatAnchor.visible = false;
     group.add(boatAnchor);
 
-    // Cilindro/Elipsoide de respaldo Stencil por si el GLB tarda en descargar
-    const proxyStencilGeo = new THREE.CylinderGeometry(1.0, 0.92, 1.4, 48);
-    proxyStencilGeo.scale(1.52, 1.0, 0.62);
-    const proxyStencilMat = new THREE.MeshBasicMaterial({
-      colorWrite: false,
-      depthWrite: false,
-      stencilWrite: true,
-      stencilRef: 1,
-      stencilFunc: THREE.AlwaysStencilFunc,
-      stencilZPass: THREE.ReplaceStencilOp
-    });
-    const proxyStencilMesh = new THREE.Mesh(proxyStencilGeo, proxyStencilMat);
-    proxyStencilMesh.position.y = WATER_SURFACE_Y + 0.35;
-    proxyStencilMesh.renderOrder = 0;
-    boatAnchor.add(proxyStencilMesh);
-
     const waterNormal = createFallbackWaterNormal();
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.setCrossOrigin('anonymous');
-    textureLoader.load(
-      ASSET_PATHS.waterNormalLocal,
-      (tex) => {
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        waterMat.uniforms.uNormalMap.value = tex;
-      },
-      undefined,
-      () => {
-        textureLoader.load(ASSET_PATHS.waterNormalRemote, (tex2) => {
-          tex2.wrapS = THREE.RepeatWrapping;
-          tex2.wrapT = THREE.RepeatWrapping;
-          waterMat.uniforms.uNormalMap.value = tex2;
-        });
-      }
-    );
 
-    // PPOE: Superficie amplia de 140m x 140m con alta densidad (180x180) para inundar toda la sala de 3m+ sin cortes
-    const waterGeo = new THREE.PlaneGeometry(140.0, 140.0, 180, 180);
+    // PPOE: Superficie expandida (130m x 130m, 128x128 segmentos) que inunda por completo una sala de 3+ metros de largo
+    const waterGeo = new THREE.PlaneGeometry(130.0, 130.0, 128, 128);
     waterGeo.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
-      // El agua respeta la máscara Stencil (no dibuja donde stencil == 1)
-      stencilWrite: true,
-      stencilRef: 1,
-      stencilFunc: THREE.NotEqualStencilFunc,
-      stencilFail: THREE.KeepStencilOp,
-      stencilZFail: THREE.KeepStencilOp,
-      stencilZPass: THREE.KeepStencilOp,
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
         uFlowSpeed: { value: 1.35 },
         uBoatHalfSize: { value: new THREE.Vector2(1.55, 0.65) },
-        uColorDeep: { value: new THREE.Color(0x031a38) },
-        uColorMid: { value: new THREE.Color(0x0c59ad) },
-        uColorShallow: { value: new THREE.Color(0x32a2f5) },
-        uFoamColor: { value: new THREE.Color(0xf0faff) },
-        uStencilRimColor: { value: new THREE.Color(0x8ce7d5) },
-        uLightColor: { value: new THREE.Color(0xc8ecff) },
+        uColorDeep: { value: new THREE.Color(0x041d3d) },
+        uColorMid: { value: new THREE.Color(0x0d58ab) },
+        uColorShallow: { value: new THREE.Color(0x2e9df0) },
+        uFoamColor: { value: new THREE.Color(0xeaf8ff) },
+        uStencilGlowColor: { value: new THREE.Color(0x8ce7d5) },
+        uLightColor: { value: new THREE.Color(0xc2e9ff) },
         uFogColor: { value: new THREE.Color(0x051b32) },
         uFogDensity: { value: 0.011 },
         uNormalMap: { value: waterNormal }
@@ -1115,24 +1049,23 @@
           vec2 q = pos.xz / hull;
           float r = length(q);
 
-          // 1. Tren de olas continuo que cubre toda la sala de museo de pared a pared
-          float xPhase1 = pos.x - flow * 2.25 + sin(pos.z * 0.55) * 0.55;
-          float xPhase2 = pos.x * 1.40 - flow * 2.85 - cos(pos.z * 0.85) * 0.40;
-          float wave1 = sin(xPhase1 * 0.80 + pos.z * 0.30) * 0.042;
-          float wave2 = cos(xPhase2 * 1.25 - pos.z * 0.70 + uTime * 0.95) * 0.024;
-          float roomRipple = sin(length(pos.xz) * 1.6 - uTime * 2.4) * 0.012;
+          // 1. Tren de olas continuo en toda la sala de 3+ metros
+          float xPhase1 = pos.x - flow * 2.2 + sin(pos.z * 0.45) * 0.5;
+          float xPhase2 = pos.x * 1.35 - flow * 2.8 - cos(pos.z * 0.8) * 0.35;
+          float wave1 = sin(xPhase1 * 0.78 + pos.z * 0.28) * 0.040;
+          float wave2 = cos(xPhase2 * 1.20 - pos.z * 0.65 + uTime * 0.9) * 0.022;
 
-          // 2. FÍSICA DE COLISIÓN Y ANILLO DEL STENCIL ALREDEDOR DE LA BARCA
-          vec2 bowFrontDelta = vec2((q.x + 1.04) * 2.1, q.y * 1.35);
+          // 2. FÍSICA DE COLISIÓN EN EL BORDE DEL STENCIL DE LA BARCA (Proa en q.x = -1.0)
+          vec2 bowFrontDelta = vec2((q.x + 1.02) * 2.2, q.y * 1.35);
           float bowPileUp = exp(-dot(bowFrontDelta, bowFrontDelta));
-          float radialDiff = (r - 1.05) * 2.8;
-          float bowSideMask = 1.0 - smoothstep(-1.15, 0.65, q.x);
+          float radialDiff = (r - 1.04) * 2.9;
+          float bowSideMask = 1.0 - smoothstep(-1.1, 0.55, q.x);
           float hullCollarWave = exp(-(radialDiff * radialDiff)) * bowSideMask;
-          float impactOsc = 0.80 + 0.20 * sin(uTime * 7.5 - pos.z * 4.0);
-          float collisionHeight = (bowPileUp * 0.19 + hullCollarWave * 0.11) * impactOsc;
+          float impactOsc = 0.78 + 0.22 * sin(uTime * 7.5 - pos.z * 4.0);
+          float collisionHeight = (bowPileUp * 0.18 + hullCollarWave * 0.10) * impactOsc;
 
-          pos.y += wave1 + wave2 + roomRipple + collisionHeight;
-          vBowImpact = bowPileUp + hullCollarWave * 0.75;
+          pos.y += wave1 + wave2 + collisionHeight;
+          vBowImpact = bowPileUp + hullCollarWave * 0.70;
           vLocalPos = pos;
 
           vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
@@ -1149,7 +1082,7 @@
         uniform vec3 uColorMid;
         uniform vec3 uColorShallow;
         uniform vec3 uFoamColor;
-        uniform vec3 uStencilRimColor;
+        uniform vec3 uStencilGlowColor;
         uniform vec3 uLightColor;
         uniform vec3 uFogColor;
         uniform float uFogDensity;
@@ -1179,96 +1112,96 @@
           float flow = uTime * uFlowSpeed;
           vec2 localXZ = vLocalPos.xz;
 
-          // 1. GEOMETRÍA DEL STENCIL Y DEFLEXIÓN DE LA CORRIENTE ALREDEDOR DE LA ESCULTURA
+          // 1. HUECO STENCIL NÍTIDO Y DEFLEXIÓN DE CORRIENTE AL CHOCAR CONTRA LA BARCA (A 3.8M DEL USUARIO)
           vec2 hullScale = max(uBoatHalfSize, vec2(0.4));
           vec2 qHull = localXZ / hullScale;
           float rHull = length(qHull);
 
-          // Recorte suave de seguridad en el núcleo de la silueta + borde luminoso del Stencil
-          float stencilCoreCutout = smoothstep(0.74, 0.96, rHull);
-          float stencilRimGlow = exp(-pow((rHull - 0.98) * 5.2, 2.0));
+          // Máscara Stencil: recorta el interior de la silueta de la barca y resalta el contorno sin usar pow() negativo
+          float stencilCutout = smoothstep(0.76, 0.98, rHull);
+          float rimDelta = (rHull - 0.98) * 5.0;
+          float stencilRimGlow = exp(-(rimDelta * rimDelta));
 
-          float deflect = exp(-max(0.0, rHull - 0.72) * 1.40) * 1.20;
+          float deflect = exp(-max(0.0, rHull - 0.72) * 1.45) * 1.15;
           vec2 deflectedXZ = localXZ;
           deflectedXZ.y -= sign(localXZ.y) * deflect * hullScale.y * smoothstep(-1.6, 0.9, qHull.x);
-          deflectedXZ.x += deflect * 0.38 * (1.0 - smoothstep(-1.2, 0.1, qHull.x));
+          deflectedXZ.x += deflect * 0.35 * (1.0 - smoothstep(-1.2, 0.1, qHull.x));
 
-          // Coordenadas de agua escaladas para alta definición en los primeros 6 metros de sala
-          vec2 p = deflectedXZ * 0.65;
-          p.x -= flow * 1.85;
+          // Escala de ondas densa y detallada para cubrir toda la sala de 3+ metros
+          vec2 p = deflectedXZ * 0.62;
+          p.x -= flow * 2.05;
+          p.y -= sign(localXZ.y) * deflect * 0.70;
 
-          float t = uTime * 0.09;
+          float t = uTime * 0.085;
           vec2 q = vec2(fbm(p + vec2(0.0, 0.0) + t), fbm(p + vec2(5.2, 1.3) - t));
-          vec2 r = vec2(fbm(p + 3.8 * q + vec2(1.7, 9.2) + t * 0.5), fbm(p + 3.8 * q + vec2(8.3, 2.8) - t * 0.3));
-          float height = fbm(p + 3.8 * r);
+          vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.5), fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.3));
+          float height = fbm(p + 4.0 * r);
 
-          float streamLines = fbm(vec2(deflectedXZ.x * 0.52 - flow * 2.3, deflectedXZ.y * 2.0));
-          height = mix(height, streamLines, 0.42);
+          float streamLines = fbm(vec2(deflectedXZ.x * 0.55 - flow * 2.4, deflectedXZ.y * 2.1));
+          height = mix(height, streamLines, 0.40);
 
-          vec2 uvNorm1 = vUv * 64.0 + vec2(-flow * 0.48, sin(t * 2.0) * 0.08);
-          vec2 uvNorm2 = vUv * 96.0 + vec2(-flow * 0.78, -cos(t * 1.7) * 0.06);
+          vec2 uvNorm1 = vUv * 58.0 + vec2(-flow * 0.48, sin(t * 2.0) * 0.08);
+          vec2 uvNorm2 = vUv * 88.0 + vec2(-flow * 0.78, -cos(t * 1.7) * 0.06);
           vec3 texN1 = texture2D(uNormalMap, uvNorm1).xyz * 2.0 - 1.0;
           vec3 texN2 = texture2D(uNormalMap, uvNorm2).xyz * 2.0 - 1.0;
 
-          // 2. COLISIÓN FRONTAL EN PROA (-X), SILUETA STENCIL Y ESTELA KELVIN EN "V"
-          vec2 bowPoint = vec2((qHull.x + 1.02) * 1.75, qHull.y * 1.20);
-          float bowHeadOn = exp(-dot(bowPoint, bowPoint) * 1.85);
+          // 2. COLISIÓN FRONTAL EN LA PROA (-X) Y ESTELA EN "V" CORRIENDO HACIA LA DERECHA (+X)
+          vec2 bowPoint = vec2((qHull.x + 1.0) * 1.85, qHull.y * 1.25);
+          float bowHeadOn = exp(-dot(bowPoint, bowPoint) * 2.0);
           float bowRollerWaves = 0.55 + 0.45 * sin(length(bowPoint) * 14.0 - uTime * 8.0 + texN1.x * 2.5);
-          float frontCollisionFoam = bowHeadOn * bowRollerWaves * 1.35 + vBowImpact * 0.95;
+          float frontCollisionFoam = bowHeadOn * bowRollerWaves * 1.35 + vBowImpact * 0.92;
 
-          float outerHullFade = 1.0 - smoothstep(0.82, 2.15, rHull);
-          float innerHullCut  = smoothstep(0.72, 0.98, rHull);
+          float outerHullFade = 1.0 - smoothstep(0.80, 2.05, rHull);
+          float innerHullCut  = smoothstep(0.70, 0.98, rHull);
           float hullRing = outerHullFade * innerHullCut;
-          float hullRipples = 0.52 + 0.48 * sin(rHull * 12.0 - uTime * 6.4 + texN2.y * 2.0);
-          float bowBias = 0.60 + 0.50 * (1.0 - smoothstep(-1.0, 0.45, qHull.x));
-          float hullSideFoam = hullRing * hullRipples * bowBias + stencilRimGlow * 0.75;
+          float hullRipples = 0.5 + 0.5 * sin(rHull * 11.0 - uTime * 6.2 + texN2.y * 2.0);
+          float bowBias = 0.55 + 0.55 * (1.0 - smoothstep(-1.0, 0.4, qHull.x));
+          float hullSideFoam = hullRing * hullRipples * bowBias + stencilRimGlow * 0.72;
 
           float trailX = localXZ.x + hullScale.x * 0.90;
           float rightSideMask = smoothstep(-0.35, 0.65, trailX);
-          float wakeDecay = exp(-max(0.0, trailX) * 0.075);
-          float wakeArmZ = max(hullScale.y * 0.44, trailX * 0.36);
+          float wakeDecay = exp(-max(0.0, trailX) * 0.080);
+          float wakeArmZ = max(hullScale.y * 0.42, trailX * 0.35);
           float distToArm = abs(abs(localXZ.y) - wakeArmZ);
           float kelvinWave = max(0.0, cos((abs(localXZ.y) - wakeArmZ) * 8.0 - uTime * 6.8 + texN1.y * 1.6));
-          float kelvinWake = kelvinWave * exp(-distToArm * 1.20) * rightSideMask * wakeDecay;
+          float kelvinWake = kelvinWave * exp(-distToArm * 1.25) * rightSideMask * wakeDecay;
 
-          float sternTrail = exp(-abs(localXZ.y) / max(0.38, hullScale.y * 0.88)) * smoothstep(0.0, 1.4, trailX) * wakeDecay;
-          float sternFoam = sternTrail * smoothstep(0.25, 0.78, height + texN2.x * 0.35) * 0.75;
+          float sternTrail = exp(-abs(localXZ.y) / max(0.35, hullScale.y * 0.85)) * smoothstep(0.0, 1.4, trailX) * wakeDecay;
+          float sternFoam = sternTrail * smoothstep(0.25, 0.78, height + texN2.x * 0.35) * 0.72;
 
-          // Cáusticas sutiles repartidas en toda la sala de 3m+ para que el suelo entero se sienta vivo
-          float roomCaustics = smoothstep(0.64, 0.86, streamLines + texN1.x * 0.25) * 0.32;
-          float wakeFoam = clamp(frontCollisionFoam + hullSideFoam + kelvinWake * 0.92 + sternFoam + roomCaustics, 0.0, 1.0);
+          float riverCurrentFoam = smoothstep(0.65, 0.87, streamLines) * 0.30;
+          float wakeFoam = clamp(frontCollisionFoam + hullSideFoam + kelvinWake * 0.92 + sternFoam + riverCurrentFoam, 0.0, 1.0);
 
-          vec2 normXY = (texN1.xy * 0.6 + texN2.xy * 0.4) * 1.55;
+          vec2 normXY = (texN1.xy * 0.6 + texN2.xy * 0.4) * 1.5;
           normXY.x -= frontCollisionFoam * 0.65;
           normXY.y += sign(localXZ.y) * (kelvinWake + frontCollisionFoam * 0.5) * 0.75;
           vec3 normal = normalize(vec3(normXY.x, normXY.y, 1.0));
 
-          // 3. COLORACIÓN AZUL PROFUNDA + BORDE BIOLUMINISCENTE DEL STENCIL
+          // 3. COLOR AZUL PROFUNDO Y CERÚLEO + REFLEJOS EN TODA LA SALA
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 lightDir = normalize(vec3(-0.45, 1.0, 0.45));
 
-          float spec = pow(max(dot(normal, lightDir), 0.0), 22.0);
-          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 2.8);
+          float spec = pow(max(dot(normal, lightDir), 0.0), 24.0);
+          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
 
-          vec3 waterBase = mix(uColorDeep, uColorMid, smoothstep(0.15, 0.60, height));
+          vec3 waterBase = mix(uColorDeep, uColorMid, smoothstep(0.16, 0.60, height));
           vec3 color = mix(waterBase, uColorShallow, smoothstep(0.42, 0.84, height));
-          color = mix(color, uStencilRimColor, stencilRimGlow * 0.65);
+          color = mix(color, uStencilGlowColor, stencilRimGlow * 0.58);
           color = mix(color, uFoamColor, wakeFoam * 0.88);
-          color += uLightColor * spec * (1.50 + wakeFoam * 0.80);
-          color = mix(color, uLightColor, fresnel * 0.45);
+          color += uLightColor * spec * (1.45 + wakeFoam * 0.75);
+          color = mix(color, uLightColor, fresnel * 0.42);
 
           float dist = length(cameraPosition - vWorldPosition);
           float fogFactor = 1.0 - exp(-(dist * uFogDensity) * (dist * uFogDensity));
-          float mistNoise = fbm(p * 0.35 - vec2(flow * 0.30, t * 0.2));
-          float mistLayer = smoothstep(0.42, 0.88, mistNoise) * 0.22;
-          color = mix(color, uFogColor, clamp(fogFactor * 0.55 + mistLayer, 0.0, 0.72));
+          float mistNoise = fbm(p * 0.38 - vec2(flow * 0.35, t * 0.2));
+          float mistLayer = smoothstep(0.40, 0.86, mistNoise) * 0.24;
+          color = mix(color, uFogColor, clamp(fogFactor * 0.55 + mistLayer, 0.0, 0.74));
 
-          // Opacidad alta y uniforme en toda la sala para cubrir los 3+ metros de largo
-          float alpha = mix(0.92, 0.99, smoothstep(0.15, 0.78, height));
-          alpha = max(alpha, max(fresnel * 0.88, wakeFoam * 0.99));
+          float alpha = mix(0.91, 0.99, smoothstep(0.18, 0.78, height));
+          alpha = max(alpha, max(fresnel * 0.88, wakeFoam * 0.98));
 
-          float edgeFade = 1.0 - smoothstep(0.82, 1.0, length(vUv - 0.5) * 2.0);
-          alpha = clamp(alpha, 0.0, 0.98) * stencilCoreCutout * edgeFade * uReveal;
+          float edgeFade = 1.0 - smoothstep(0.80, 1.0, length(vUv - 0.5) * 2.0);
+          alpha = clamp(alpha, 0.0, 0.98) * stencilCutout * edgeFade * uReveal;
 
           gl_FragColor = vec4(color, alpha);
           #include <tonemapping_fragment>
@@ -1277,6 +1210,25 @@
       `
     });
 
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+    textureLoader.load(
+      ASSET_PATHS.waterNormalLocal,
+      (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        waterMat.uniforms.uNormalMap.value = tex;
+      },
+      undefined,
+      () => {
+        textureLoader.load(ASSET_PATHS.waterNormalRemote, (tex2) => {
+          tex2.wrapS = THREE.RepeatWrapping;
+          tex2.wrapT = THREE.RepeatWrapping;
+          waterMat.uniforms.uNormalMap.value = tex2;
+        });
+      }
+    );
+
     const water = new THREE.Mesh(waterGeo, waterMat);
     water.position.y = WATER_SURFACE_Y;
     water.renderOrder = 1;
@@ -1284,13 +1236,13 @@
     group.add(water);
 
     /* ---------------- Físicas de Salpicadura Frontal (Rocío Balístico en la Proa -X) ---------------- */
-    const splashCount = 520;
+    const splashCount = 500;
     const splashPositions = new Float32Array(splashCount * 3);
     const splashSeeds = new Float32Array(splashCount * 4);
 
     for (let i = 0; i < splashCount; i++) {
-      splashSeeds[i * 4]     = (Math.random() - 0.5) * 2.0;
-      splashSeeds[i * 4 + 1] = 0.65 + Math.random() * 0.85;
+      splashSeeds[i * 4]     = (Math.random() - 0.5) * 1.95;
+      splashSeeds[i * 4 + 1] = 0.65 + Math.random() * 0.80;
       splashSeeds[i * 4 + 2] = Math.random();
       splashSeeds[i * 4 + 3] = Math.random() < 0.5 ? -1.0 : 1.0;
     }
@@ -1325,12 +1277,12 @@
 
           float life = fract(uTime * (0.85 * speed) + phase);
 
-          float bowX = -uBoatHalfSize.x * cos(angle * 0.52) * 0.96;
-          float bowZ =  uBoatHalfSize.y * sin(angle * 0.82) * 1.02;
+          float bowX = -uBoatHalfSize.x * cos(angle * 0.52) * 0.94;
+          float bowZ =  uBoatHalfSize.y * sin(angle * 0.82) * 0.98;
 
-          float vx = (1.40 + 0.95 * speed);
-          float vz = sign(bowZ + 0.001) * (0.58 + 0.48 * speed);
-          float vy = 1.25 * speed;
+          float vx = (1.35 + 0.95 * speed);
+          float vz = sign(bowZ + 0.001) * (0.55 + 0.45 * speed);
+          float vy = 1.20 * speed;
           float gravity = 3.0;
 
           vec3 pos;
@@ -1339,8 +1291,8 @@
           pos.y = ${WATER_SURFACE_Y.toFixed(3)} + max(0.0, vy * life - 0.5 * gravity * life * life);
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = (64.0 * speed * (1.0 - life * 0.35)) * uPixelRatio * (1.0 / max(0.3, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.5, 48.0);
+          gl_PointSize = (62.0 * speed * (1.0 - life * 0.35)) * uPixelRatio * (1.0 / max(0.3, -mvPosition.z));
+          gl_PointSize = clamp(gl_PointSize, 3.0, 46.0);
 
           vSplashAlpha = sin(life * 3.14159265) * 0.88 * uReveal;
           gl_Position = projectionMatrix * mvPosition;
@@ -1351,7 +1303,7 @@
         varying float vSplashAlpha;
         void main() {
           vec4 texColor = texture2D(uTexture, gl_PointCoord);
-          gl_FragColor = vec4(vec3(0.90, 0.98, 1.0), texColor.a * vSplashAlpha);
+          gl_FragColor = vec4(vec3(0.90, 0.97, 1.0), texColor.a * vSplashAlpha);
         }
       `
     });
@@ -1361,29 +1313,29 @@
     bowSplashParticles.frustumCulled = false;
     group.add(bowSplashParticles);
 
-    /* ---------------- PPOE: 4,500 Partículas Flotantes Pulsantes Concentradas en la Sala ---------------- */
-    const particleCount = 4500;
+    /* ---------------- PPOE: 4,200 Partículas Flotantes Pulsantes en Toda la Sala ---------------- */
+    const particleCount = 4200;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleSeeds     = new Float32Array(particleCount);
-    const particleParams    = new Float32Array(particleCount * 3); // [scale, pulseFreq, colorMix]
+    const particleExtras    = new Float32Array(particleCount * 3); // [escala, velocidadPulso, tonoColor]
 
-    // Concentramos las partículas en un volumen envolvente de 16m x 16m x 3.2m para saturar la sala de 3m+
-    const ROOM_SPAN = 16.0;
+    // Concentradas en un radio envolvente de 18m x 18m para que toda la sala de 3+ metros esté llena de partículas
+    const SPAN_XZ = 18.0;
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3]     = (Math.random() - 0.5) * ROOM_SPAN;
-      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.06 + Math.pow(Math.random(), 1.35) * 3.1;
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * ROOM_SPAN;
+      particlePositions[i * 3]     = (Math.random() - 0.5) * SPAN_XZ;
+      particlePositions[i * 3 + 1] = WATER_SURFACE_Y + 0.08 + Math.random() * 3.2;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * SPAN_XZ;
 
       particleSeeds[i] = Math.random() * Math.PI * 2;
-      particleParams[i * 3]     = 0.65 + Math.random() * 1.45; // Escala base de cada partícula
-      particleParams[i * 3 + 1] = 1.60 + Math.random() * 2.80; // Velocidad de pulsación individual
-      particleParams[i * 3 + 2] = Math.random();               // Variación cromática (cian / menta / oro)
+      particleExtras[i * 3]     = 0.70 + Math.random() * 1.40;
+      particleExtras[i * 3 + 1] = 1.80 + Math.random() * 2.60;
+      particleExtras[i * 3 + 2] = Math.random();
     }
 
     const particleGeo = new THREE.BufferGeometry();
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
     particleGeo.setAttribute('aSeed', new THREE.BufferAttribute(particleSeeds, 1));
-    particleGeo.setAttribute('aParams', new THREE.BufferAttribute(particleParams, 3));
+    particleGeo.setAttribute('aExtra', new THREE.BufferAttribute(particleExtras, 3));
 
     const particleMat = new THREE.ShaderMaterial({
       transparent: true,
@@ -1392,7 +1344,7 @@
       uniforms: {
         uTime: { value: 0 },
         uReveal: { value: 0 },
-        uFlowSpeed: { value: 0.68 },
+        uFlowSpeed: { value: 0.75 },
         uTexture: { value: particleTexture },
         uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) },
         uFogDensity: { value: 0.014 }
@@ -1404,58 +1356,56 @@
         uniform float uPixelRatio;
         uniform float uFogDensity;
         attribute float aSeed;
-        attribute vec3 aParams;
+        attribute vec3 aExtra;
         varying float vAlpha;
-        varying float vColorMix;
-        varying float vPulseGlow;
+        varying float vHue;
+        varying float vPulse;
 
         void main() {
           vec3 pos = position;
-          float scale = aParams.x;
-          float pulseFreq = aParams.y;
-          vColorMix = aParams.z;
+          float scale = aExtra.x;
+          float pulseSpeed = aExtra.y;
+          vHue = aExtra.z;
 
-          // Movimiento flotante orgánico dentro de la sala de 16m x 16m
-          float rightDrift = uTime * uFlowSpeed * (0.65 + 0.35 * sin(aSeed));
-          pos.x = mod(pos.x + rightDrift + 8.0, 16.0) - 8.0;
-          pos.y += sin(uTime * 0.75 + aSeed * 2.3) * 0.22 + cos(uTime * 0.42 + aSeed) * 0.10;
-          pos.z += cos(uTime * 0.60 + aSeed * 3.1) * 0.28;
+          float rightDrift = uTime * uFlowSpeed * (0.75 + 0.30 * sin(aSeed));
+          pos.x = mod(pos.x + rightDrift + 9.0, 18.0) - 9.0;
+          pos.y += cos(uTime * 0.65 + aSeed * 2.0) * 0.24;
+          pos.z += sin(uTime * 0.50 + aSeed * 3.0) * 0.32;
 
-          // Pulsación rítmica en tamaño y luminosidad
-          float pulseWave = 0.5 + 0.5 * sin(uTime * pulseFreq + aSeed * 6.2831);
-          float sharpPulse = pow(pulseWave, 1.6);
-          vPulseGlow = sharpPulse;
+          // Pulsación intensa de brillo y tamaño (sin usar pow negativo)
+          float rawWave = 0.5 + 0.5 * sin(uTime * pulseSpeed + aSeed * 5.0);
+          float pulse = rawWave * rawWave;
+          vPulse = pulse;
 
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           float dist = length(mvPosition.xyz);
           float fogAtten = exp(-(dist * uFogDensity) * (dist * uFogDensity));
 
-          float dynamicSize = (78.0 + 72.0 * sharpPulse) * scale;
+          float dynamicSize = (75.0 + 70.0 * pulse) * scale;
           gl_PointSize = dynamicSize * uPixelRatio * (1.0 / max(0.35, -mvPosition.z));
-          gl_PointSize = clamp(gl_PointSize, 3.5, 64.0);
+          gl_PointSize = clamp(gl_PointSize, 3.5, 62.0);
 
-          vAlpha = (0.28 + 0.72 * sharpPulse) * fogAtten * uReveal;
+          vAlpha = (0.25 + 0.75 * pulse) * fogAtten * uReveal;
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         uniform sampler2D uTexture;
         varying float vAlpha;
-        varying float vColorMix;
-        varying float vPulseGlow;
+        varying float vHue;
+        varying float vPulse;
 
         void main() {
           vec4 texColor = texture2D(uTexture, gl_PointCoord);
+          vec3 cCyan = vec3(0.45, 0.82, 1.00);
+          vec3 cMint = vec3(0.55, 0.96, 0.86);
+          vec3 cGold = vec3(1.00, 0.86, 0.45);
 
-          vec3 cyanBio  = vec3(0.45, 0.82, 1.00);
-          vec3 mintBio  = vec3(0.55, 0.95, 0.85);
-          vec3 goldStar = vec3(1.00, 0.86, 0.46);
+          vec3 tint = mix(cCyan, cMint, smoothstep(0.0, 0.70, vHue));
+          tint = mix(tint, cGold, smoothstep(0.72, 0.98, vHue));
+          tint = mix(tint, vec3(1.0), vPulse * 0.40);
 
-          vec3 baseCol = mix(cyanBio, mintBio, smoothstep(0.0, 0.70, vColorMix));
-          baseCol = mix(baseCol, goldStar, smoothstep(0.72, 0.98, vColorMix));
-          vec3 finalCol = mix(baseCol, vec3(1.0), vPulseGlow * 0.45);
-
-          gl_FragColor = vec4(finalCol * texColor.rgb, texColor.a * vAlpha);
+          gl_FragColor = vec4(texColor.rgb * tint, texColor.a * vAlpha);
         }
       `
     });
@@ -1469,7 +1419,6 @@
     group.userData.splashMaterial = splashMat;
     group.userData.particleMaterial = particleMat;
     group.userData.boatAnchor = boatAnchor;
-    group.userData.proxyStencilMesh = proxyStencilMesh;
     group.visible = false;
     scene.add(group);
     return group;
@@ -1477,7 +1426,7 @@
 
   const placedEffect = createAtmosphere();
 
-  /* ---------------- Carga de models/barcagrullas.glb como Máscara Stencil 3D Exacta ---------------- */
+  /* ---------------- Carga de models/barcagrullas.glb (Oculta Visualmente pero Activa en Físicas/Stencil) ---------------- */
   async function loadBarcaGrullasModel() {
     await MeshoptDecoder.ready;
 
@@ -1532,49 +1481,30 @@
     );
     boatModel.updateMatrixWorld(true);
 
-    // Material Stencil puro: invisible en color para ver la escultura real del museo, pero recorta el agua en 3D
-    const stencilMaskMat = new THREE.MeshBasicMaterial({
-      colorWrite: false,
-      depthWrite: false,
-      stencilWrite: true,
-      stencilRef: 1,
-      stencilFunc: THREE.AlwaysStencilFunc,
-      stencilZPass: THREE.ReplaceStencilOp
-    });
-
-    boatModel.traverse((child) => {
-      if (child.isMesh) {
-        child.material = stencilMaskMat;
-        child.renderOrder = 0;
-        child.frustumCulled = false;
-      }
-    });
-
-    // Reemplazamos el proxy por el Stencil 3D real de La Barca de las Grullas
-    if (placedEffect.userData.proxyStencilMesh) {
-      placedEffect.userData.proxyStencilMesh.visible = false;
-    }
+    boatModel.visible = false;
+    placedEffect.userData.boatAnchor.visible = false;
     placedEffect.userData.boatAnchor.add(boatModel);
 
-    // Mantener las dimensiones exactas del modelo en los shaders de agua y colisión
-    const halfX = Math.max(0.95, finalSize.x * 0.49);
-    const halfZ = Math.max(0.45, finalSize.z * 0.48);
+    const halfX = Math.max(0.85, finalSize.x * 0.48);
+    const halfZ = Math.max(0.42, finalSize.z * 0.46);
     placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
     placedEffect.userData.splashMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
 
     dracoLoader.dispose();
   }
 
-  /* ---------------- Colisión y Stencil a 3.80 m + Exploración Caminando ---------------- */
+  /* ---------------- Colisión y Stencil a 3.80 Metros + Exploración Caminando ---------------- */
   let hitTestSource = null;
   let activeSession = null;
   let elapsed = 0;
   let xrSessionStarting = false;
-  let arSupported = null;
+  let arSupported = false;
   let isPlaced = false;
   let hitFramesCount = 0;
   let revealProgress = 0;
   let pendingPhotoCapture = false;
+  let autoPlaceFallbackTimer = null;
+
   const _camWorldPos = new THREE.Vector3();
   const _camForward = new THREE.Vector3();
   const _horizDir = new THREE.Vector3();
@@ -1586,8 +1516,10 @@
     fallback.style.display = 'flex';
   }
 
-  function placeBoatAtTargetDistance(floorY) {
+  function placeBoatAtDistance(floorY) {
+    if (isPlaced) return;
     isPlaced = true;
+    clearTimeout(autoPlaceFallbackTimer);
     reticle.visible = false;
     lockedFloorY = floorY - 0.01;
 
@@ -1614,11 +1546,11 @@
     waterlineClipPlane.constant = -(lockedFloorY + WATER_SURFACE_Y - 0.015);
 
     placedEffect.visible = true;
-    revealProgress = 0.04;
+    revealProgress = 0.05;
 
-    arStatusText.textContent = 'Apunta a la escultura · Camina o pellizca para ajustar distancia';
+    arStatusText.textContent = 'Apunta a la escultura · Camina para acercarte o rodearla';
     arPillDot.style.background = '#74c7ff';
-    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 3500);
+    setTimeout(() => { arStatusPill.style.opacity = '0'; }, 3200);
 
     iniciarAudioAmbiente();
   }
@@ -1626,10 +1558,11 @@
   function autoPlaceEffect(poseMatrixArray) {
     reticle.matrix.fromArray(poseMatrixArray);
     _hitPos.setFromMatrixPosition(reticle.matrix);
-    placeBoatAtTargetDistance(_hitPos.y);
+    placeBoatAtDistance(_hitPos.y);
   }
 
   function clearEffect() {
+    clearTimeout(autoPlaceFallbackTimer);
     isPlaced = false;
     hitFramesCount = 0;
     revealProgress = 0;
@@ -1640,17 +1573,22 @@
     reticle.visible = false;
 
     if (iosCameraARActive) {
-      setTimeout(() => placeBoatAtTargetDistance(-1.35), 350);
+      setTimeout(() => placeBoatAtDistance(-1.35), 250);
       return;
     }
 
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando la sala frente a la escultura…';
+    arStatusText.textContent = 'Recalibrando el suelo a 3.8 m…';
     arPillDot.style.background = '#d4af37';
     detenerAudioAmbiente();
+
+    autoPlaceFallbackTimer = setTimeout(() => {
+      if (!isPlaced) placeBoatAtDistance(-1.35);
+    }, 1800);
   }
 
   async function endAR() {
+    clearTimeout(autoPlaceFallbackTimer);
     if (isRecording) stopVideoRecording();
     detenerAudioAmbiente();
     stopFallbackVideoStream();
@@ -1713,7 +1651,7 @@
 
     if (frame && refSpace) {
       const viewerPose = frame.getViewerPose(refSpace);
-      if (viewerPose?.views?.length > 0) {
+      if (viewerPose && viewerPose.views && viewerPose.views.length > 0) {
         activeView = viewerPose.views[0];
         if (activeView.camera && xrGlBinding) {
           try {
@@ -1734,7 +1672,6 @@
       drawXrCameraTextureToFramebuffer(xrCameraTexture, camW, camH, w, h);
       renderer.autoClear = false;
       renderer.clearDepth();
-      renderer.clearStencil();
     } else {
       renderer.autoClear = true;
       renderer.setClearColor(0x000000, 0);
@@ -1824,7 +1761,7 @@
       const canvasStream = captureCanvas.captureStream(24);
       const tracks = [...canvasStream.getVideoTracks()];
 
-      if (mediaStreamDestination?.stream) {
+      if (mediaStreamDestination && mediaStreamDestination.stream) {
         tracks.push(...mediaStreamDestination.stream.getAudioTracks());
       }
 
@@ -1894,13 +1831,20 @@
     hitFramesCount = 0;
     revealProgress = 0;
     arStatusPill.style.opacity = '1';
-    arStatusText.textContent = 'Escaneando la sala frente a la escultura…';
+    arStatusText.textContent = 'Escaneando el suelo frente a la escultura…';
+
+    // Si el suelo del museo tiene poca luz, coloca automáticamente el agua y el stencil en 1.8 s
+    clearTimeout(autoPlaceFallbackTimer);
+    autoPlaceFallbackTimer = setTimeout(() => {
+      if (!isPlaced) placeBoatAtDistance(-1.35);
+    }, 1800);
 
     if (!activeSession) return;
 
     activeSession.addEventListener('select', () => {
-      if (!isPlaced && reticle.visible) {
-        autoPlaceEffect(reticle.matrix.elements);
+      if (!isPlaced) {
+        if (reticle.visible) autoPlaceEffect(reticle.matrix.elements);
+        else placeBoatAtDistance(-1.35);
       }
     });
 
@@ -1914,14 +1858,15 @@
 
     try {
       const viewerSpace = await activeSession.requestReferenceSpace('viewer');
-      if (activeSession) {
+      if (activeSession && activeSession.requestHitTestSource) {
         hitTestSource = await activeSession.requestHitTestSource({ space: viewerSpace });
       }
     } catch (err) {
-      arStatusText.textContent = 'AR activa, buscando superficies…';
+      placeBoatAtDistance(-1.35);
     }
 
     activeSession.addEventListener('end', () => {
+      clearTimeout(autoPlaceFallbackTimer);
       if (isRecording) stopVideoRecording();
       detenerAudioAmbiente();
       stopFallbackVideoStream();
@@ -1942,12 +1887,12 @@
     }, { once: true });
   });
 
-  /* ---------------- Bucle de Render: Stencil a 3.8 m + Sala Inundada + Partículas ---------------- */
+  /* ---------------- Bucle de Render: Colisión a 3.8 m + Sala Inundada + Partículas ---------------- */
   renderer.setAnimationLoop((time, frame) => {
     elapsed = time * 0.001;
 
     if (isPlaced && revealProgress < 1.0) {
-      revealProgress = Math.min(1.0, revealProgress + 0.025);
+      revealProgress = Math.min(1.0, revealProgress + 0.028);
       placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
       placedEffect.userData.splashMaterial.uniforms.uReveal.value = revealProgress;
       placedEffect.userData.particleMaterial.uniforms.uReveal.value = revealProgress;
@@ -1955,4 +1900,159 @@
 
     placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
     placedEffect.userData.splashMaterial.uniforms.uTime.value = elapsed;
-    placedEffect.userData.particleMaterial.uniforms.uTime.value =
+    placedEffect.userData.particleMaterial.uniforms.uTime.value = elapsed;
+
+    if (isPlaced) {
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      activeCam.getWorldPosition(_camWorldPos);
+      activeCam.getWorldDirection(_camForward);
+
+      _horizDir.set(_camForward.x, 0, _camForward.z);
+      if (_horizDir.lengthSq() < 0.001) _horizDir.set(0, 0, -1);
+      else _horizDir.normalize();
+
+      if (renderer.xr.isPresenting) {
+        const dx = _camWorldPos.x - anchorCamOrigin.x;
+        const dz = _camWorldPos.z - anchorCamOrigin.z;
+        const walkedForward = dx * _horizDir.x + dz * _horizDir.z;
+        targetDistanceToSculpture = THREE.MathUtils.clamp(
+          INITIAL_USER_DISTANCE - walkedForward,
+          MIN_USER_DISTANCE,
+          MAX_USER_DISTANCE
+        );
+      }
+
+      userDistanceToSculpture = THREE.MathUtils.lerp(userDistanceToSculpture, targetDistanceToSculpture, 0.16);
+
+      _targetCenterPos.set(
+        _camWorldPos.x + _horizDir.x * userDistanceToSculpture,
+        lockedFloorY,
+        _camWorldPos.z + _horizDir.z * userDistanceToSculpture
+      );
+
+      placedEffect.position.lerp(_targetCenterPos, 0.22);
+      placedEffect.rotation.set(0, Math.atan2(-_horizDir.x, -_horizDir.z), 0);
+    }
+
+    const refSpace = renderer.xr.getReferenceSpace();
+
+    if (frame && !isPlaced && hitTestSource && refSpace) {
+      const results = frame.getHitTestResults(hitTestSource);
+      if (results.length > 0) {
+        const pose = results[0].getPose(refSpace);
+        if (pose) {
+          reticle.visible = true;
+          reticle.matrix.fromArray(pose.transform.matrix);
+          hitFramesCount++;
+          if (hitFramesCount >= 12) {
+            autoPlaceEffect(pose.transform.matrix);
+          }
+        }
+      } else {
+        reticle.visible = false;
+      }
+    }
+
+    renderer.render(scene, camera);
+
+    if (pendingPhotoCapture) {
+      pendingPhotoCapture = false;
+      renderSceneToCaptureCanvas(frame, refSpace);
+      captureCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        saveFileToPhone(blob, `LeonoraCarrington_SLP_${stamp}.jpg`, 'image/jpeg');
+      }, 'image/jpeg', 0.95);
+    } else if (isRecording) {
+      renderSceneToCaptureCanvas(frame, refSpace);
+    }
+  });
+
+  /* ---------------- Inicialización AR Directa Sin Bloqueos (Android WebXR + iOS Camera AR) ---------------- */
+  async function startIOSCameraAR() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
+    }
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try { await DeviceMotionEvent.requestPermission(); } catch (_) {}
+    }
+
+    const camOk = await startFallbackVideoStream(true);
+    if (!camOk) {
+      showFallback('No se pudo acceder a la cámara trasera. Revisa los permisos de Safari/Chrome.');
+      startButton.disabled = false;
+      startButton.textContent = 'Intentar de nuevo';
+      return;
+    }
+
+    iosCameraARActive = true;
+    document.documentElement.classList.add('ar-active');
+    document.body.classList.add('ar-active');
+    fallback.style.display = 'none';
+
+    camera.position.set(0, 0, 0);
+    if (!hasDeviceGyro) {
+      camera.rotation.set(-0.18, 0, 0, 'YXZ');
+    }
+
+    placeBoatAtDistance(-1.35);
+  }
+
+  async function beginAR() {
+    if (xrSessionStarting || renderer.xr.isPresenting || activeSession || iosCameraARActive) return;
+
+    xrSessionStarting = true;
+    startButton.disabled = true;
+    startButton.textContent = 'Iniciando cámara AR…';
+
+    initAudioCapture();
+
+    // Llamada directa a requestSession dentro del clic del usuario para no perder la activación en Android
+    if (navigator.xr && arSupported) {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', {
+          optionalFeatures: ['hit-test', 'local-floor', 'dom-overlay', 'camera-access'],
+          domOverlay: { root: document.body }
+        });
+        await renderer.xr.setSession(session);
+        xrSessionStarting = false;
+        return;
+      } catch (err) {
+        console.warn('Pasando a modo AR de cámara universal:', err);
+      }
+    }
+
+    await startIOSCameraAR();
+    xrSessionStarting = false;
+  }
+
+  startButton.addEventListener('click', beginAR);
+  resetButton.addEventListener('click', clearEffect);
+  photoButton.addEventListener('click', triggerPhoto);
+  videoButton.addEventListener('click', toggleVideo);
+
+  document.body.addEventListener('beforexrselect', (e) => {
+    const t = e.target;
+    if (t && t.closest && t.closest('button, .media-bar, .panel, .modal-panel')) e.preventDefault();
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  loadBarcaGrullasModel().catch((err) => {
+    console.warn('Aviso al calcular dimensiones de barcagrullas.glb:', err);
+  });
+
+  if (navigator.xr && navigator.xr.isSessionSupported) {
+    navigator.xr.isSessionSupported('immersive-ar').then((ok) => {
+      arSupported = Boolean(ok);
+    }).catch(() => {
+      arSupported = false;
+    });
+  }
+</script>
+</body>
+</html>

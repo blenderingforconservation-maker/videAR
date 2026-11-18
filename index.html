@@ -1,1016 +1,2493 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>La Barca de las Grullas · Museo Leonora Carrington (Quest 3)</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Tipografías Curatoriales -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#051626">
+  <title>Museo Leonora Carrington SLP · La Barca de las Grullas · MindAR & Previsualizador 3D</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --azure: #74c7ff;
+      --mint: #8ce7d5;
+      --gold: #d4af37;
+      --glass: rgba(5, 20, 34, 0.84);
+      --glass-soft: rgba(8, 28, 46, 0.68);
+      --glass-border: rgba(212, 175, 55, 0.34);
+      --danger: #ff5a5f;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: radial-gradient(circle at 50% 25%, #0c2c47 0%, #051626 65%, #020b14 100%);
+      color: #effbf9;
+      font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+    }
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+      touch-action: none;
+    }
+    html.ar-active,
+    body.ar-active,
+    body.ar-active #app {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+    #app {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+    /* Contenedor dedicado para MindAR cuando está activo */
+    #mindar-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: none;
+      overflow: hidden;
+    }
+    #mindar-container.active {
+      display: block;
+    }
+    #mindar-container video {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      z-index: 1 !important;
+    }
+    #mindar-container canvas {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 2 !important;
+    }
+    canvas.main-webgl {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      display: block;
+      touch-action: none;
+    }
+    #cam-fallback-video {
+      position: fixed;
+      inset: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      object-fit: cover;
+    }
+    #cam-fallback-video.ios-ar-visible {
+      width: 100%;
+      height: 100%;
+      opacity: 1;
+      z-index: 1;
+    }
+    #camera-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease-out;
+    }
+    #camera-flash.active {
+      opacity: 0.85;
+      transition: none;
+    }
 
-  <!-- Importmap Oficial Three.js r160 -->
+    /* Retícula visual de escaneo MindAR */
+    #mindar-scan-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    #mindar-scan-overlay.visible {
+      display: flex;
+    }
+    .scan-frame {
+      width: min(68vw, 280px);
+      height: min(68vw, 280px);
+      border-radius: 26px;
+      border: 1.5px dashed rgba(116, 199, 255, 0.55);
+      position: relative;
+      box-shadow: 0 0 0 9999px rgba(5, 20, 34, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scan-corner {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-color: var(--gold);
+      border-style: solid;
+      border-width: 0;
+    }
+    .scan-corner.tl { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 16px; }
+    .scan-corner.tr { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 16px; }
+    .scan-corner.bl { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 16px; }
+    .scan-corner.br { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 16px; }
+    .scan-line {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--azure), var(--gold), var(--azure), transparent);
+      box-shadow: 0 0 12px var(--azure);
+      animation: scanMove 2.4s infinite ease-in-out;
+    }
+    @keyframes scanMove {
+      0%, 100% { top: 12%; opacity: 0.35; }
+      50% { top: 88%; opacity: 0.95; }
+    }
+
+    /* HUD Principal */
+    #hud {
+      position: absolute;
+      z-index: 10;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .top, .bottom {
+      width: min(100%, 560px);
+      margin-inline: auto;
+    }
+    .museum-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .top-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .museum-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(5, 20, 34, 0.78);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .museum-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--azure);
+      box-shadow: 0 0 8px var(--azure);
+    }
+    h1.editorial-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(32px, 7.5vw, 50px);
+      font-weight: 600;
+      line-height: 0.96;
+      margin: 2px 0 0;
+      letter-spacing: -0.02em;
+      text-align: center;
+      color: #f4f9f8;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    h1.editorial-title em {
+      font-style: italic;
+      font-weight: 500;
+      color: var(--azure);
+    }
+    body.ar-active h1.editorial-title,
+    body.compact-header h1.editorial-title {
+      display: none;
+    }
+
+    /* Barra de herramientas del Previsualizador 3D */
+    .preview-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 6px;
+      pointer-events: auto;
+    }
+    .chip-btn {
+      appearance: none;
+      border: 1px solid rgba(116, 199, 255, 0.3);
+      background: rgba(5, 20, 34, 0.76);
+      color: #dcf4ff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+    .chip-btn:hover {
+      border-color: var(--gold);
+      color: #fff;
+    }
+    .chip-btn.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(116, 199, 255, 0.26));
+      border-color: var(--gold);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Paneles inferiores */
+    .panel {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      padding: 14px 16px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+      animation: pulseDot 1.6s infinite ease-in-out;
+      flex-shrink: 0;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(0.85); opacity: 0.5; }
+      50% { transform: scale(1.25); opacity: 1; }
+    }
+    #status {
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #e1f2ef;
+      margin: 0;
+      font-weight: 500;
+    }
+    .launch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+    @media (max-width: 420px) {
+      .launch-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .btn-primary-gold {
+      width: 100%;
+      appearance: none;
+      border: 1px solid rgba(212, 175, 55, 0.6);
+      border-radius: 999px;
+      padding: 13px 16px;
+      min-height: 46px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #041816;
+      background: linear-gradient(135deg, #e7c96b 0%, #d4af37 45%, #74c7ff 100%);
+      box-shadow: 0 10px 26px rgba(212, 175, 55, 0.25);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+    }
+    .btn-primary-gold:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary-azure {
+      width: 100%;
+      appearance: none;
+      border: 1px solid rgba(116, 199, 255, 0.45);
+      border-radius: 999px;
+      padding: 13px 16px;
+      min-height: 46px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #effbf9;
+      background: rgba(116, 199, 255, 0.14);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    .btn-secondary-azure:hover {
+      background: rgba(116, 199, 255, 0.24);
+    }
+    .mind-file-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      color: #b7d4d0;
+    }
+    .mind-file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--azure);
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* Dock AR / Previsualizador */
+    #ar-dock {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      pointer-events: auto;
+    }
+    body.ar-active #pre-ar-panel {
+      display: none;
+    }
+    #ar-status-pill {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid rgba(116, 199, 255, 0.35);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      font-size: 12px;
+      color: #effbf9;
+      transition: opacity 0.4s ease;
+      max-width: 92vw;
+      text-align: center;
+    }
+    body.ar-active #ar-status-pill {
+      display: inline-flex;
+    }
+    .media-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+    }
+    .icon-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #effbf9;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.2s ease;
+    }
+    .icon-btn:hover, .icon-btn.active {
+      border-color: var(--gold);
+      background: rgba(212, 175, 55, 0.22);
+      color: #fff;
+    }
+    .shutter-photo {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      padding: 4px;
+      background: transparent;
+      border: 2.5px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .shutter-photo .inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, #d8efff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #06201e;
+    }
+    .shutter-video {
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 90, 95, 0.45);
+      background: rgba(255, 90, 95, 0.16);
+      color: #ffdede;
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+    .shutter-video .rec-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+    .shutter-video.recording {
+      background: rgba(255, 90, 95, 0.38);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    /* Panel de Calibración e Inspección */
+    #calibration-panel {
+      display: none;
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      z-index: 30;
+      width: min(94vw, 430px);
+      background: rgba(5, 20, 34, 0.92);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 15px 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+      pointer-events: auto;
+    }
+    #calibration-panel.visible {
+      display: block;
+    }
+    #calibration-panel h3 {
+      font-family: 'Cormorant Garamond', serif;
+      margin: 0 0 4px;
+      font-size: 21px;
+      color: #f4f9f8;
+      text-align: center;
+    }
+    #calibration-panel p {
+      margin: 0 0 10px;
+      font-size: 11.5px;
+      color: #c3d9d7;
+      line-height: 1.35;
+      text-align: center;
+    }
+    .cal-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 48px;
+      gap: 8px;
+      align-items: center;
+      margin: 7px 0;
+      font-size: 12px;
+      color: #e1f2ef;
+    }
+    .cal-row input[type=range] {
+      width: 100%;
+      accent-color: var(--gold);
+    }
+    .cal-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      margin-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      color: #e1f2ef;
+    }
+    .cal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .cal-actions button {
+      flex: 1;
+      padding: 9px 10px;
+      border-radius: 999px;
+      border: none;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .btn-cal-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: #effbf9;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    .btn-cal-ok {
+      background: linear-gradient(135deg, #e7c96b, #d4af37 48%, #74c7ff);
+      color: #041816;
+    }
+
+    /* Modal de salida y Toast */
+    #exit-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(5, 20, 34, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #exit-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-panel {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      padding: 24px;
+      text-align: center;
+      width: 85%;
+      max-width: 330px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+    #exit-modal.active .modal-panel {
+      transform: scale(1);
+    }
+    .modal-panel h3 {
+      font-family: 'Cormorant Garamond', serif;
+      margin: 0 0 10px;
+      font-size: 24px;
+      color: #f4f9f8;
+    }
+    .modal-panel p {
+      margin: 0 0 22px;
+      font-size: 13.5px;
+      color: #c3d9d7;
+      line-height: 1.45;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .modal-actions button {
+      flex: 1;
+      padding: 11px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: #effbf9;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    .btn-confirm {
+      background: linear-gradient(135deg, #e7c96b 0%, #d4af37 48%, #74c7ff 100%);
+      color: #041816;
+    }
+    #toast {
+      position: fixed;
+      top: calc(64px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translate(-50%, -10px);
+      z-index: 60;
+      background: rgba(5, 20, 34, 0.94);
+      border: 1px solid var(--azure);
+      color: #effbf9;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+    #toast.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    /* Mini vista previa de la máscara de silueta del casco */
+    #mask-preview-badge {
+      display: none;
+      position: fixed;
+      top: calc(118px + env(safe-area-inset-top));
+      right: 14px;
+      z-index: 20;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 6px;
+      text-align: center;
+      font-size: 9.5px;
+      color: var(--azure);
+      pointer-events: auto;
+      backdrop-filter: blur(10px);
+    }
+    #mask-preview-badge.visible {
+      display: block;
+    }
+    #mask-preview-canvas {
+      width: 68px;
+      height: 68px;
+      border-radius: 8px;
+      border: 1px solid rgba(116, 199, 255, 0.3);
+      display: block;
+      margin-bottom: 4px;
+      background: #000;
+    }
+  </style>
+
+  <!-- Importmap con Three.js y MindAR Image Tracking -->
   <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+        "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
       }
     }
   </script>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100dvh;
-      overflow: hidden;
-      background-color: #040907;
-      font-family: 'Inter', sans-serif;
-      touch-action: none;
-    }
-
-    .font-museum {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-    }
-
-    #webgl-viewport {
-      position: fixed;
-      inset: 0;
-      z-index: 2;
-      cursor: grab;
-    }
-
-    #webgl-viewport:active {
-      cursor: grabbing;
-    }
-
-    #hud-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      pointer-events: none;
-      display: none;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: env(safe-area-inset-top, 14px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 18px) env(safe-area-inset-left, 16px);
-    }
-
-    #hud-overlay.active {
-      display: flex;
-    }
-
-    .interactive {
-      pointer-events: auto;
-    }
-
-    .magic-btn {
-      background: radial-gradient(circle at 50% 0%, rgba(163, 230, 53, 0.28), rgba(6, 28, 20, 0.92) 75%);
-      border: 1px solid rgba(190, 242, 100, 0.45);
-      box-shadow: 0 0 20px rgba(132, 204, 22, 0.25), inset 0 1px 1px rgba(254, 240, 138, 0.35);
-      transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .magic-btn:active, .magic-btn.pressing {
-      transform: scale(0.94);
-      border-color: rgba(253, 224, 71, 0.95);
-      box-shadow: 0 0 28px rgba(250, 204, 21, 0.55), inset 0 0 12px rgba(163, 230, 53, 0.45);
-    }
-
-    .magic-cta {
-      background: linear-gradient(135deg, #22c55e 0%, #a3e635 50%, #facc15 100%);
-      box-shadow: 0 0 30px rgba(163, 230, 53, 0.55), 0 0 60px rgba(250, 204, 21, 0.25);
-      transition: transform 0.15s ease, box-shadow 0.2s ease;
-    }
-
-    .magic-cta:active {
-      transform: scale(0.95);
-    }
-
-    #toast-banner {
-      position: fixed;
-      top: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 8px 20px;
-      background: rgba(5, 14, 10, 0.94);
-      border: 1px solid rgba(163, 230, 53, 0.45);
-      border-radius: 999px;
-      color: #ecfccb;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.03em;
-      opacity: 0;
-      transition: opacity 0.25s ease;
-      pointer-events: none;
-      text-align: center;
-      white-space: nowrap;
-      z-index: 30;
-    }
-  </style>
 </head>
 <body>
+<div id="app">
+  <!-- Contenedor dedicado para MindAR cuando el usuario inicia tracking por marcador -->
+  <div id="mindar-container"></div>
 
-  <!-- Lienzo 3D Three.js -->
-  <div id="webgl-viewport"></div>
+  <!-- Video de cámara trasera para modo universal/iOS y refracción -->
+  <video id="cam-fallback-video" autoplay muted playsinline></video>
 
-  <!-- Notificación flotante -->
-  <div id="toast-banner">Iniciando experiencia inmersiva...</div>
-
-  <!-- PANTALLA DE CARGA -->
-  <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-stone-950 px-6 text-center transition-opacity duration-500">
-    <div class="w-14 h-14 mb-4 rounded-full bg-emerald-500/10 border border-lime-300/40 flex items-center justify-center shadow-[0_0_30px_rgba(132,204,22,0.25)]">
-      <div class="w-3.5 h-3.5 rounded-full bg-yellow-300 animate-ping"></div>
-    </div>
-
-    <span class="text-[10px] uppercase tracking-[0.3em] text-lime-300/90 font-semibold mb-1">
-      Meta Quest 3 · WebXR Optimizado
-    </span>
-    <h1 class="font-museum text-3xl sm:text-4xl text-stone-100 tracking-wide mb-2">
-      La Barca de las Grullas
-    </h1>
-    <p id="loading-message" class="text-xs text-stone-400 max-w-xs mb-6 leading-relaxed">
-      Cargando geometría optimizada y texturas PBR para el visor...
-    </p>
-
-    <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
-      <div class="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
-        <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-lime-400 to-yellow-300 w-0 transition-all duration-200"></div>
-      </div>
-      <span id="progress-text" class="text-[10px] font-mono text-lime-300/80 mt-2">0%</span>
-    </div>
-
-    <div id="launch-controls" class="hidden flex-col gap-3 w-full max-w-xs">
-      <button id="btn-start-preview" class="magic-cta w-full py-4 px-7 rounded-full text-stone-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-        <span>Iniciar Experiencia 3D</span>
-      </button>
+  <!-- Guía de escaneo de marcador MindAR -->
+  <div id="mindar-scan-overlay">
+    <div class="scan-frame">
+      <span class="scan-corner tl"></span>
+      <span class="scan-corner tr"></span>
+      <span class="scan-corner bl"></span>
+      <span class="scan-corner br"></span>
+      <div class="scan-line"></div>
     </div>
   </div>
 
-  <!-- INTERFAZ DE CONTROL (HUD) -->
-  <div id="hud-overlay">
-    <header class="w-full flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5 bg-stone-950/85 border border-lime-400/35 rounded-full px-4 py-2 shadow-lg">
-        <span class="w-2.5 h-2.5 rounded-full bg-lime-400 animate-pulse"></span>
-        <span class="text-[11px] font-medium text-stone-100">
-          Museo Leonora Carrington · Quest 3 Activo
-        </span>
-      </div>
-
-      <div class="interactive flex items-center gap-2">
-        <button id="btn-replay-magic" class="px-3.5 py-2 rounded-full bg-stone-950/85 border border-yellow-300/40 text-yellow-200 text-[11px] font-medium active:scale-95 transition-transform">
-          ✨ Activar Efecto Mágico
-        </button>
-      </div>
-    </header>
-
-    <footer class="w-full flex flex-col items-center gap-3">
-      <div class="interactive flex flex-wrap items-center justify-center gap-2.5 w-full max-w-md">
-        <button id="btn-enter-vr" class="magic-cta flex-1 min-w-[160px] py-3.5 px-5 rounded-full text-stone-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-          <span>Entrar en VR (Quest 3)</span>
-        </button>
-
-        <button id="btn-enter-ar" class="magic-btn flex-1 min-w-[160px] py-3.5 px-5 rounded-full text-lime-200 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-          <span>Modo AR Passthrough</span>
-        </button>
-      </div>
-
-      <div class="interactive flex items-center justify-center gap-3 w-full max-w-sm">
-        <button id="btn-step-back" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-lime-100 text-xs font-semibold tracking-wider uppercase">
-          <span>↓ Atrás</span>
-        </button>
-
-        <button id="btn-reset-walk" class="px-4 py-2 rounded-2xl bg-stone-950/90 border border-yellow-300/40 flex flex-col items-center justify-center min-w-[92px] shadow-inner active:scale-95 transition-transform">
-          <span class="text-[9px] uppercase tracking-widest text-lime-300/80">Recorrido</span>
-          <span id="distance-readout" class="text-sm font-mono font-bold text-yellow-300">0.0 m</span>
-        </button>
-
-        <button id="btn-step-forward" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-yellow-200 text-xs font-semibold tracking-wider uppercase">
-          <span>Avanzar ↑</span>
-        </button>
-      </div>
-    </footer>
+  <!-- Miniatura opcional de la máscara SDF/top-down generada desde el GLB -->
+  <div id="mask-preview-badge" title="Silueta top-down generada desde barcagrullas.glb">
+    <canvas id="mask-preview-canvas" width="128" height="128"></canvas>
+    <span>Máscara GLB</span>
   </div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+  <div id="camera-flash"></div>
+  <div id="toast">Listo</div>
 
-    const REPO_RAW_BASE = 'https://raw.githubusercontent.com/blenderingforconservation-maker/recorridovirtual_Leonora/main/';
-    const MODELS = {
-      corridor: `${REPO_RAW_BASE}models/pasillo_optimizado.glb`,
-      rock: `${REPO_RAW_BASE}models/rock.glb`,
-      sculpture: `${REPO_RAW_BASE}models/3DModel.glb`
-    };
+  <!-- Modal de confirmación para salir de AR al Previsualizador 3D -->
+  <div id="exit-modal">
+    <div class="modal-panel">
+      <h3>¿Volver al Previsualizador 3D?</h3>
+      <p>Se detendrá la cámara AR y regresarás a la vista interactiva de estudio.</p>
+      <div class="modal-actions">
+        <button id="btn-cancel-exit" class="btn-cancel" type="button">Cancelar</button>
+        <button id="btn-confirm-exit" class="btn-confirm" type="button">Volver a 3D</button>
+      </div>
+    </div>
+  </div>
 
-    let scene, camera, renderer, gltfLoader;
-    let hallAnchorGroup, walkStageGroup, interiorGroup;
-    let clippingPlane, leafParticles, leafMaterial, magicWaveRing, magicWaveLight;
+  <!-- HUD Principal -->
+  <div id="hud">
+    <div class="top">
+      <div class="museum-header">
+        <div class="top-bar-row">
+          <div class="museum-badge">
+            <span class="dot"></span>
+            <span>Museo Leonora Carrington · SLP</span>
+          </div>
+        </div>
+        <h1 class="editorial-title">La Barca de<br><em>las Grullas.</em></h1>
 
-    const controllers = [];
+        <!-- Controles rápidos del Previsualizador 3D siempre accesibles -->
+        <div class="preview-toolbar">
+          <button id="btn-toggle-boat" class="chip-btn active" type="button" title="Mostrar u ocultar la escultura 3D para ver el hueco exacto del casco">
+            <span>⛵ Escultura 3D: Visible</span>
+          </button>
+          <button id="btn-toggle-cutout-view" class="chip-btn" type="button" title="Ver desde arriba el recorte de la silueta del casco">
+            <span>🔍 Vista Cenital / Hueco</span>
+          </button>
+          <button id="btn-toggle-mask" class="chip-btn" type="button" title="Ver mapa de máscara generado del GLB">
+            <span>🗺️ Máscara GLB</span>
+          </button>
+          <button id="btn-toggle-audio" class="chip-btn" type="button" title="Activar o silenciar audio espacial del bosque nocturno">
+            <span>🔊 Audio Bosque</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-    let isMaterializing = false;
-    let materializationT = 0;
-    let maxRevealHeight = 10.8;
-    let totalCorridorLength = 14.0;
-    let lastFrameTime = performance.now();
+    <div class="bottom">
+      <!-- Panel de lanzamiento AR y estado del Previsualizador -->
+      <div id="pre-ar-panel" class="panel">
+        <div class="status-row">
+          <span class="status-dot" id="main-status-dot"></span>
+          <p id="status">Previsualizador 3D activo · Arrastra para orbitar o inicia AR con MindAR / Cámara.</p>
+        </div>
+        <div class="launch-grid">
+          <button id="start-mindar" class="btn-primary-gold" type="button">
+            <span>🎯 Iniciar MindAR (Marcador)</span>
+          </button>
+          <button id="start-webxr" class="btn-secondary-azure" type="button">
+            <span>📷 Iniciar AR Cámara / WebXR</span>
+          </button>
+        </div>
+        <div class="mind-file-row">
+          <span id="mind-target-status">Target MindAR: <strong>barca_grullas.mind</strong> (o cámara)</span>
+          <label class="mind-file-label" for="mind-file-input">
+            Cargar archivo .mind
+            <input id="mind-file-input" type="file" accept=".mind" style="display:none">
+          </label>
+        </div>
+      </div>
 
-    const targetWalkOffset = new THREE.Vector3(0, 0, 0);
-    const currentWalkOffset = new THREE.Vector3(0, 0, 0);
-    let moveButtonDir = 0;
-    let buttonCooldown = 0;
-    const keysPressed = { forward: false, back: false, left: false, right: false };
+      <!-- Barra inferior de calibración, captura de foto/video y salida -->
+      <div id="ar-dock">
+        <div id="ar-status-pill">
+          <span class="status-dot" id="ar-pill-dot"></span>
+          <span id="ar-status-text">Escaneando marcador MindAR…</span>
+        </div>
+        <div class="media-bar">
+          <button id="reset" type="button" class="icon-btn" title="Alinear y calibrar parámetros del agua">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+          </button>
+          <button id="btn-photo" type="button" class="shutter-photo" title="Tomar Fotografía con marca de agua">
+            <span class="inner">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </span>
+          </button>
+          <button id="btn-video" type="button" class="shutter-video" title="Grabar Video">
+            <span class="rec-dot"></span>
+            <span id="video-label">VIDEO</span>
+          </button>
+          <button id="close" type="button" class="icon-btn" title="Volver al Previsualizador 3D" style="border-color:rgba(255,90,95,.4);color:#ffb4b4">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    let isPointerDown = false;
-    let prevPointerX = 0;
-    let prevPointerY = 0;
-    let yaw = 0;
-    let pitch = 0;
+  <!-- Panel interactivo de Calibración (funciona tanto en Previsualizador 3D como en MindAR y WebXR) -->
+  <div id="calibration-panel">
+    <h3>Alinear con la escultura</h3>
+    <p>Ajusta rotación, escala, corriente y nivel del agua hasta que el hueco coincida con la barca.</p>
+    <div class="cal-row">
+      <label>Rotación</label>
+      <input id="cal-rot" type="range" min="-180" max="180" value="0" step="1">
+      <span id="cal-rot-val">0°</span>
+    </div>
+    <div class="cal-row">
+      <label>Escala</label>
+      <input id="cal-scale" type="range" min="0.7" max="1.4" value="1" step="0.01">
+      <span id="cal-scale-val">1.00×</span>
+    </div>
+    <div class="cal-row">
+      <label>Nivel agua</label>
+      <input id="cal-level" type="range" min="-0.4" max="0.4" value="0" step="0.01">
+      <span id="cal-level-val">0 cm</span>
+    </div>
+    <div class="cal-row">
+      <label>Despl. X</label>
+      <input id="cal-offx" type="range" min="-1" max="1" value="0" step="0.01">
+      <span id="cal-offx-val">0 cm</span>
+    </div>
+    <div class="cal-row">
+      <label>Despl. Z</label>
+      <input id="cal-offz" type="range" min="-1" max="1" value="0" step="0.01">
+      <span id="cal-offz-val">0 cm</span>
+    </div>
+    <div class="cal-row">
+      <label>Corriente</label>
+      <input id="cal-flow" type="range" min="0.2" max="2.4" value="1.1" step="0.05">
+      <span id="cal-flow-val">1.1×</span>
+    </div>
+    <div class="cal-toggle-row">
+      <span>Mostrar escultura 3D de referencia</span>
+      <input id="cal-show-boat" type="checkbox" checked>
+    </div>
+    <div class="cal-actions">
+      <button id="btn-cal-reset" class="btn-cal-cancel" type="button">Restaurar</button>
+      <button id="btn-cal-ok" class="btn-cal-ok" type="button">Confirmar alineación</button>
+    </div>
+  </div>
+</div>
 
-    const _rayDir = new THREE.Vector3();
-    const _horizDir = new THREE.Vector3();
-    const _localForward = new THREE.Vector3();
-    const _localRight = new THREE.Vector3();
-    const _invAnchorQuat = new THREE.Quaternion();
+<audio id="audioBosque" src="https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main/bosque_noche.mp3" preload="auto" crossorigin="anonymous" loop></audio>
 
-    const hudOverlay = document.getElementById('hud-overlay');
-    const loadingModal = document.getElementById('loading-modal');
-    const launchControls = document.getElementById('launch-controls');
-    const btnStartPreview = document.getElementById('btn-start-preview');
-    const btnEnterVR = document.getElementById('btn-enter-vr');
-    const btnEnterAR = document.getElementById('btn-enter-ar');
-    const btnReplayMagic = document.getElementById('btn-replay-magic');
-    const btnStepForward = document.getElementById('btn-step-forward');
-    const btnStepBack = document.getElementById('btn-step-back');
-    const btnResetWalk = document.getElementById('btn-reset-walk');
-    const distanceReadout = document.getElementById('distance-readout');
-    const toastBanner = document.getElementById('toast-banner');
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+  import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+  import { MindARThree } from 'mindar-image-three';
 
-    function showToast(msg) {
-      toastBanner.textContent = msg;
-      toastBanner.style.opacity = '1';
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3000);
+  /* ============================================================================
+     CONFIGURACIÓN DE RUTAS Y CONSTANTES DEL PROYECTO
+     ============================================================================ */
+  const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main/';
+  const ASSET_PATHS = {
+    boatModelLocal: 'models/barcagrullas.glb',
+    boatModelRemote: `${REPO_RAW}models/barcagrullas.glb`,
+    waterNormalLocal: 'image_c713d6.png',
+    waterNormalRemote: `${REPO_RAW}image_c713d6.png`,
+    audioRemote: `${REPO_RAW}bosque_noche.mp3`,
+    mindTargetDefault: 'target/barca_grullas.mind',
+    // Target .mind de respaldo para pruebas inmediatas si no existe el archivo local
+    mindTargetDemo: 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind'
+  };
+
+  const BOAT_TARGET_LENGTH = 3.20;
+  const WATER_SURFACE_Y = 0.04;
+  const HIT_FRAMES_REQUIRED = 30;
+
+  /* ============================================================================
+     REFERENCIAS AL DOM
+     ============================================================================ */
+  const app = document.querySelector('#app');
+  const mindarContainer = document.querySelector('#mindar-container');
+  const mindarScanOverlay = document.querySelector('#mindar-scan-overlay');
+  const statusEl = document.querySelector('#status');
+  const arStatusPill = document.querySelector('#ar-status-pill');
+  const arStatusText = document.querySelector('#ar-status-text');
+  const arPillDot = document.querySelector('#ar-pill-dot');
+  const startMindARBtn = document.querySelector('#start-mindar');
+  const startWebXRBtn = document.querySelector('#start-webxr');
+  const mindFileInput = document.querySelector('#mind-file-input');
+  const mindTargetStatus = document.querySelector('#mind-target-status');
+
+  const btnToggleBoat = document.querySelector('#btn-toggle-boat');
+  const btnToggleCutoutView = document.querySelector('#btn-toggle-cutout-view');
+  const btnToggleMask = document.querySelector('#btn-toggle-mask');
+  const btnToggleAudio = document.querySelector('#btn-toggle-audio');
+  const maskPreviewBadge = document.querySelector('#mask-preview-badge');
+  const maskPreviewCanvas = document.querySelector('#mask-preview-canvas');
+
+  const resetButton = document.querySelector('#reset');
+  const closeButton = document.querySelector('#close');
+  const photoButton = document.querySelector('#btn-photo');
+  const videoButton = document.querySelector('#btn-video');
+  const videoLabel = document.querySelector('#video-label');
+  const cameraFlash = document.querySelector('#camera-flash');
+  const toastEl = document.querySelector('#toast');
+  const audioBosque = document.querySelector('#audioBosque');
+  const fallbackVideo = document.querySelector('#cam-fallback-video');
+  const exitModal = document.querySelector('#exit-modal');
+  const btnCancelExit = document.querySelector('#btn-cancel-exit');
+  const btnConfirmExit = document.querySelector('#btn-confirm-exit');
+
+  const calPanel = document.querySelector('#calibration-panel');
+  const calRot = document.querySelector('#cal-rot');
+  const calScale = document.querySelector('#cal-scale');
+  const calLevel = document.querySelector('#cal-level');
+  const calOffX = document.querySelector('#cal-offx');
+  const calOffZ = document.querySelector('#cal-offz');
+  const calFlow = document.querySelector('#cal-flow');
+  const calShowBoat = document.querySelector('#cal-show-boat');
+  const calRotVal = document.querySelector('#cal-rot-val');
+  const calScaleVal = document.querySelector('#cal-scale-val');
+  const calLevelVal = document.querySelector('#cal-level-val');
+  const calOffXVal = document.querySelector('#cal-offx-val');
+  const calOffZVal = document.querySelector('#cal-offz-val');
+  const calFlowVal = document.querySelector('#cal-flow-val');
+
+  let currentMode = 'preview'; // 'preview' | 'mindar' | 'webxr' | 'ios-cam'
+  let customMindUrl = null;
+  let showReferenceBoat = true;
+  let zenithViewActive = false;
+
+  let toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 3200);
+  }
+
+  /* ============================================================================
+     AUDIO ESPACIAL (Web Audio API + HRTF PannerNode)
+     ============================================================================ */
+  let audioCtx = null, mediaStreamDestination = null, sourceNode = null, pannerNode = null, gainNode = null;
+  let audioInitialized = false, audioPlaying = false, fadeAudioInterval = null;
+
+  function initAudioCapture() {
+    if (audioInitialized) {
+      if (audioCtx?.state === 'suspended') audioCtx.resume();
+      return;
     }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      mediaStreamDestination = audioCtx.createMediaStreamDestination();
+      sourceNode = audioCtx.createMediaElementSource(audioBosque);
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0;
+      pannerNode = audioCtx.createPanner();
+      pannerNode.panningModel = 'HRTF';
+      pannerNode.distanceModel = 'inverse';
+      pannerNode.refDistance = 1.2;
+      pannerNode.maxDistance = 14;
+      pannerNode.rolloffFactor = 1.1;
+      sourceNode.connect(gainNode);
+      gainNode.connect(pannerNode);
+      pannerNode.connect(audioCtx.destination);
+      pannerNode.connect(mediaStreamDestination);
+      audioInitialized = true;
+    } catch (e) {
+      console.warn('Audio espacial:', e);
+    }
+  }
 
-    init();
+  function iniciarAudioAmbiente() {
+    if (!audioBosque) return;
+    initAudioCapture();
+    clearInterval(fadeAudioInterval);
+    audioBosque.volume = 1.0;
+    const p = audioBosque.play();
+    if (p !== undefined) {
+      p.then(() => {
+        audioPlaying = true;
+        btnToggleAudio.classList.add('active');
+        btnToggleAudio.innerHTML = '<span>🔊 Audio: Activo</span>';
+        let v = 0;
+        fadeAudioInterval = setInterval(() => {
+          v = Math.min(0.85, v + 0.06);
+          if (gainNode) gainNode.gain.value = v;
+          if (v >= 0.85) clearInterval(fadeAudioInterval);
+        }, 120);
+      }).catch(() => {});
+    }
+  }
 
-    async function init() {
-      const container = document.getElementById('webgl-viewport');
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x040907);
-      scene.fog = new THREE.FogExp2(0x040907, 0.016);
-
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 120);
-      camera.position.set(0, 1.65, 1.2);
-      camera.rotation.order = 'YXZ';
-      scene.add(camera);
-
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance'
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-
-      // Optimización nativa agresiva para Quest 3 Pancake Lenses
-      if (typeof renderer.xr.setFoveation === 'function') {
-        renderer.xr.setFoveation(1.0);
+  function detenerAudioAmbiente() {
+    if (!audioBosque) return;
+    clearInterval(fadeAudioInterval);
+    audioPlaying = false;
+    btnToggleAudio.classList.remove('active');
+    btnToggleAudio.innerHTML = '<span>🔈 Audio Bosque</span>';
+    let v = gainNode ? gainNode.gain.value : 0;
+    fadeAudioInterval = setInterval(() => {
+      v = Math.max(0, v - 0.08);
+      if (gainNode) gainNode.gain.value = v;
+      if (v <= 0) {
+        audioBosque.pause();
+        clearInterval(fadeAudioInterval);
       }
+    }, 90);
+  }
 
-      renderer.localClippingEnabled = false;
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.22;
-      container.appendChild(renderer.domElement);
+  btnToggleAudio.addEventListener('click', () => {
+    if (audioPlaying) detenerAudioAmbiente();
+    else iniciarAudioAmbiente();
+  });
 
-      setupLighting();
-      setupQuestControllers();
+  const _bowWorld = new THREE.Vector3(), _camPos = new THREE.Vector3();
+  function updateSpatialAudio(activeCam) {
+    if (!audioInitialized || !pannerNode || !audioPlaying || !activeCam) return;
+    activeCam.getWorldPosition(_camPos);
+    placedEffect.updateMatrixWorld(true);
+    _bowWorld.set(-(placedEffect.userData.hullHalfX || 1.5), 0, 0).applyMatrix4(placedEffect.matrixWorld);
+    try {
+      if (audioCtx.listener && audioCtx.listener.positionX) {
+        audioCtx.listener.positionX.value = _camPos.x;
+        audioCtx.listener.positionY.value = _camPos.y;
+        audioCtx.listener.positionZ.value = _camPos.z;
+      }
+      pannerNode.positionX.value = _bowWorld.x;
+      pannerNode.positionY.value = _bowWorld.y;
+      pannerNode.positionZ.value = _bowWorld.z;
+      const dist = _camPos.distanceTo(_bowWorld);
+      const prox = THREE.MathUtils.clamp(2.2 / Math.max(0.5, dist), 0.35, 1.0);
+      if (gainNode) gainNode.gain.value = 0.85 * prox;
+    } catch (_) {}
+  }
 
-      hallAnchorGroup = new THREE.Group();
-      hallAnchorGroup.position.set(0, 0, 0);
-      hallAnchorGroup.visible = true;
-      scene.add(hallAnchorGroup);
+  /* ============================================================================
+     ESCENA PRINCIPAL THREE.JS Y PREVISUALIZADOR 3D CON ORBITCONTROLS
+     ============================================================================ */
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.domElement.classList.add('main-webgl');
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.localClippingEnabled = true;
+  renderer.setClearColor(0x000000, 0);
+  renderer.xr.enabled = true;
+  renderer.xr.setReferenceSpaceType('local-floor');
+  app.prepend(renderer.domElement);
 
-      walkStageGroup = new THREE.Group();
-      hallAnchorGroup.add(walkStageGroup);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.01, 120);
+  camera.position.set(-2.9, 1.85, 3.1);
 
-      interiorGroup = new THREE.Group();
-      walkStageGroup.add(interiorGroup);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.target.set(0, 0.35, 0);
+  controls.maxPolarAngle = Math.PI * 0.49;
+  controls.minDistance = 0.9;
+  controls.maxDistance = 14;
+  controls.update();
 
-      setupMagicalLeafMaterialization();
-      await loadModelsParallel();
+  // Iluminación atmosférica de museo
+  const hemiLight = new THREE.HemisphereLight(0xd2efff, 0x10314a, 1.35);
+  scene.add(hemiLight);
+  const keyLight = new THREE.DirectionalLight(0xfff4d6, 1.85);
+  keyLight.position.set(-3.5, 7, 4);
+  scene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0x52b6ff, 1.05);
+  rimLight.position.set(4, 3.5, -3.5);
+  scene.add(rimLight);
 
-      setupUIAndDesktopControls();
+  /* ============================================================================
+     TEXTURAS PROCEDURALES DE RESPALDO Y SHADER OPTIMIZADO DEL AGUA
+     ============================================================================ */
+  function makeParticleTexture() {
+    const s = 64, c = document.createElement('canvas');
+    c.width = c.height = s;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.4, 'rgba(220,245,255,0.7)');
+    g.addColorStop(1, 'rgba(10,70,140,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  const particleTexture = makeParticleTexture();
 
-      window.addEventListener('resize', () => {
-        if (!renderer.xr.isPresenting) {
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
+  function createFallbackWaterNormal() {
+    const size = 128, c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(size, size), d = img.data, tau = Math.PI * 2;
+    const hFn = (u, v) => Math.sin(u * tau * 3 + Math.cos(v * tau * 2) * 0.6) * 0.45 + Math.cos(v * tau * 4 - u * tau * 2) * 0.35;
+    const eps = 1 / size;
+    for (let y = 0; y < size; y++) {
+      const v = y / size;
+      for (let x = 0; x < size; x++) {
+        const u = x / size;
+        const dx = (hFn(u + eps, v) - hFn(u - eps, v)) * 2.4;
+        const dy = (hFn(u, v + eps) - hFn(u, v - eps)) * 2.4;
+        const inv = 1 / Math.sqrt(dx * dx + dy * dy + 1);
+        const i = (y * size + x) * 4;
+        d[i] = Math.round((-dx * inv * 0.5 + 0.5) * 255);
+        d[i + 1] = Math.round((-dy * inv * 0.5 + 0.5) * 255);
+        d[i + 2] = Math.round((inv * 0.5 + 0.5) * 255);
+        d[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
+  // Retícula para WebXR Hit-Test
+  const reticleGeo = new THREE.RingGeometry(0.16, 0.22, 48);
+  reticleGeo.rotateX(-Math.PI / 2);
+  const reticle = new THREE.Mesh(
+    reticleGeo,
+    new THREE.MeshBasicMaterial({ color: 0x74c7ff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+  );
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
+  scene.add(reticle);
+
+  /* ============================================================================
+     CONSTRUCCIÓN DE ESCULTURA DE RESPALDO Y ATMÓSFERA DE AGUA
+     ============================================================================ */
+  function createProceduralSurrealBoat() {
+    // Escultura de bronce surrealista de respaldo mientras descarga el GLB remoto
+    const g = new THREE.Group();
+    const bronzeMat = new THREE.MeshStandardMaterial({
+      color: 0x8c6d46,
+      roughness: 0.38,
+      metalness: 0.78
+    });
+    // Casco alargado
+    const hullGeo = new THREE.CylinderGeometry(0.48, 0.32, 3.0, 28, 1, false);
+    hullGeo.rotateZ(Math.PI / 2);
+    hullGeo.scale(1, 0.45, 0.9);
+    const hull = new THREE.Mesh(hullGeo, bronzeMat);
+    hull.position.y = 0.14;
+    g.add(hull);
+
+    // Proa y popa estilizadas
+    const prowGeo = new THREE.ConeGeometry(0.28, 0.75, 16);
+    prowGeo.rotateZ(Math.PI / 2.3);
+    const prow = new THREE.Mesh(prowGeo, bronzeMat);
+    prow.position.set(-1.5, 0.35, 0);
+    g.add(prow);
+
+    // Figuras esbeltas tipo grullas/personajes surrealistas
+    for (let i = -1; i <= 1; i++) {
+      const figGeo = new THREE.CylinderGeometry(0.06, 0.11, 0.95 + (1 - Math.abs(i)) * 0.25, 12);
+      const fig = new THREE.Mesh(figGeo, bronzeMat);
+      fig.position.set(i * 0.55, 0.65, 0);
+      g.add(fig);
+    }
+    return g;
+  }
+
+  function createAtmosphere() {
+    const group = new THREE.Group();
+    const boatAnchor = new THREE.Group();
+    boatAnchor.visible = true;
+    group.add(boatAnchor);
+
+    // Añadimos escultura de respaldo inmediata para que el previsualizador nunca esté vacío
+    const fallbackBoat = createProceduralSurrealBoat();
+    fallbackBoat.name = 'fallbackBoat';
+    boatAnchor.add(fallbackBoat);
+
+    const waterNormal = createFallbackWaterNormal();
+    const waterGeo = new THREE.PlaneGeometry(40, 40, 96, 96);
+    waterGeo.rotateX(-Math.PI / 2);
+
+    const emptyMaskCanvas = document.createElement('canvas');
+    emptyMaskCanvas.width = emptyMaskCanvas.height = 2;
+    const emptyMaskCtx = emptyMaskCanvas.getContext('2d');
+    emptyMaskCtx.fillStyle = '#000';
+    emptyMaskCtx.fillRect(0, 0, 2, 2);
+    const emptyMaskTex = new THREE.CanvasTexture(emptyMaskCanvas);
+
+    const waterMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uTime: { value: 0 },
+        uReveal: { value: 1.0 },
+        uFlowSpeed: { value: 1.1 },
+        uBoatHalfSize: { value: new THREE.Vector2(1.55, 0.65) },
+        uHullMask: { value: emptyMaskTex },
+        uUseHullMask: { value: 0 },
+        uColorDeep: { value: new THREE.Color(0x0a2e52) },
+        uColorMid: { value: new THREE.Color(0x1168b5) },
+        uColorShallow: { value: new THREE.Color(0x3aa7e8) },
+        uFoamColor: { value: new THREE.Color(0xeaf8ff) },
+        uLightColor: { value: new THREE.Color(0xc2e9ff) },
+        uLightDir: { value: new THREE.Vector3(-0.45, 1.0, 0.45).normalize() },
+        uNormalMap: { value: waterNormal },
+        uCamTexture: { value: null },
+        uUseCamTexture: { value: 0 },
+        uDepthOcclusion: { value: 0 }
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uFlowSpeed;
+        uniform vec2 uBoatHalfSize;
+        varying vec2 vLocalXZ;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+        varying float vBowImpact;
+        void main(){
+          vec3 pos = position;
+          float flow = uTime * uFlowSpeed;
+          vec2 hull = max(uBoatHalfSize, vec2(0.4));
+          vec2 q = pos.xz / hull;
+          float r = length(q);
+          float w1 = sin(pos.x * 0.9 - flow * 1.8 + sin(pos.z * 0.5) * 0.6) * 0.035;
+          float w2 = cos(pos.x * 1.4 - flow * 2.4 - pos.z * 0.7 + uTime * 0.8) * 0.018;
+          vec2 bowDelta = vec2((q.x + 1.02) * 2.2, q.y * 1.35);
+          float bowPile = exp(-dot(bowDelta, bowDelta));
+          float collar = exp(-pow((r - 1.04) * 2.9, 2.0)) * (1.0 - smoothstep(-1.1, 0.55, q.x));
+          float osc = 0.8 + 0.2 * sin(uTime * 7.0 - pos.z * 4.0);
+          pos.y += w1 + w2 + (bowPile * 0.14 + collar * 0.08) * osc;
+          vBowImpact = bowPile + collar * 0.6;
+          vLocalXZ = pos.xz;
+          vLocalPos = pos;
+          vec4 wp = modelMatrix * vec4(pos, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
         }
-      });
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform float uReveal;
+        uniform float uFlowSpeed;
+        uniform vec2 uBoatHalfSize;
+        uniform vec3 uColorDeep;
+        uniform vec3 uColorMid;
+        uniform vec3 uColorShallow;
+        uniform vec3 uFoamColor;
+        uniform vec3 uLightColor;
+        uniform vec3 uLightDir;
+        uniform sampler2D uNormalMap;
+        uniform sampler2D uHullMask;
+        uniform float uUseHullMask;
+        uniform sampler2D uCamTexture;
+        uniform float uUseCamTexture;
+        varying vec2 vLocalXZ;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+        varying float vBowImpact;
 
-      lastFrameTime = performance.now();
-      renderer.setAnimationLoop(renderLoop);
-    }
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float noise(vec2 p){
+          vec2 i = floor(p), f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+        }
 
-    function setupLighting() {
-      const ambientLight = new THREE.AmbientLight(0xd9f99d, 0.9);
-      scene.add(ambientLight);
+        void main(){
+          float flow = uTime * uFlowSpeed;
+          vec2 localXZ = vLocalXZ;
+          vec2 hullScale = max(uBoatHalfSize, vec2(0.4));
+          vec2 qHull = localXZ / hullScale;
+          float rHull = length(qHull);
 
-      const hemiLight = new THREE.HemisphereLight(0xfef9c3, 0x14532d, 1.7);
-      hemiLight.position.set(0, 12, 0);
-      scene.add(hemiLight);
-
-      const dirLight = new THREE.DirectionalLight(0xfffbeb, 2.1);
-      dirLight.position.set(4, 14, 6);
-      scene.add(dirLight);
-    }
-
-    function setupQuestControllers() {
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -2.5)
-      ]);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: 0xa3e635,
-        transparent: true,
-        opacity: 0.5
-      });
-
-      for (let i = 0; i < 2; i++) {
-        const controller = renderer.xr.getController(i);
-        controller.add(new THREE.Line(lineGeo, lineMat));
-
-        // Gatillo o pellizco de manos en Quest 3 activa el efecto
-        controller.addEventListener('select', () => {
-          triggerMaterializationWave();
-        });
-
-        scene.add(controller);
-        controllers.push(controller);
-      }
-    }
-
-    function createRadiantLeafTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 128;
-      const ctx = canvas.getContext('2d');
-
-      ctx.save();
-      ctx.translate(64, 64);
-
-      const aura = ctx.createRadialGradient(0, 0, 4, 0, 0, 60);
-      aura.addColorStop(0, 'rgba(255, 255, 220, 0.55)');
-      aura.addColorStop(0.5, 'rgba(190, 242, 100, 0.22)');
-      aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, 0, 60, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(0, -48);
-      ctx.bezierCurveTo(35, -30, 42, 14, 0, 46);
-      ctx.bezierCurveTo(-42, 14, -35, -30, 0, -48);
-      ctx.closePath();
-
-      const leafGrad = ctx.createLinearGradient(0, -48, 0, 46);
-      leafGrad.addColorStop(0, '#ffffff');
-      leafGrad.addColorStop(0.5, '#f7fee7');
-      leafGrad.addColorStop(1, '#d9f99d');
-      ctx.fillStyle = leafGrad;
-      ctx.fill();
-
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -42);
-      ctx.lineTo(0, 50);
-      ctx.stroke();
-
-      ctx.restore();
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    function setupMagicalLeafMaterialization() {
-      clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-
-      const leafTexture = createRadiantLeafTexture();
-      const palette = [
-        new THREE.Color('#16a34a'),
-        new THREE.Color('#22c55e'),
-        new THREE.Color('#4ade80'),
-        new THREE.Color('#84cc16'),
-        new THREE.Color('#a3e635'),
-        new THREE.Color('#bef264'),
-        new THREE.Color('#eab308'),
-        new THREE.Color('#facc15'),
-        new THREE.Color('#fde047'),
-        new THREE.Color('#fef08a')
-      ];
-
-      const leafCount = 950;
-      const geo = new THREE.BufferGeometry();
-      const positions = new Float32Array(leafCount * 3);
-      const colors = new Float32Array(leafCount * 3);
-      const seeds = new Float32Array(leafCount * 4);
-
-      for (let i = 0; i < leafCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 0.4 + Math.random() * 2.1;
-        positions[i * 3] = Math.cos(angle) * radius;
-        positions[i * 3 + 1] = Math.random() * 10.5;
-        positions[i * 3 + 2] = -Math.random() * 14.2;
-
-        const c = palette[Math.floor(Math.random() * palette.length)];
-        colors[i * 3] = c.r;
-        colors[i * 3 + 1] = c.g;
-        colors[i * 3 + 2] = c.b;
-
-        seeds[i * 4] = Math.random() * Math.PI * 2;
-        seeds[i * 4 + 1] = 0.55 + Math.random() * 1.05;
-        seeds[i * 4 + 2] = (Math.random() - 0.5) * 4.8;
-        seeds[i * 4 + 3] = Math.random() < 0.28 ? 1.0 : 0.0;
-      }
-
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
-      geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
-
-      leafMaterial = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        uniforms: {
-          uMap: { value: leafTexture },
-          uTime: { value: 0 },
-          uProgress: { value: 1.0 },
-          uMaxHeight: { value: 10.8 },
-          uOpacity: { value: 0.65 },
-          uPixelRatio: { value: renderer.getPixelRatio() }
-        },
-        vertexShader: `
-          attribute vec3 aColor;
-          attribute vec4 aSeed;
-          varying vec3 vColor;
-          varying float vAngle;
-          varying float vAlpha;
-          varying float vSparkle;
-          varying float vWaveGlow;
-
-          uniform float uTime;
-          uniform float uProgress;
-          uniform float uMaxHeight;
-          uniform float uPixelRatio;
-
-          void main() {
-            vColor = aColor;
-            float phase = aSeed.x;
-            float leafScale = aSeed.y;
-            float rotSpeed = aSeed.z;
-            vSparkle = aSeed.w;
-
-            vec3 pos = position;
-            float bandY = uProgress * uMaxHeight;
-
-            float vortexAngle = uTime * 2.2 + phase + pos.y * 0.65;
-            float swirlRadius = 0.28 + 0.18 * sin(uTime * 1.7 + phase);
-            pos.x += cos(vortexAngle) * swirlRadius;
-            pos.z += sin(vortexAngle) * swirlRadius;
-
-            float activeCeiling = max(0.8, bandY + 1.1);
-            pos.y = mod(pos.y + uTime * (1.15 + leafScale * 0.5), activeCeiling);
-
-            float distToWave = abs(pos.y - bandY);
-            float waveBoost = smoothstep(2.2, 0.0, distToWave);
-            vWaveGlow = waveBoost;
-
-            float twinkle = 0.65 + 0.35 * sin(uTime * 6.5 + phase * 3.0);
-            vAngle = phase + uTime * rotSpeed;
-            vAlpha = clamp((0.40 + waveBoost * 0.60) * twinkle, 0.0, 1.0);
-
-            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_Position = projectionMatrix * mvPosition;
-
-            float baseSize = (vSparkle > 0.5 ? 48.0 : 68.0) * leafScale * (1.0 + waveBoost * 0.55);
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.45), 6.0, 64.0);
+          // Máscara real del casco (desde GLB) o fallback elipse
+          float insideHull = 0.0;
+          float edgeFoam = 0.0;
+          vec2 maskUV = (localXZ / (hullScale * 2.0)) + 0.5;
+          if(uUseHullMask > 0.5 && maskUV.x > 0.0 && maskUV.x < 1.0 && maskUV.y > 0.0 && maskUV.y < 1.0){
+            float mC = texture2D(uHullMask, maskUV).r;
+            float mX = texture2D(uHullMask, maskUV + vec2(0.012, 0.0)).r;
+            float mY = texture2D(uHullMask, maskUV + vec2(0.0, 0.012)).r;
+            insideHull = smoothstep(0.45, 0.55, mC);
+            edgeFoam = clamp(abs(mC - mX) + abs(mC - mY), 0.0, 1.0) * 2.2;
+          } else {
+            insideHull = 1.0 - smoothstep(0.76, 0.98, rHull);
+            float rim = (rHull - 0.98) * 5.0;
+            edgeFoam = exp(-rim * rim);
           }
-        `,
-        fragmentShader: `
-          uniform sampler2D uMap;
-          uniform float uOpacity;
-          varying vec3 vColor;
-          varying float vAngle;
-          varying float vAlpha;
-          varying float vSparkle;
-          varying float vWaveGlow;
+          float cutout = 1.0 - insideHull;
+          if(cutout < 0.02) discard;
 
-          void main() {
-            vec2 centered = gl_PointCoord - vec2(0.5);
-            float dist = length(centered);
+          // Deflexión de corriente alrededor del casco
+          float deflect = exp(-max(0.0, rHull - 0.72) * 1.45) * 1.15;
+          vec2 deflectedXZ = localXZ;
+          deflectedXZ.y -= sign(localXZ.y) * deflect * hullScale.y * smoothstep(-1.6, 0.9, qHull.x);
+          deflectedXZ.x += deflect * 0.35 * (1.0 - smoothstep(-1.2, 0.1, qHull.x));
 
-            if (vSparkle > 0.5) {
-              float crossStar = max(0.0, 1.0 - abs(centered.x * centered.y) * 90.0);
-              float radial = smoothstep(0.5, 0.0, dist);
-              float intensity = radial * (0.6 + 0.8 * crossStar);
-              if (intensity < 0.05) discard;
-              vec3 sparkCol = mix(vColor, vec3(1.0, 0.99, 0.85), 0.55);
-              gl_FragColor = vec4(sparkCol * 1.45, intensity * vAlpha * uOpacity);
-              return;
-            }
+          // Normales en espacio de mundo
+          vec2 uvN1 = deflectedXZ * 0.38 + vec2(-flow * 0.45, sin(uTime * 0.4) * 0.05);
+          vec2 uvN2 = deflectedXZ * 0.85 + vec2(-flow * 0.75, -cos(uTime * 0.3) * 0.05);
+          vec3 texN1 = texture2D(uNormalMap, uvN1).xyz * 2.0 - 1.0;
+          vec3 texN2 = texture2D(uNormalMap, uvN2).xyz * 2.0 - 1.0;
 
-            float c = cos(vAngle);
-            float s = sin(vAngle);
-            vec2 rotatedUV = vec2(
-              centered.x * c - centered.y * s,
-              centered.x * s + centered.y * c
-            ) + vec2(0.5);
+          // Espuma: proa + borde del casco + estela Kelvin en V
+          vec2 bowPoint = vec2((qHull.x + 1.0) * 1.85, qHull.y * 1.25);
+          float bowHeadOn = exp(-dot(bowPoint, bowPoint) * 2.0);
+          float bowWaves = 0.55 + 0.45 * sin(length(bowPoint) * 14.0 - uTime * 8.0 + texN1.x * 2.5);
+          float frontFoam = bowHeadOn * bowWaves * 1.2 + vBowImpact * 0.8;
 
-            if (rotatedUV.x < 0.0 || rotatedUV.x > 1.0 || rotatedUV.y < 0.0 || rotatedUV.y > 1.0) discard;
+          float bowBias = 0.55 + 0.55 * (1.0 - smoothstep(-1.0, 0.4, qHull.x));
+          float hullFoam = edgeFoam * bowBias;
 
-            vec4 texColor = texture2D(uMap, rotatedUV);
-            if (texColor.a < 0.08) discard;
+          float trailX = localXZ.x + hullScale.x * 0.90;
+          float wakeDecay = exp(-max(0.0, trailX) * 0.07);
+          float wakeArmZ = max(hullScale.y * 0.42, trailX * 0.35);
+          float distToArm = abs(abs(localXZ.y) - wakeArmZ);
+          float kelvin = max(0.0, cos((abs(localXZ.y) - wakeArmZ) * 8.0 - uTime * 6.8 + texN1.y * 1.6));
+          float kelvinWake = kelvin * exp(-distToArm * 1.25) * smoothstep(-0.35, 0.65, trailX) * wakeDecay;
 
-            vec3 radiantColor = mix(vColor * texColor.rgb, vec3(1.0, 0.98, 0.78), vWaveGlow * 0.48);
-            gl_FragColor = vec4(radiantColor * 1.35, texColor.a * vAlpha * uOpacity);
+          float foamNoise = noise(deflectedXZ * 2.2 + vec2(-flow * 1.2, 0.0));
+          float foam = clamp(frontFoam + hullFoam * 0.9 + kelvinWake * 0.7 + foamNoise * 0.18, 0.0, 1.0);
+          foam *= smoothstep(0.0, 0.08, rHull);
+
+          vec2 normXY = (texN1.xy * 0.6 + texN2.xy * 0.4) * 1.35;
+          normXY.x -= frontFoam * 0.55;
+          normXY.y += sign(localXZ.y) * (kelvinWake + frontFoam * 0.4) * 0.6;
+          vec3 normal = normalize(vec3(normXY.x, normXY.y, 1.0));
+
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          float height = 0.5 + 0.5 * (texN1.z * 0.5 + texN2.z * 0.5);
+          float spec = pow(max(dot(normal, uLightDir), 0.0), 28.0);
+          float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
+
+          vec3 color = mix(uColorDeep, uColorMid, smoothstep(0.25, 0.65, height));
+          color = mix(color, uColorShallow, smoothstep(0.55, 0.9, height));
+          color = mix(color, uFoamColor, foam * 0.85);
+          color += uLightColor * spec * (1.2 + foam * 0.6);
+          color = mix(color, uLightColor, fresnel * 0.35);
+
+          if(uUseCamTexture > 0.5){
+            vec2 refUV = vec2(0.5) + (vWorldPos.xz * 0.02) + normXY * 0.015;
+            vec3 camColor = texture2D(uCamTexture, refUV).rgb;
+            color = mix(camColor * 0.35 + color * 0.65, color, 0.35);
           }
-        `
-      });
 
-      leafParticles = new THREE.Points(geo, leafMaterial);
-      leafParticles.frustumCulled = false;
-      leafParticles.visible = true;
-      walkStageGroup.add(leafParticles);
+          float distCam = length(cameraPosition - vWorldPos);
+          float distFade = 1.0 - smoothstep(6.0, 14.0, distCam);
+          float alpha = mix(0.46, 0.76, smoothstep(0.2, 0.8, height));
+          alpha = max(alpha, max(fresnel * 0.55, foam * 0.92));
+          alpha *= distFade;
+          alpha *= cutout * uReveal;
 
-      const ringGeo = new THREE.RingGeometry(1.6, 2.35, 48).rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xfde047,
-        transparent: true,
-        opacity: 0.0,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-      });
-      magicWaveRing = new THREE.Mesh(ringGeo, ringMat);
-      magicWaveRing.visible = false;
-      magicWaveRing.frustumCulled = false;
-      walkStageGroup.add(magicWaveRing);
+          gl_FragColor = vec4(color, alpha);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }
+      `
+    });
 
-      magicWaveLight = new THREE.PointLight(0xfde047, 0, 14);
-      walkStageGroup.add(magicWaveLight);
-    }
-
-    function fixCorridorMaterial(mat, maxAnisotropy) {
-      if (!mat) return;
-      const name = (mat.name || '').toLowerCase();
-      const cutoutNames = ['alexandrapalm', 'wild bush', 'plantas', 'plant.leaf', 'rejapared', 'leaves', 'orchid', 'sepal'];
-      const isCutout = cutoutNames.some(k => name.includes(k));
-
-      if (isCutout) {
-        mat.transparent = false;
-        mat.alphaTest = 0.42;
-        mat.depthWrite = true;
-        mat.side = THREE.DoubleSide;
-      } else {
-        mat.transparent = false;
-        mat.alphaTest = 0;
-        mat.depthWrite = true;
-        mat.side = THREE.FrontSide;
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+    textureLoader.load(
+      ASSET_PATHS.waterNormalRemote,
+      (tex) => {
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        waterMat.uniforms.uNormalMap.value = tex;
       }
+    );
 
-      ['map', 'normalMap', 'roughnessMap', 'metalnessMap'].forEach((mapKey) => {
-        if (mat[mapKey]) mat[mapKey].anisotropy = maxAnisotropy;
-      });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.name = 'waterPlane';
+    water.position.y = WATER_SURFACE_Y;
+    water.renderOrder = 1;
+    water.frustumCulled = false;
+    group.add(water);
+
+    /* Salpicadura reducida en proa (200 partículas) */
+    const splashCount = 200;
+    const splashPos = new Float32Array(splashCount * 3);
+    const splashSeeds = new Float32Array(splashCount * 4);
+    for (let i = 0; i < splashCount; i++) {
+      splashSeeds[i * 4] = (Math.random() - 0.5) * 1.6;
+      splashSeeds[i * 4 + 1] = 0.5 + Math.random() * 0.7;
+      splashSeeds[i * 4 + 2] = Math.random();
+      splashSeeds[i * 4 + 3] = Math.random() < 0.5 ? -1 : 1;
+    }
+    const splashGeo = new THREE.BufferGeometry();
+    splashGeo.setAttribute('position', new THREE.BufferAttribute(splashPos, 3));
+    splashGeo.setAttribute('aSplash', new THREE.BufferAttribute(splashSeeds, 4));
+    const splashMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uReveal: { value: 1.0 },
+        uBoatHalfSize: { value: new THREE.Vector2(1.55, 0.65) },
+        uTexture: { value: particleTexture },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) }
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uReveal;
+        uniform vec2 uBoatHalfSize;
+        uniform float uPixelRatio;
+        attribute vec4 aSplash;
+        varying float vA;
+        void main(){
+          float angle = aSplash.x, speed = aSplash.y, phase = aSplash.z;
+          float life = fract(uTime * (0.85 * speed) + phase);
+          float bowX = -uBoatHalfSize.x * cos(angle * 0.52) * 0.94;
+          float bowZ = uBoatHalfSize.y * sin(angle * 0.82) * 0.98;
+          float vx = 1.1 + 0.7 * speed;
+          float vz = sign(bowZ + 0.001) * (0.4 + 0.35 * speed);
+          float vy = 0.9 * speed;
+          float g = 3.2;
+          vec3 pos;
+          pos.x = bowX + vx * life;
+          pos.z = bowZ + vz * life;
+          pos.y = ${WATER_SURFACE_Y.toFixed(3)} + max(0.0, vy * life - 0.5 * g * life * life);
+          vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = clamp((14.0 * speed * (1.0 - life * 0.4)) * uPixelRatio * (1.0 / max(0.3, -mv.z)), 2.0, 14.0);
+          vA = sin(life * 3.14159) * 0.55 * uReveal;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        varying float vA;
+        void main(){
+          vec4 t = texture2D(uTexture, gl_PointCoord);
+          gl_FragColor = vec4(vec3(0.92, 0.98, 1.0), t.a * vA);
+        }
+      `
+    });
+    const splash = new THREE.Points(splashGeo, splashMat);
+    splash.renderOrder = 2;
+    splash.frustumCulled = false;
+    group.add(splash);
+
+    /* Bruma sutil cerca de proa (180 partículas) */
+    const mistCount = 180;
+    const mistPos = new Float32Array(mistCount * 3);
+    const mistSeed = new Float32Array(mistCount);
+    for (let i = 0; i < mistCount; i++) {
+      mistPos[i * 3] = (Math.random() - 0.5) * 6;
+      mistPos[i * 3 + 1] = WATER_SURFACE_Y + 0.05 + Math.random() * 0.6;
+      mistPos[i * 3 + 2] = (Math.random() - 0.5) * 4;
+      mistSeed[i] = Math.random() * Math.PI * 2;
+    }
+    const mistGeo = new THREE.BufferGeometry();
+    mistGeo.setAttribute('position', new THREE.BufferAttribute(mistPos, 3));
+    mistGeo.setAttribute('aSeed', new THREE.BufferAttribute(mistSeed, 1));
+    const mistMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uReveal: { value: 1.0 },
+        uTexture: { value: particleTexture },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) }
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uReveal;
+        uniform float uPixelRatio;
+        attribute float aSeed;
+        varying float vA;
+        void main(){
+          vec3 pos = position;
+          pos.x += sin(uTime * 0.4 + aSeed) * 0.25;
+          pos.y += cos(uTime * 0.3 + aSeed * 2.0) * 0.08;
+          vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = clamp((22.0) * uPixelRatio * (1.0 / max(0.4, -mv.z)), 3.0, 20.0);
+          vA = 0.10 * uReveal;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        varying float vA;
+        void main(){
+          vec4 t = texture2D(uTexture, gl_PointCoord);
+          gl_FragColor = vec4(vec3(0.85, 0.95, 1.0), t.a * vA);
+        }
+      `
+    });
+    const mist = new THREE.Points(mistGeo, mistMat);
+    mist.renderOrder = 2;
+    mist.frustumCulled = false;
+    group.add(mist);
+
+    group.userData.waterMaterial = waterMat;
+    group.userData.splashMaterial = splashMat;
+    group.userData.mistMaterial = mistMat;
+    group.userData.boatAnchor = boatAnchor;
+    group.userData.waterMesh = water;
+    group.userData.splashMesh = splash;
+    group.userData.mistMesh = mist;
+    group.userData.hullHalfX = 1.55;
+    group.userData.hullHalfZ = 0.65;
+    group.visible = true; // Visible de inmediato en el Previsualizador 3D
+    scene.add(group);
+    return group;
+  }
+
+  const placedEffect = createAtmosphere();
+
+  /* ============================================================================
+     GENERACIÓN DE MÁSCARA REAL DEL CASCO DESDE EL GLB (SILUETA TOP-DOWN)
+     ============================================================================ */
+  let hullMaskTexture = null;
+  async function buildHullMaskFromModel(targetModel) {
+    const boatAnchor = placedEffect.userData.boatAnchor;
+    const boatModel = targetModel || boatAnchor.children[0];
+    if (!boatModel) return;
+
+    const halfX = placedEffect.userData.hullHalfX;
+    const halfZ = placedEffect.userData.hullHalfZ;
+    const size = 512;
+    const rt = new THREE.WebGLRenderTarget(size, size, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter
+    });
+
+    const maskCam = new THREE.OrthographicCamera(
+      -halfX - 0.25,
+      halfX + 0.25,
+      halfZ + 0.25,
+      -halfZ - 0.25,
+      0.1,
+      20
+    );
+    maskCam.position.set(0, 10, 0);
+    maskCam.up.set(0, 0, -1);
+    maskCam.lookAt(0, 0, 0);
+    maskCam.updateMatrixWorld(true);
+
+    const waterMesh = placedEffect.userData.waterMesh;
+    const splashMesh = placedEffect.userData.splashMesh;
+    const mistMesh = placedEffect.userData.mistMesh;
+
+    const prevGroupVis = placedEffect.visible;
+    const prevAnchorVis = boatAnchor.visible;
+    const prevBoatVis = boatModel.visible;
+    const prevWaterVis = waterMesh.visible;
+    const prevSplashVis = splashMesh.visible;
+    const prevMistVis = mistMesh.visible;
+    const prevBg = renderer.getClearColor(new THREE.Color());
+    const prevAlpha = renderer.getClearAlpha();
+
+    placedEffect.visible = true;
+    boatAnchor.visible = true;
+    boatModel.visible = true;
+    waterMesh.visible = false;
+    splashMesh.visible = false;
+    mistMesh.visible = false;
+
+    const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    const origMats = [];
+    boatModel.traverse((o) => {
+      if (o.isMesh) {
+        origMats.push([o, o.material]);
+        o.material = whiteMat;
+      }
+    });
+
+    renderer.setRenderTarget(rt);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear(true, true, true);
+    renderer.render(scene, maskCam);
+    renderer.setRenderTarget(null);
+    renderer.setClearColor(prevBg, prevAlpha);
+
+    origMats.forEach(([o, m]) => (o.material = m));
+    placedEffect.visible = prevGroupVis;
+    boatAnchor.visible = prevAnchorVis;
+    boatModel.visible = prevBoatVis;
+    waterMesh.visible = prevWaterVis;
+    splashMesh.visible = prevSplashVis;
+    mistMesh.visible = prevMistVis;
+
+    const pixels = new Uint8Array(size * size * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, size, size, pixels);
+    rt.dispose();
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    for (let y = 0; y < size; y++) {
+      const srcY = size - 1 - y;
+      for (let x = 0; x < size; x++) {
+        const si = (srcY * size + x) * 4;
+        const di = (y * size + x) * 4;
+        const v = pixels[si];
+        img.data[di] = v;
+        img.data[di + 1] = v;
+        img.data[di + 2] = v;
+        img.data[di + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    // Pintar también en el mini previsualizador de máscara
+    const pCtx = maskPreviewCanvas.getContext('2d');
+    pCtx.clearRect(0, 0, 128, 128);
+    pCtx.drawImage(canvas, 0, 0, 128, 128);
+
+    hullMaskTexture = new THREE.CanvasTexture(canvas);
+    hullMaskTexture.minFilter = hullMaskTexture.magFilter = THREE.LinearFilter;
+    placedEffect.userData.waterMaterial.uniforms.uHullMask.value = hullMaskTexture;
+    placedEffect.userData.waterMaterial.uniforms.uUseHullMask.value = 1;
+  }
+
+  // Generar máscara inicial con el modelo procedural y luego actualizar con el GLB real
+  buildHullMaskFromModel();
+
+  async function loadBarcaGrullasModel() {
+    statusEl.textContent = 'Cargando escultura 3D “La Barca de las Grullas” (GLB)…';
+    await MeshoptDecoder.ready;
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.setCrossOrigin('anonymous');
+    gltfLoader.setDRACOLoader(dracoLoader);
+    gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+
+    const loadGLB = (url) => new Promise((res, rej) => gltfLoader.load(url, res, undefined, rej));
+    let gltf = null;
+    try {
+      gltf = await loadGLB(ASSET_PATHS.boatModelRemote);
+    } catch (_) {
+      gltf = await loadGLB(ASSET_PATHS.boatModelLocal);
     }
 
-    async function loadModelsParallel() {
-      await MeshoptDecoder.ready;
+    const boatModel = gltf.scene;
+    boatModel.name = 'realBoatGLB';
+    boatModel.updateMatrixWorld(true);
 
-      const dracoLoader = new DRACOLoader();
-      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-      gltfLoader = new GLTFLoader();
-      gltfLoader.setDRACOLoader(dracoLoader);
-      gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+    const rawBox = new THREE.Box3().setFromObject(boatModel);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    boatModel.rotation.y = rawSize.z > rawSize.x ? Math.PI / 2 : Math.PI;
+    boatModel.updateMatrixWorld(true);
 
-      const progressMap = { corridor: 0, rock: 0, sculpture: 0 };
-      const updateUIProgress = () => {
-        const total = Math.min(99, Math.round((progressMap.corridor * 0.65) + (progressMap.rock * 0.15) + (progressMap.sculpture * 0.20)));
-        document.getElementById('progress-bar').style.width = total + '%';
-        document.getElementById('progress-text').textContent = total + '%';
+    const rotBox = new THREE.Box3().setFromObject(boatModel);
+    const rotSize = rotBox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(rotSize.x, rotSize.y, rotSize.z) || 1;
+    boatModel.scale.setScalar(BOAT_TARGET_LENGTH / maxDim);
+    boatModel.updateMatrixWorld(true);
+
+    const finalBox = new THREE.Box3().setFromObject(boatModel);
+    const finalCenter = finalBox.getCenter(new THREE.Vector3());
+    const finalSize = finalBox.getSize(new THREE.Vector3());
+    const submerge = finalSize.y * 0.20;
+    boatModel.position.set(-finalCenter.x, WATER_SURFACE_Y - finalBox.min.y - submerge, -finalCenter.z);
+    boatModel.updateMatrixWorld(true);
+
+    const boatAnchor = placedEffect.userData.boatAnchor;
+    // Reemplazar barco procedural de respaldo por el GLB oficial
+    const oldFallback = boatAnchor.getObjectByName('fallbackBoat');
+    if (oldFallback) boatAnchor.remove(oldFallback);
+
+    boatModel.visible = showReferenceBoat;
+    boatAnchor.add(boatModel);
+
+    const halfX = Math.max(0.85, finalSize.x * 0.48);
+    const halfZ = Math.max(0.42, finalSize.z * 0.46);
+    placedEffect.userData.hullHalfX = halfX;
+    placedEffect.userData.hullHalfZ = halfZ;
+    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
+    placedEffect.userData.splashMaterial.uniforms.uBoatHalfSize.value.set(halfX, halfZ);
+
+    try {
+      await buildHullMaskFromModel(boatModel);
+    } catch (e) {
+      console.warn('Máscara casco GLB:', e);
+    }
+
+    if (currentMode === 'preview') {
+      statusEl.textContent = 'Escultura GLB y máscara de casco listas · Orbitar 3D o iniciar MindAR.';
+    }
+    showToast('Modelo 3D y máscara de silueta generados');
+    dracoLoader.dispose();
+  }
+
+  /* ============================================================================
+     CONTROLES DEL PREVISUALIZADOR 3D Y CALIBRACIÓN MANUAL
+     ============================================================================ */
+  function setBoatVisibility(visible) {
+    showReferenceBoat = visible;
+    calShowBoat.checked = visible;
+    const boatAnchor = placedEffect.userData.boatAnchor;
+    boatAnchor.visible = visible;
+    boatAnchor.children.forEach((c) => (c.visible = visible));
+    btnToggleBoat.classList.toggle('active', visible);
+    btnToggleBoat.innerHTML = visible
+      ? '<span>⛵ Escultura 3D: Visible</span>'
+      : '<span>🕳️ Solo Hueco AR (Sin Escultura)</span>';
+  }
+
+  btnToggleBoat.addEventListener('click', () => {
+    setBoatVisibility(!showReferenceBoat);
+  });
+
+  calShowBoat.addEventListener('change', () => {
+    setBoatVisibility(calShowBoat.checked);
+  });
+
+  btnToggleCutoutView.addEventListener('click', () => {
+    if (currentMode !== 'preview') {
+      showToast('La cámara cenital es para el Previsualizador 3D');
+      return;
+    }
+    zenithViewActive = !zenithViewActive;
+    btnToggleCutoutView.classList.toggle('active', zenithViewActive);
+    if (zenithViewActive) {
+      camera.position.set(0.01, 4.6, 0.01);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      showToast('Vista cenital: observa la estela y el recorte del casco');
+    } else {
+      camera.position.set(-2.9, 1.85, 3.1);
+      controls.target.set(0, 0.35, 0);
+      controls.update();
+    }
+  });
+
+  btnToggleMask.addEventListener('click', () => {
+    const vis = !maskPreviewBadge.classList.contains('visible');
+    maskPreviewBadge.classList.toggle('visible', vis);
+    btnToggleMask.classList.toggle('active', vis);
+  });
+
+  // Calibración manual
+  let baseRotationY = 0;
+  let baseScale = 1;
+  let basePos = new THREE.Vector3(0, 0, 0);
+
+  function updateCalibrationLabels() {
+    calRotVal.textContent = `${calRot.value}°`;
+    calScaleVal.textContent = `${parseFloat(calScale.value).toFixed(2)}×`;
+    calLevelVal.textContent = `${Math.round(parseFloat(calLevel.value) * 100)} cm`;
+    calOffXVal.textContent = `${Math.round(parseFloat(calOffX.value) * 100)} cm`;
+    calOffZVal.textContent = `${Math.round(parseFloat(calOffZ.value) * 100)} cm`;
+    calFlowVal.textContent = `${parseFloat(calFlow.value).toFixed(2)}×`;
+  }
+
+  function applyCalibration() {
+    const rot = THREE.MathUtils.degToRad(parseFloat(calRot.value));
+    const sc = parseFloat(calScale.value);
+    const level = parseFloat(calLevel.value);
+    const ox = parseFloat(calOffX.value);
+    const oz = parseFloat(calOffZ.value);
+    const flow = parseFloat(calFlow.value);
+
+    const offsetLocal = new THREE.Vector3(ox, 0, oz).applyAxisAngle(new THREE.Vector3(0, 1, 0), baseRotationY);
+    placedEffect.position.set(basePos.x + offsetLocal.x, basePos.y + level, basePos.z + offsetLocal.z);
+    placedEffect.rotation.set(0, baseRotationY + rot, 0);
+    placedEffect.scale.setScalar(sc);
+    placedEffect.updateMatrixWorld(true);
+
+    placedEffect.userData.waterMaterial.uniforms.uFlowSpeed.value = flow;
+    placedEffect.userData.waterMaterial.uniforms.uBoatHalfSize.value.set(
+      placedEffect.userData.hullHalfX * sc,
+      placedEffect.userData.hullHalfZ * sc
+    );
+  }
+
+  [calRot, calScale, calLevel, calOffX, calOffZ, calFlow].forEach((el) =>
+    el.addEventListener('input', () => {
+      updateCalibrationLabels();
+      applyCalibration();
+    })
+  );
+
+  document.querySelector('#btn-cal-reset').addEventListener('click', () => {
+    calRot.value = 0;
+    calScale.value = 1;
+    calLevel.value = 0;
+    calOffX.value = 0;
+    calOffZ.value = 0;
+    calFlow.value = 1.1;
+    updateCalibrationLabels();
+    applyCalibration();
+    showToast('Parámetros restaurados');
+  });
+
+  document.querySelector('#btn-cal-ok').addEventListener('click', () => {
+    calPanel.classList.remove('visible');
+    showToast('Alineación aplicada');
+  });
+
+  resetButton.addEventListener('click', () => {
+    calPanel.classList.toggle('visible');
+  });
+
+  /* ============================================================================
+     INTEGRACIÓN MINDAR (MINDAR-IMAGE-THREE)
+     ============================================================================ */
+  let mindarThree = null;
+  let mindarAnchor = null;
+  let mindarRunning = false;
+
+  // Permitir al usuario cargar su propio archivo .mind desde su dispositivo
+  mindFileInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (customMindUrl) URL.revokeObjectURL(customMindUrl);
+    customMindUrl = URL.createObjectURL(file);
+    mindTargetStatus.innerHTML = `Target cargado: <strong>${file.name}</strong>`;
+    showToast(`Archivo ${file.name} listo para MindAR`);
+  });
+
+  async function resolveMindTargetUrl() {
+    if (customMindUrl) return customMindUrl;
+    // Verificar si existe target/barca_grullas.mind en el servidor actual
+    try {
+      const resp = await fetch(ASSET_PATHS.mindTargetDefault, { method: 'HEAD' });
+      if (resp.ok) return ASSET_PATHS.mindTargetDefault;
+    } catch (_) {}
+    // Si no está alojado localmente, usar el target .mind de demostración para que MindAR arranque sin error
+    return ASSET_PATHS.mindTargetDemo;
+  }
+
+  async function startMindARSession() {
+    if (mindarRunning || currentMode === 'mindar') return;
+    startMindARBtn.disabled = true;
+    startMindARBtn.innerHTML = '<span>⏳ Iniciando MindAR…</span>';
+    initAudioCapture();
+
+    const targetSrc = await resolveMindTargetUrl();
+
+    try {
+      mindarContainer.innerHTML = '';
+      mindarContainer.classList.add('active');
+
+      mindarThree = new MindARThree({
+        container: mindarContainer,
+        imageTargetSrc: targetSrc,
+        filterMinCF: 0.0001,
+        filterBeta: 0.001,
+        uiLoading: 'no',
+        uiScanning: 'no',
+        uiError: 'no'
+      });
+
+      const { renderer: mRenderer, scene: mScene, camera: mCamera } = mindarThree;
+      mRenderer.outputColorSpace = THREE.SRGBColorSpace;
+      mRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      mRenderer.toneMappingExposure = 1.15;
+
+      // Iluminación en la escena de MindAR
+      const mHemi = new THREE.HemisphereLight(0xd2efff, 0x10314a, 1.35);
+      const mKey = new THREE.DirectionalLight(0xfff4d6, 1.8);
+      mKey.position.set(-3.5, 7, 4);
+      mScene.add(mHemi, mKey);
+
+      mindarAnchor = mindarThree.addAnchor(0);
+
+      // Mover nuestro grupo de agua y barca al anchor de MindAR
+      basePos.set(0, 0, 0);
+      baseRotationY = 0;
+      baseScale = 0.42; // Escala adaptada al ancho del marcador MindAR
+      calScale.value = 0.42;
+      updateCalibrationLabels();
+
+      mindarAnchor.group.add(placedEffect);
+      applyCalibration();
+
+      // En AR ocultamos por defecto la escultura 3D para que luzca la real (el usuario puede activarla con el botón)
+      setBoatVisibility(false);
+
+      mindarAnchor.onTargetFound = () => {
+        mindarScanOverlay.classList.remove('visible');
+        arStatusPill.style.opacity = '1';
+        arStatusText.textContent = '¡Marcador MindAR detectado! · Agua anclada';
+        arPillDot.style.background = '#74c7ff';
+        iniciarAudioAmbiente();
       };
 
-      const loadWithProgress = (url, key) =>
-        new Promise((resolve, reject) => {
-          gltfLoader.load(
-            url,
-            (gltf) => { progressMap[key] = 100; updateUIProgress(); resolve(gltf); },
-            (xhr) => {
-              if (xhr.total > 0) {
-                progressMap[key] = (xhr.loaded / xhr.total) * 100;
-                updateUIProgress();
-              }
-            },
-            reject
-          );
-        });
+      mindarAnchor.onTargetLost = () => {
+        mindarScanOverlay.classList.add('visible');
+        arStatusPill.style.opacity = '1';
+        arStatusText.textContent = 'Buscando marcador MindAR… Apunta a la imagen/escultura';
+        arPillDot.style.background = '#d4af37';
+      };
 
+      await mindarThree.start();
+      mindarRunning = true;
+      currentMode = 'mindar';
+
+      // Ocultar canvas del previsualizador mientras corre MindAR
+      renderer.domElement.style.display = 'none';
+      document.documentElement.classList.add('ar-active');
+      document.body.classList.add('ar-active');
+      mindarScanOverlay.classList.add('visible');
+      arStatusPill.style.opacity = '1';
+      arStatusText.textContent = 'Escaneando marcador MindAR… (Usa el botón de ajustes para calibrar)';
+
+      mRenderer.setAnimationLoop(() => {
+        const t = performance.now() * 0.001;
+        placedEffect.userData.waterMaterial.uniforms.uTime.value = t;
+        placedEffect.userData.splashMaterial.uniforms.uTime.value = t;
+        placedEffect.userData.mistMaterial.uniforms.uTime.value = t;
+        updateSpatialAudio(mCamera);
+        mRenderer.render(mScene, mCamera);
+      });
+
+      showToast('MindAR activo · Apunta al marcador');
+    } catch (err) {
+      console.warn('MindAR fallback a cámara universal:', err);
+      mindarContainer.classList.remove('active');
+      renderer.domElement.style.display = 'block';
+      showToast('Cámara MindAR no disponible aquí · Iniciando modo Cámara AR');
+      await startIOSCameraAR();
+    } finally {
+      startMindARBtn.disabled = false;
+      startMindARBtn.innerHTML = '<span>🎯 Iniciar MindAR (Marcador)</span>';
+    }
+  }
+
+  async function stopMindARSession() {
+    if (!mindarRunning || !mindarThree) return;
+    try {
+      mindarThree.renderer.setAnimationLoop(null);
+      await mindarThree.stop();
+    } catch (_) {}
+    mindarRunning = false;
+    mindarScanOverlay.classList.remove('visible');
+    mindarContainer.classList.remove('active');
+    mindarContainer.innerHTML = '';
+
+    // Devolver placedEffect a la escena principal del Previsualizador 3D
+    scene.add(placedEffect);
+    renderer.domElement.style.display = 'block';
+  }
+
+  /* ============================================================================
+     MODO CÁMARA AR UNIVERSAL (iOS 3DoF + WebXR Hit-Test)
+     ============================================================================ */
+  let fallbackStream = null, iosCameraARActive = false, fallbackVideoTexture = null;
+  let hitTestSource = null, activeSession = null, xrSessionStarting = false, arSupported = false;
+  let isPlaced = true, hitFramesCount = 0, revealProgress = 1.0, pendingPhotoCapture = false;
+  let depthSensingAvailable = false;
+
+  const deviceEuler = new THREE.Euler(), deviceQuat = new THREE.Quaternion(), screenTransform = new THREE.Quaternion();
+  const worldTransform = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  const _zAxis = new THREE.Vector3(0, 0, 1);
+  let hasDeviceGyro = false;
+
+  window.addEventListener('deviceorientation', (e) => {
+    if (!iosCameraARActive || e.alpha === null || e.beta === null || e.gamma === null) return;
+    hasDeviceGyro = true;
+    const alpha = THREE.MathUtils.degToRad(e.alpha);
+    const beta = THREE.MathUtils.degToRad(e.beta);
+    const gamma = THREE.MathUtils.degToRad(e.gamma);
+    const orient = THREE.MathUtils.degToRad(window.screen?.orientation?.angle || window.orientation || 0);
+    deviceEuler.set(beta, alpha, -gamma, 'YXZ');
+    deviceQuat.setFromEuler(deviceEuler);
+    deviceQuat.multiply(worldTransform);
+    deviceQuat.multiply(screenTransform.setFromAxisAngle(_zAxis, -orient));
+    camera.quaternion.copy(deviceQuat);
+  });
+
+  async function startFallbackVideoStream(showVisible = false) {
+    if (!navigator.mediaDevices?.getUserMedia) return false;
+    if (!fallbackStream) {
       try {
-        const [gltfCorridor, gltfRock, gltfSculpture] = await Promise.all([
-          loadWithProgress(MODELS.corridor, 'corridor'),
-          loadWithProgress(MODELS.rock, 'rock'),
-          loadWithProgress(MODELS.sculpture, 'sculpture')
-        ]);
-
-        const corridor = gltfCorridor.scene;
-        corridor.scale.setScalar(5.2);
-        corridor.updateMatrixWorld(true);
-
-        const pisoSlabBox = new THREE.Box3();
-        const wallBox = new THREE.Box3();
-        let hasPisoSlab = false;
-        let hasWallMesh = false;
-
-        corridor.traverse((node) => {
-          if (node.isMesh) {
-            const mName = (node.name || '').toLowerCase();
-            const matName = (node.material?.name || '').toLowerCase();
-            if (mName.includes('pisoceart') || matName.includes('pisoceart')) {
-              pisoSlabBox.expandByObject(node);
-              hasPisoSlab = true;
-            }
-            if (mName.includes('muro') || matName.includes('murocear')) {
-              wallBox.expandByObject(node);
-              hasWallMesh = true;
-            }
-          }
+        fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
         });
-
-        const fullCorrBox = new THREE.Box3().setFromObject(corridor);
-        const refCenter = hasWallMesh ? wallBox.getCenter(new THREE.Vector3()) : fullCorrBox.getCenter(new THREE.Vector3());
-        const exactFloorY = hasPisoSlab ? pisoSlabBox.min.y : fullCorrBox.min.y;
-        const entranceZ = hasWallMesh ? wallBox.max.z : fullCorrBox.max.z;
-        const backZ = hasWallMesh ? wallBox.min.z : fullCorrBox.min.z;
-
-        corridor.position.set(-refCenter.x, -exactFloorY, -entranceZ);
-        corridor.updateMatrixWorld(true);
-
-        totalCorridorLength = Math.abs(entranceZ - backZ);
-        const sculptureZ = -(totalCorridorLength * 0.46);
-
-        const rock = gltfRock.scene;
-        rock.scale.setScalar(3.60);
-        rock.updateMatrixWorld(true);
-        const rockBox = new THREE.Box3().setFromObject(rock);
-        const rockCenter = rockBox.getCenter(new THREE.Vector3());
-        rock.position.set(-rockCenter.x, -rockBox.min.y, sculptureZ - rockCenter.z);
-        rock.updateMatrixWorld(true);
-        const rockHeight = rockBox.max.y - rockBox.min.y;
-
-        const sculpture = gltfSculpture.scene;
-        sculpture.scale.setScalar(5.50);
-        sculpture.updateMatrixWorld(true);
-        const sculpBox = new THREE.Box3().setFromObject(sculpture);
-        const sculpCenter = sculpBox.getCenter(new THREE.Vector3());
-        sculpture.position.set(
-          -sculpCenter.x,
-          rockHeight - sculpBox.min.y - 0.10,
-          sculptureZ - sculpCenter.z
-        );
-        sculpture.updateMatrixWorld(true);
-
-        const sculptureLight = new THREE.PointLight(0xfef08a, 2.4, 14);
-        sculptureLight.position.set(0, rockHeight + 2.5, sculptureZ + 1.5);
-        interiorGroup.add(corridor, rock, sculpture, sculptureLight);
-
-        const combinedBox = new THREE.Box3().setFromObject(interiorGroup);
-        maxRevealHeight = Math.max(10.5, combinedBox.max.y + 0.6);
-        leafMaterial.uniforms.uMaxHeight.value = maxRevealHeight;
-        magicWaveRing.position.set(0, 0.1, sculptureZ * 0.65);
-
-        const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-        const processedMaterials = new Set();
-
-        interiorGroup.traverse((node) => {
-          node.frustumCulled = false;
-          if (node.isMesh && node.material) {
-            const mats = Array.isArray(node.material) ? node.material : [node.material];
-            mats.forEach((mat) => {
-              if (!processedMaterials.has(mat)) {
-                fixCorridorMaterial(mat, maxAniso);
-                mat.clippingPlanes = [clippingPlane];
-                mat.needsUpdate = true;
-                processedMaterials.add(mat);
-              }
-            });
-          }
-        });
-
-        dracoLoader.dispose();
-
-        document.getElementById('progress-bar').style.width = '100%';
-        document.getElementById('progress-text').textContent = '100%';
-        document.getElementById('progress-container').classList.add('hidden');
-        document.getElementById('loading-message').textContent = '¡Barca y Escultura listas!';
-        launchControls.classList.remove('hidden');
-        launchControls.classList.add('flex');
-
-        triggerMaterializationWave();
+        fallbackVideo.srcObject = fallbackStream;
+        await fallbackVideo.play();
+        fallbackVideoTexture = new THREE.VideoTexture(fallbackVideo);
+        fallbackVideoTexture.colorSpace = THREE.SRGBColorSpace;
+        placedEffect.userData.waterMaterial.uniforms.uCamTexture.value = fallbackVideoTexture;
       } catch (e) {
-        console.error('Error cargando modelos:', e);
-        document.getElementById('loading-message').textContent = 'Error al cargar modelos GLB. Verifica tu conexión.';
+        console.warn('Cámara:', e);
+        return false;
       }
     }
+    if (showVisible) fallbackVideo.classList.add('ios-ar-visible');
+    return true;
+  }
 
-    function triggerMaterializationWave() {
-      renderer.localClippingEnabled = true;
-      isMaterializing = true;
-      materializationT = 0;
-      clippingPlane.constant = hallAnchorGroup.position.y + 0.05;
-
-      leafParticles.visible = true;
-      leafMaterial.uniforms.uProgress.value = 0;
-      leafMaterial.uniforms.uOpacity.value = 1.0;
-
-      magicWaveRing.visible = true;
-      magicWaveRing.material.opacity = 0.85;
-      magicWaveLight.intensity = 4.5;
-
-      showToast('✨ Materializando La Barca de las Grullas...');
+  function stopFallbackVideoStream() {
+    if (fallbackStream) {
+      fallbackStream.getTracks().forEach((t) => t.stop());
+      fallbackStream = null;
     }
-
-    function setupUIAndDesktopControls() {
-      btnStartPreview.addEventListener('click', () => {
-        loadingModal.classList.add('hidden');
-        hudOverlay.classList.add('active');
-        triggerMaterializationWave();
-      });
-
-      btnReplayMagic.addEventListener('click', triggerMaterializationWave);
-      btnEnterVR.addEventListener('click', () => startXRSession('immersive-vr'));
-      btnEnterAR.addEventListener('click', () => startXRSession('immersive-ar'));
-
-      const bindWalkButton = (btn, dir) => {
-        btn.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          btn.classList.add('pressing');
-          moveButtonDir = dir;
-          advanceAlongViewDirection(dir * 1.6, 0);
-        });
-        const stopPress = () => {
-          btn.classList.remove('pressing');
-          if (moveButtonDir === dir) moveButtonDir = 0;
-        };
-        btn.addEventListener('pointerup', stopPress);
-        btn.addEventListener('pointerleave', stopPress);
-        btn.addEventListener('pointercancel', stopPress);
-      };
-
-      bindWalkButton(btnStepForward, 1);
-      bindWalkButton(btnStepBack, -1);
-
-      btnResetWalk.addEventListener('click', () => {
-        targetWalkOffset.set(0, 0, 0);
-        showToast('Regresando a la entrada');
-      });
-
-      const viewport = document.getElementById('webgl-viewport');
-      viewport.addEventListener('pointerdown', (e) => {
-        isPointerDown = true;
-        prevPointerX = e.clientX;
-        prevPointerY = e.clientY;
-      });
-
-      window.addEventListener('pointermove', (e) => {
-        if (!isPointerDown || renderer.xr.isPresenting) return;
-        const dx = e.clientX - prevPointerX;
-        const dy = e.clientY - prevPointerY;
-        prevPointerX = e.clientX;
-        prevPointerY = e.clientY;
-
-        yaw -= dx * 0.0045;
-        pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -1.1, 1.1);
-        camera.rotation.set(pitch, yaw, 0, 'YXZ');
-      });
-
-      window.addEventListener('pointerup', () => { isPointerDown = false; });
-
-      window.addEventListener('keydown', (e) => {
-        const k = e.key.toLowerCase();
-        if (k === 'w' || e.key === 'ArrowUp') keysPressed.forward = true;
-        if (k === 's' || e.key === 'ArrowDown') keysPressed.back = true;
-        if (k === 'a' || e.key === 'ArrowLeft') keysPressed.left = true;
-        if (k === 'd' || e.key === 'ArrowRight') keysPressed.right = true;
-      });
-
-      window.addEventListener('keyup', (e) => {
-        const k = e.key.toLowerCase();
-        if (k === 'w' || e.key === 'ArrowUp') keysPressed.forward = false;
-        if (k === 's' || e.key === 'ArrowDown') keysPressed.back = false;
-        if (k === 'a' || e.key === 'ArrowLeft') keysPressed.left = false;
-        if (k === 'd' || e.key === 'ArrowRight') keysPressed.right = false;
-      });
+    fallbackVideo.srcObject = null;
+    fallbackVideo.classList.remove('ios-ar-visible');
+    if (fallbackVideoTexture) {
+      fallbackVideoTexture.dispose();
+      fallbackVideoTexture = null;
     }
+    placedEffect.userData.waterMaterial.uniforms.uUseCamTexture.value = 0;
+  }
 
-    function advanceAlongViewDirection(forwardMeters, strafeMeters = 0) {
-      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
-      activeCam.getWorldDirection(_rayDir);
-      _horizDir.set(_rayDir.x, 0, _rayDir.z);
-      if (_horizDir.lengthSq() < 0.001) {
-        _horizDir.set(0, 0, -1);
-      } else {
-        _horizDir.normalize();
-      }
+  const _camWorldPos = new THREE.Vector3(), _camForward = new THREE.Vector3(), _horizDir = new THREE.Vector3(), _hitPos = new THREE.Vector3();
 
-      _invAnchorQuat.copy(hallAnchorGroup.quaternion).invert();
-      _localForward.copy(_horizDir).applyQuaternion(_invAnchorQuat);
-      _localForward.y = 0;
-      _localForward.normalize();
+  function placeEffectFixed(floorY) {
+    isPlaced = true;
+    reticle.visible = false;
+    const lockedFloorY = floorY - 0.01;
+    const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+    activeCam.getWorldPosition(_camWorldPos);
+    activeCam.getWorldDirection(_camForward);
+    _horizDir.set(_camForward.x, 0, _camForward.z);
+    if (_horizDir.lengthSq() < 0.001) _horizDir.set(0, 0, -1);
+    else _horizDir.normalize();
 
-      _localRight.set(-_localForward.z, 0, _localForward.x);
+    const dist = 3.0;
+    basePos.set(_camWorldPos.x + _horizDir.x * dist, lockedFloorY, _camWorldPos.z + _horizDir.z * dist);
+    baseRotationY = Math.atan2(-_horizDir.x, -_horizDir.z);
+    baseScale = 1.0;
+    calScale.value = 1.0;
+    updateCalibrationLabels();
+    applyCalibration();
 
-      targetWalkOffset.x -= (_localForward.x * forwardMeters + _localRight.x * strafeMeters);
-      targetWalkOffset.z -= (_localForward.z * forwardMeters + _localRight.z * strafeMeters);
+    placedEffect.visible = true;
+    revealProgress = 0.05;
+    arStatusText.textContent = 'Agua anclada · Pulsa el icono de ajustes para alinear con la escultura';
+    arPillDot.style.background = '#74c7ff';
+    calPanel.classList.add('visible');
+    iniciarAudioAmbiente();
+  }
 
-      targetWalkOffset.x = THREE.MathUtils.clamp(targetWalkOffset.x, -1.45, 1.45);
-      targetWalkOffset.z = THREE.MathUtils.clamp(targetWalkOffset.z, -10.0, totalCorridorLength + 25.0);
+  async function startIOSCameraAR() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
     }
-
-    function processQuestThumbsticks(dt) {
-      if (!renderer.xr.isPresenting) return;
-      const session = renderer.xr.getSession();
-      if (!session || !session.inputSources) return;
-
-      if (buttonCooldown > 0) buttonCooldown -= dt;
-
-      for (const source of session.inputSources) {
-        if (!source.gamepad) continue;
-        const gp = source.gamepad;
-        const axes = gp.axes;
-
-        const stickX = axes.length >= 4 ? axes[2] : (axes[0] || 0);
-        const stickY = axes.length >= 4 ? axes[3] : (axes[1] || 0);
-
-        if (Math.abs(stickY) > 0.15 || Math.abs(stickX) > 0.15) {
-          if (source.handedness === 'left' || session.inputSources.length === 1) {
-            advanceAlongViewDirection(-stickY * 3.8 * dt, stickX * 2.5 * dt);
-          } else if (source.handedness === 'right') {
-            advanceAlongViewDirection(-stickY * 3.8 * dt, 0);
-            if (Math.abs(stickX) > 0.25) {
-              hallAnchorGroup.rotation.y -= stickX * 1.4 * dt;
-            }
-          }
-        }
-
-        if (gp.buttons[4]?.pressed && buttonCooldown <= 0) {
-          buttonCooldown = 0.45;
-          targetWalkOffset.set(0, 0, 0);
-        }
-
-        if (gp.buttons[5]?.pressed && buttonCooldown <= 0) {
-          buttonCooldown = 0.45;
-          triggerMaterializationWave();
-        }
-      }
+    const camOk = await startFallbackVideoStream(true);
+    if (!camOk) {
+      showToast('Sin cámara detectada · Continuando en Previsualizador 3D');
+      return;
     }
+    iosCameraARActive = true;
+    currentMode = 'ios-cam';
+    controls.enabled = false;
+    document.documentElement.classList.add('ar-active');
+    document.body.classList.add('ar-active');
+    camera.position.set(0, 0, 0);
+    if (!hasDeviceGyro) camera.rotation.set(-0.18, 0, 0, 'YXZ');
+    if (fallbackVideoTexture) {
+      placedEffect.userData.waterMaterial.uniforms.uCamTexture.value = fallbackVideoTexture;
+      placedEffect.userData.waterMaterial.uniforms.uUseCamTexture.value = 1;
+    }
+    setBoatVisibility(false);
+    placeEffectFixed(-1.35);
+  }
 
-    async function startXRSession(requestedMode = 'immersive-vr') {
-      loadingModal.classList.add('hidden');
-      hudOverlay.classList.add('active');
+  async function beginWebXRorCameraAR() {
+    if (xrSessionStarting || renderer.xr.isPresenting || activeSession || iosCameraARActive) return;
+    xrSessionStarting = true;
+    startWebXRBtn.disabled = true;
+    initAudioCapture();
 
-      if (!navigator.xr) {
-        showToast('WebXR no detectado · Modo 3D activo');
-        return;
-      }
-
+    if (navigator.xr && arSupported) {
       try {
-        let mode = requestedMode;
-        let supported = await navigator.xr.isSessionSupported(mode);
+        const session = await navigator.xr.requestSession('immersive-ar', {
+          optionalFeatures: ['hit-test', 'local-floor', 'dom-overlay', 'camera-access', 'depth-sensing', 'light-estimation'],
+          domOverlay: { root: document.body },
+          depthSensing: { usagePreference: ['cpu-optimized', 'gpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] }
+        });
+        depthSensingAvailable = session.enabledFeatures?.includes('depth-sensing') || false;
+        if (depthSensingAvailable) {
+          placedEffect.userData.waterMaterial.uniforms.uDepthOcclusion.value = 1;
+        }
+        currentMode = 'webxr';
+        controls.enabled = false;
+        setBoatVisibility(false);
+        await renderer.xr.setSession(session);
+        xrSessionStarting = false;
+        startWebXRBtn.disabled = false;
+        return;
+      } catch (err) {
+        console.warn('WebXR fallback:', err);
+      }
+    }
+    await startIOSCameraAR();
+    xrSessionStarting = false;
+    startWebXRBtn.disabled = false;
+  }
 
-        if (!supported) {
-          const fallback = mode === 'immersive-vr' ? 'immersive-ar' : 'immersive-vr';
-          if (await navigator.xr.isSessionSupported(fallback)) {
-            mode = fallback;
-            supported = true;
+  renderer.xr.addEventListener('sessionstart', async () => {
+    activeSession = renderer.xr.getSession();
+    document.documentElement.classList.add('ar-active');
+    document.body.classList.add('ar-active');
+    isPlaced = false;
+    placedEffect.visible = false;
+    hitFramesCount = 0;
+    revealProgress = 0;
+    arStatusPill.style.opacity = '1';
+    arStatusText.textContent = 'Escaneando el suelo frente a la escultura…';
+
+    if (!activeSession) return;
+    activeSession.addEventListener('select', () => {
+      if (!isPlaced && reticle.visible) {
+        const m = new THREE.Matrix4().fromArray(reticle.matrix.elements);
+        _hitPos.setFromMatrixPosition(m);
+        placeEffectFixed(_hitPos.y);
+      }
+    });
+
+    try {
+      const viewerSpace = await activeSession.requestReferenceSpace('viewer');
+      if (activeSession.requestHitTestSource) {
+        hitTestSource = await activeSession.requestHitTestSource({ space: viewerSpace });
+      }
+    } catch (_) {}
+
+    activeSession.addEventListener('end', () => {
+      returnToPreviewMode();
+    }, { once: true });
+  });
+
+  async function returnToPreviewMode() {
+    if (isRecording) stopVideoRecording();
+    calPanel.classList.remove('visible');
+    if (mindarRunning) await stopMindARSession();
+    stopFallbackVideoStream();
+    iosCameraARActive = false;
+
+    if (activeSession) {
+      const s = activeSession;
+      activeSession = null;
+      hitTestSource = null;
+      try { await s.end(); } catch (_) {}
+    }
+
+    currentMode = 'preview';
+    document.documentElement.classList.remove('ar-active');
+    document.body.classList.remove('ar-active');
+
+    // Restaurar posición y cámara en el Previsualizador 3D
+    scene.add(placedEffect);
+    basePos.set(0, 0, 0);
+    baseRotationY = 0;
+    baseScale = 1.0;
+    calRot.value = 0;
+    calScale.value = 1.0;
+    calLevel.value = 0;
+    calOffX.value = 0;
+    calOffZ.value = 0;
+    updateCalibrationLabels();
+    applyCalibration();
+
+    placedEffect.visible = true;
+    isPlaced = true;
+    revealProgress = 1.0;
+    placedEffect.userData.waterMaterial.uniforms.uReveal.value = 1.0;
+    placedEffect.userData.splashMaterial.uniforms.uReveal.value = 1.0;
+    placedEffect.userData.mistMaterial.uniforms.uReveal.value = 1.0;
+
+    setBoatVisibility(true);
+    camera.position.set(-2.9, 1.85, 3.1);
+    controls.enabled = true;
+    controls.target.set(0, 0.35, 0);
+    controls.update();
+
+    statusEl.textContent = 'Previsualizador 3D activo · Arrastra para orbitar o inicia MindAR / Cámara.';
+    showToast('De vuelta en el Previsualizador 3D');
+  }
+
+  startMindARBtn.addEventListener('click', startMindARSession);
+  startWebXRBtn.addEventListener('click', beginWebXRorCameraAR);
+
+  closeButton.addEventListener('click', () => {
+    if (currentMode === 'preview') {
+      // En modo previsualizador, centrar la cámara 3D
+      zenithViewActive = false;
+      btnToggleCutoutView.classList.remove('active');
+      camera.position.set(-2.9, 1.85, 3.1);
+      controls.target.set(0, 0.35, 0);
+      controls.update();
+      showToast('Vista 3D centrada');
+    } else {
+      exitModal.classList.add('active');
+    }
+  });
+  btnCancelExit.addEventListener('click', () => exitModal.classList.remove('active'));
+  btnConfirmExit.addEventListener('click', () => {
+    exitModal.classList.remove('active');
+    returnToPreviewMode();
+  });
+
+  /* ============================================================================
+     CAPTURA DE FOTOGRAFÍA Y VIDEO CON MARCA DE AGUA DEL MUSEO
+     ============================================================================ */
+  const captureCanvas = document.createElement('canvas');
+  const captureCtx = captureCanvas.getContext('2d');
+
+  function drawVideoCover(ctx, video, targetW, targetH) {
+    const vw = video.videoWidth || targetW;
+    const vh = video.videoHeight || targetH;
+    const scale = Math.max(targetW / vw, targetH / vh);
+    const sw = targetW / scale, sh = targetH / scale;
+    const sx = (vw - sw) * 0.5, sy = (vh - sh) * 0.5;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  }
+
+  function composeCurrentFrameToCaptureCanvas() {
+    const activeCanvas = (currentMode === 'mindar' && mindarThree?.renderer)
+      ? mindarThree.renderer.domElement
+      : renderer.domElement;
+
+    const w = activeCanvas.width || window.innerWidth;
+    const h = activeCanvas.height || window.innerHeight;
+    if (captureCanvas.width !== w || captureCanvas.height !== h) {
+      captureCanvas.width = w;
+      captureCanvas.height = h;
+    }
+    captureCtx.clearRect(0, 0, w, h);
+
+    if (currentMode === 'mindar') {
+      const mVideo = mindarContainer.querySelector('video');
+      if (mVideo && mVideo.readyState >= 2) drawVideoCover(captureCtx, mVideo, w, h);
+    } else if (iosCameraARActive && fallbackVideo.readyState >= 2) {
+      drawVideoCover(captureCtx, fallbackVideo, w, h);
+    } else if (currentMode === 'preview') {
+      const grad = captureCtx.createRadialGradient(w * 0.5, h * 0.25, 10, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+      grad.addColorStop(0, '#0c2c47');
+      grad.addColorStop(1, '#041220');
+      captureCtx.fillStyle = grad;
+      captureCtx.fillRect(0, 0, w, h);
+    }
+
+    captureCtx.drawImage(activeCanvas, 0, 0, w, h);
+
+    const fs = Math.max(18, Math.round(w * 0.024));
+    captureCtx.font = `600 ${fs}px "Cormorant Garamond", Georgia, serif`;
+    captureCtx.fillStyle = 'rgba(244, 249, 248, 0.9)';
+    captureCtx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    captureCtx.shadowBlur = 8;
+    captureCtx.fillText('Museo Leonora Carrington · SLP · La Barca de las Grullas', fs * 1.2, h - fs * 1.2);
+    captureCtx.shadowBlur = 0;
+  }
+
+  async function saveFileToDevice(blob, filename, mimeType) {
+    const file = new File([blob], filename, { type: mimeType });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Museo Leonora Carrington SLP' });
+        showToast('Guardado correctamente');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast('Descargado en el dispositivo');
+  }
+
+  function triggerPhoto() {
+    cameraFlash.classList.add('active');
+    setTimeout(() => cameraFlash.classList.remove('active'), 95);
+    pendingPhotoCapture = true;
+  }
+
+  let mediaRecorder = null, recordedChunks = [], isRecording = false, recTimer = null, recStart = 0;
+  function toggleVideo() {
+    if (isRecording) stopVideoRecording();
+    else startVideoRecording();
+  }
+
+  function startVideoRecording() {
+    try {
+      composeCurrentFrameToCaptureCanvas();
+      const stream = captureCanvas.captureStream(28);
+      const tracks = [...stream.getVideoTracks()];
+      if (mediaStreamDestination?.stream) {
+        tracks.push(...mediaStreamDestination.stream.getAudioTracks());
+      }
+      const combined = new MediaStream(tracks);
+      const mimeTypes = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+      const mimeType = mimeTypes.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+      const opts = { videoBitsPerSecond: 2500000 };
+      if (mimeType) opts.mimeType = mimeType;
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(combined, opts);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data?.size > 0) recordedChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const finalMime = mediaRecorder.mimeType || 'video/webm';
+        const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: finalMime });
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        saveFileToDevice(blob, `LeonoraCarrington_SLP_${stamp}.${ext}`, finalMime);
+      };
+      mediaRecorder.start(250);
+      isRecording = true;
+      videoButton.classList.add('recording');
+      recStart = performance.now();
+      videoLabel.textContent = '00:00';
+      recTimer = setInterval(() => {
+        const s = Math.floor((performance.now() - recStart) / 1000);
+        videoLabel.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+      }, 500);
+      showToast('Grabando video…');
+    } catch (e) {
+      showToast('Grabación no soportada en este navegador');
+    }
+  }
+
+  function stopVideoRecording() {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+    mediaRecorder.stop();
+    isRecording = false;
+    clearInterval(recTimer);
+    videoButton.classList.remove('recording');
+    videoLabel.textContent = 'VIDEO';
+  }
+
+  photoButton.addEventListener('click', triggerPhoto);
+  videoButton.addEventListener('click', toggleVideo);
+
+  /* ============================================================================
+     BUCLE PRINCIPAL DE ANIMACIÓN (PREVISUALIZADOR 3D Y WEBXR)
+     ============================================================================ */
+  renderer.setAnimationLoop((time, frame) => {
+    if (currentMode === 'mindar') {
+      // Cuando MindAR está activo, su propio renderer lleva el loop, pero procesamos captura si se pide
+      if (pendingPhotoCapture) {
+        pendingPhotoCapture = false;
+        composeCurrentFrameToCaptureCanvas();
+        captureCanvas.toBlob((blob) => {
+          if (!blob) return;
+          const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+          saveFileToDevice(blob, `LeonoraCarrington_SLP_${stamp}.jpg`, 'image/jpeg');
+        }, 'image/jpeg', 0.95);
+      } else if (isRecording) {
+        composeCurrentFrameToCaptureCanvas();
+      }
+      return;
+    }
+
+    const elapsed = time * 0.001;
+    if (isPlaced && revealProgress < 1.0) {
+      revealProgress = Math.min(1.0, revealProgress + 0.028);
+      placedEffect.userData.waterMaterial.uniforms.uReveal.value = revealProgress;
+      placedEffect.userData.splashMaterial.uniforms.uReveal.value = revealProgress;
+      placedEffect.userData.mistMaterial.uniforms.uReveal.value = revealProgress;
+    }
+
+    placedEffect.userData.waterMaterial.uniforms.uTime.value = elapsed;
+    placedEffect.userData.splashMaterial.uniforms.uTime.value = elapsed;
+    placedEffect.userData.mistMaterial.uniforms.uTime.value = elapsed;
+
+    if (currentMode === 'preview') {
+      controls.update();
+    }
+
+    // Hit-test en WebXR
+    const refSpace = renderer.xr.getReferenceSpace();
+    if (frame && !isPlaced && hitTestSource && refSpace) {
+      const results = frame.getHitTestResults(hitTestSource);
+      if (results.length > 0) {
+        const pose = results[0].getPose(refSpace);
+        if (pose) {
+          let isHorizontal = true;
+          const activeCam = renderer.xr.getCamera();
+          activeCam.getWorldDirection(_camForward);
+          if (_camForward.y > -0.25) isHorizontal = false;
+          if (isHorizontal) {
+            reticle.visible = true;
+            reticle.matrix.fromArray(pose.transform.matrix);
+            hitFramesCount++;
+            if (hitFramesCount >= HIT_FRAMES_REQUIRED) {
+              const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
+              _hitPos.setFromMatrixPosition(m);
+              placeEffectFixed(_hitPos.y);
+            }
+          } else {
+            reticle.visible = false;
+            hitFramesCount = 0;
           }
         }
-
-        if (!supported) {
-          showToast('Visor XR no disponible · Explorando en pantalla');
-          return;
-        }
-
-        const session = await navigator.xr.requestSession(mode, {
-          optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'dom-overlay'],
-          domOverlay: { root: hudOverlay }
-        });
-
-        try {
-          renderer.xr.setReferenceSpaceType('local-floor');
-        } catch (_) {
-          renderer.xr.setReferenceSpaceType('local');
-        }
-
-        await renderer.xr.setSession(session);
-
-        if (mode === 'immersive-ar' || session.environmentBlendMode === 'alpha-blend') {
-          scene.background = null;
-          scene.fog = null;
-        } else {
-          scene.background = new THREE.Color(0x040907);
-          scene.fog = new THREE.FogExp2(0x040907, 0.016);
-        }
-
-        hallAnchorGroup.position.set(0, 0, 0);
-        hallAnchorGroup.visible = true;
-        targetWalkOffset.set(0, 0, 0);
-        currentWalkOffset.set(0, 0, 0);
-
-        triggerMaterializationWave();
-
-        session.addEventListener('end', () => {
-          scene.background = new THREE.Color(0x040907);
-          scene.fog = new THREE.FogExp2(0x040907, 0.016);
-        });
-      } catch (err) {
-        console.warn('Error al iniciar XR:', err);
-        showToast('Modo 3D activo en navegador');
+      } else {
+        reticle.visible = false;
+        hitFramesCount = 0;
       }
     }
 
-    function renderLoop(timestamp) {
-      const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000 || 0.016);
-      lastFrameTime = timestamp;
-      const timeSec = timestamp * 0.001;
+    renderer.render(scene, camera);
+    updateSpatialAudio(renderer.xr.isPresenting ? renderer.xr.getCamera() : camera);
 
-      processQuestThumbsticks(dt);
-
-      if (moveButtonDir !== 0) {
-        advanceAlongViewDirection(moveButtonDir * 4.4 * dt, 0);
-      }
-      if (keysPressed.forward) advanceAlongViewDirection(4.2 * dt, 0);
-      if (keysPressed.back) advanceAlongViewDirection(-4.2 * dt, 0);
-      if (keysPressed.left) advanceAlongViewDirection(0, -3.2 * dt);
-      if (keysPressed.right) advanceAlongViewDirection(0, 3.2 * dt);
-
-      currentWalkOffset.lerp(targetWalkOffset, Math.min(1, dt * 8.5));
-      walkStageGroup.position.set(currentWalkOffset.x, 0, currentWalkOffset.z);
-
-      distanceReadout.textContent = `${currentWalkOffset.z.toFixed(1)} m`;
-
-      if (isMaterializing) {
-        materializationT = Math.min(1, materializationT + dt * 0.28);
-        const eased = 1 - Math.pow(1 - materializationT, 3);
-        const revealH = eased * maxRevealHeight;
-
-        clippingPlane.constant = hallAnchorGroup.position.y + revealH;
-
-        leafMaterial.uniforms.uTime.value = timeSec;
-        leafMaterial.uniforms.uProgress.value = eased;
-        leafMaterial.uniforms.uOpacity.value = 1.0;
-
-        magicWaveRing.position.y = Math.min(revealH, 6.0);
-        magicWaveRing.rotation.z = timeSec * 1.8;
-        magicWaveRing.scale.setScalar(1.0 + Math.sin(timeSec * 5.0) * 0.12);
-        magicWaveRing.material.opacity = (1.0 - materializationT) * 0.85;
-
-        magicWaveLight.position.set(0, Math.min(revealH + 0.5, 6.5), -(totalCorridorLength * 0.42));
-        magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 5.0;
-
-        if (materializationT >= 1) {
-          isMaterializing = false;
-          renderer.localClippingEnabled = false;
-          clippingPlane.constant = 1000;
-          magicWaveRing.visible = false;
-          magicWaveLight.intensity = 0;
-        }
-      } else if (leafParticles && leafParticles.visible) {
-        leafMaterial.uniforms.uTime.value = timeSec * 0.65;
-        leafMaterial.uniforms.uOpacity.value = Math.max(0.45, leafMaterial.uniforms.uOpacity.value - dt * 0.25);
-      }
-
-      renderer.render(scene, camera);
+    if (pendingPhotoCapture) {
+      pendingPhotoCapture = false;
+      composeCurrentFrameToCaptureCanvas();
+      captureCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        saveFileToDevice(blob, `LeonoraCarrington_SLP_${stamp}.jpg`, 'image/jpeg');
+      }, 'image/jpeg', 0.95);
+    } else if (isRecording) {
+      composeCurrentFrameToCaptureCanvas();
     }
-  </script>
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Cargar modelo GLB oficial y verificar soporte WebXR
+  loadBarcaGrullasModel().catch((err) => console.warn('GLB:', err));
+  if (navigator.xr?.isSessionSupported) {
+    navigator.xr.isSessionSupported('immersive-ar').then((ok) => { arSupported = Boolean(ok); }).catch(() => { arSupported = false; });
+  }
+</script>
 </body>
 </html>

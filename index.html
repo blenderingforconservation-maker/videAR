@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>La Barca de las Grullas · VR Meta Quest 3 · Museo Leonora Carrington</title>
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Tipografías Curatoriales -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Importmap Oficial Three.js r160 -->
   <script type="importmap">
     {
       "imports": {
@@ -41,18 +37,13 @@
 </head>
 <body>
 
-  <!-- Lienzo WebGL 3D -->
   <div id="webgl-viewport"></div>
-
-  <!-- Notificación flotante -->
   <div id="toast-banner">Cargando La Barca de las Grullas...</div>
 
-  <!-- PANTALLA DE CARGA -->
   <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-stone-950 px-6 text-center transition-opacity duration-500">
     <div class="w-14 h-14 mb-4 rounded-full bg-emerald-500/10 border border-lime-300/40 flex items-center justify-center shadow-[0_0_30px_rgba(132,204,22,0.25)]">
       <div class="w-3.5 h-3.5 rounded-full bg-yellow-300 animate-ping"></div>
     </div>
-
     <span class="text-[10px] uppercase tracking-[0.3em] text-lime-300/90 font-semibold mb-1">
       Museo Leonora Carrington SLP · Meta Quest 3
     </span>
@@ -62,14 +53,12 @@
     <p id="loading-message" class="text-xs text-stone-400 max-w-xs mb-6 leading-relaxed">
       Sincronizando escultura, superficie acuática y entorno WebXR...
     </p>
-
     <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
       <div class="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
         <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-lime-400 to-yellow-300 w-0 transition-all duration-200"></div>
       </div>
       <span id="progress-text" class="text-[10px] font-mono text-lime-300/80 mt-2">0%</span>
     </div>
-
     <div id="launch-controls" class="hidden flex-col gap-3 w-full max-w-xs">
       <button id="btn-launch-vr-direct" class="magic-cta w-full py-4 px-7 rounded-full text-stone-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
         <span>Entrar en VR (Quest 3)</span>
@@ -78,8 +67,6 @@
         <span>Vista Previa 3D</span>
       </button>
     </div>
-
-    <!-- Guía rápida de controles Quest 3 -->
     <div class="mt-6 max-w-xs text-[11px] text-stone-400/90 bg-stone-900/70 border border-lime-400/20 rounded-2xl px-4 py-3 text-left space-y-1">
       <p class="text-lime-300 font-semibold uppercase tracking-wider text-[10px] mb-1">Controles Meta Quest 3</p>
       <p>• <strong class="text-stone-200">Stick Izq:</strong> Caminar alrededor de la obra</p>
@@ -89,7 +76,6 @@
     </div>
   </div>
 
-  <!-- INTERFAZ DE CONTROL (HUD 2D fuera de VR) -->
   <div id="hud-overlay">
     <header class="w-full flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2.5 bg-stone-950/85 border border-lime-400/35 rounded-full px-4 py-2 shadow-lg">
@@ -98,35 +84,29 @@
           La Barca de las Grullas · Quest 3 Listo
         </span>
       </div>
-
       <div class="interactive flex items-center gap-2">
         <button id="btn-replay-magic" class="px-3.5 py-2 rounded-full bg-stone-950/85 border border-yellow-300/40 text-yellow-200 text-[11px] font-medium active:scale-95 transition-transform">
           ✨ Revelación Mágica
         </button>
       </div>
     </header>
-
     <footer class="w-full flex flex-col items-center gap-3">
       <div class="interactive flex flex-wrap items-center justify-center gap-2.5 w-full max-w-md">
         <button id="btn-enter-vr" class="magic-cta flex-1 min-w-[160px] py-3.5 px-5 rounded-full text-stone-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
           <span>Entrar en VR (Quest 3)</span>
         </button>
-
         <button id="btn-enter-ar" class="magic-btn flex-1 min-w-[160px] py-3.5 px-5 rounded-full text-lime-200 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
           <span>Modo AR Passthrough</span>
         </button>
       </div>
-
       <div class="interactive flex items-center justify-center gap-3 w-full max-w-sm">
         <button id="btn-step-back" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-lime-100 text-xs font-semibold tracking-wider uppercase">
           <span>↓ Alejar</span>
         </button>
-
         <button id="btn-reset-view" class="px-4 py-2 rounded-2xl bg-stone-950/90 border border-yellow-300/40 flex flex-col items-center justify-center min-w-[92px] shadow-inner active:scale-95 transition-transform">
           <span class="text-[9px] uppercase tracking-widest text-lime-300/80">Posición</span>
           <span class="text-xs font-mono font-bold text-yellow-300">Centrar</span>
         </button>
-
         <button id="btn-step-forward" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-yellow-200 text-xs font-semibold tracking-wider uppercase">
           <span>Acercar ↑</span>
         </button>
@@ -142,14 +122,11 @@
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
-    // ✅ CORRECCIÓN CRÍTICA: Ruta del modelo alineada con el repositorio (barcagrullas.glb)
     const REPO_RAW_BASE = 'https://blenderingforconservation-maker.github.io/videAR/';
-    const MODELS = {
-      sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb`
-    };
+    const MODELS = { sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb` };
 
     let scene, camera, cameraRig, renderer, gltfLoader;
-    let barcaAnchorGroup, waterMesh, waterNormalTex, skyDome, sculptureRoot;
+    let barcaAnchorGroup, waterMesh, waterUniforms, skyDome, sculptureRoot;
     let clippingPlane, leafParticles, leafMaterial, magicWaveRing, magicWaveLight;
 
     let isMaterializing = false;
@@ -158,16 +135,14 @@
     let spawnDistance = 4.2;
     let lastFrameTime = performance.now();
 
-    // Controles escritorio y móvil
+    let boatBaseY = 0;
+    let boatSubmersion = 0;
+
     let moveButtonDir = 0;
     const keysPressed = { w: false, s: false, a: false, d: false };
-    let isPointerDown = false;
-    let prevPointerX = 0;
-    let prevPointerY = 0;
-    let yaw = 0;
-    let pitch = 0;
+    let isPointerDown = false, prevPointerX = 0, prevPointerY = 0;
+    let yaw = 0, pitch = 0;
 
-    // Estado de locomoción VR (Quest 3)
     let snapTurnReady = true;
     const prevButtons = { leftX: false, leftY: false, rightA: false, rightB: false };
     const _xrForward = new THREE.Vector3();
@@ -176,7 +151,6 @@
     const _headBefore = new THREE.Vector3();
     const _headAfter = new THREE.Vector3();
 
-    // Referencias DOM
     const hudOverlay = document.getElementById('hud-overlay');
     const loadingModal = document.getElementById('loading-modal');
     const launchControls = document.getElementById('launch-controls');
@@ -206,31 +180,21 @@
       scene.background = new THREE.Color(0x030705);
       scene.fog = new THREE.FogExp2(0x030705, 0.028);
 
-      // Camera Rig dedicado para WebXR: permite mover/rotar al jugador en Quest 3
       cameraRig = new THREE.Group();
       cameraRig.position.set(0, 0, spawnDistance);
       scene.add(cameraRig);
 
       camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 120);
-      camera.position.set(0, 1.6, 0); // Altura de ojos en modo escritorio (en VR se reinicia a 0 para local-floor)
+      camera.position.set(0, 1.6, 0);
       camera.rotation.order = 'YXZ';
       cameraRig.add(camera);
 
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance'
-      });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setClearColor(0x030705, 1);
       renderer.xr.enabled = true;
-
-      // Foveated Rendering para estabilidad de 90 FPS en Meta Quest 3
-      if (typeof renderer.xr.setFoveation === 'function') {
-        renderer.xr.setFoveation(1.0);
-      }
-
+      if (typeof renderer.xr.setFoveation === 'function') renderer.xr.setFoveation(1.0);
       renderer.localClippingEnabled = false;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -242,7 +206,6 @@
       setupQuestControllersAndHands();
 
       barcaAnchorGroup = new THREE.Group();
-      barcaAnchorGroup.position.set(0, 0, 0);
       scene.add(barcaAnchorGroup);
 
       setupWaterSurface();
@@ -265,54 +228,38 @@
     }
 
     function setupLighting() {
-      const ambientLight = new THREE.AmbientLight(0xd9f99d, 0.85);
-      scene.add(ambientLight);
-
-      const hemiLight = new THREE.HemisphereLight(0xfef9c3, 0x0b3b24, 1.6);
-      hemiLight.position.set(0, 14, 0);
-      scene.add(hemiLight);
-
+      scene.add(new THREE.AmbientLight(0xd9f99d, 0.85));
+      const hemi = new THREE.HemisphereLight(0xfef9c3, 0x0b3b24, 1.6);
+      hemi.position.set(0, 14, 0);
+      scene.add(hemi);
       const keyDir = new THREE.DirectionalLight(0xfef08a, 2.2);
       keyDir.position.set(4, 9, 5);
       scene.add(keyDir);
-
       const rimDir = new THREE.DirectionalLight(0x34d399, 1.3);
       rimDir.position.set(-5, 5, -6);
       scene.add(rimDir);
     }
 
     function setupAtmosphereDome() {
-      // Cúpula nocturna suave para inmersión total en VR (se oculta en Passthrough AR)
       const domeGeo = new THREE.SphereGeometry(55, 24, 16);
       const domeMat = new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        depthWrite: false,
+        side: THREE.BackSide, depthWrite: false,
         uniforms: {
           uTopColor: { value: new THREE.Color(0x020608) },
-          uHorizonColor: { value: new THREE.Color(0x071e16) },
+          uHorizonColor: { value: new THREE.Color(0x0e2e24) },
           uBottomColor: { value: new THREE.Color(0x020806) }
         },
-        vertexShader: `
-          varying vec3 vWorldPos;
-          void main() {
-            vec4 wp = modelMatrix * vec4(position, 1.0);
-            vWorldPos = wp.xyz;
-            gl_Position = projectionMatrix * viewMatrix * wp;
-          }
-        `,
+        vertexShader: `varying vec3 vWorldPos; void main(){ vec4 wp = modelMatrix*vec4(position,1.0); vWorldPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
         fragmentShader: `
-          uniform vec3 uTopColor;
-          uniform vec3 uHorizonColor;
-          uniform vec3 uBottomColor;
+          uniform vec3 uTopColor; uniform vec3 uHorizonColor; uniform vec3 uBottomColor;
           varying vec3 vWorldPos;
-          void main() {
+          void main(){
             float h = normalize(vWorldPos).y;
             vec3 col = h >= 0.0
               ? mix(uHorizonColor, uTopColor, pow(h, 0.55))
               : mix(uHorizonColor, uBottomColor, pow(-h, 0.5));
             gl_FragColor = vec4(col, 1.0);
-          }
-        `
+          }`
       });
       skyDome = new THREE.Mesh(domeGeo, domeMat);
       scene.add(skyDome);
@@ -321,18 +268,15 @@
     function createWaterNormalTexture() {
       const size = 256;
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
       const imgData = ctx.createImageData(size, size);
       const data = imgData.data;
 
-      // Patrón sinusoidal tiling sin costuras para mapa de normales
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
           const u = (x / size) * Math.PI * 2;
           const v = (y / size) * Math.PI * 2;
-
           const dx =
             Math.cos(u * 3 + v * 2) * 0.4 +
             Math.cos(u * 5 - v * 3) * 0.3 +
@@ -341,7 +285,6 @@
             Math.sin(u * 2 + v * 4) * 0.4 +
             Math.cos(u * 4 + v * 5) * 0.3 +
             Math.sin(u * 6 - v * 2) * 0.3;
-
           const idx = (y * size + x) * 4;
           data[idx]     = Math.floor((dx * 0.5 + 0.5) * 255);
           data[idx + 1] = Math.floor((dy * 0.5 + 0.5) * 255);
@@ -350,51 +293,192 @@
         }
       }
       ctx.putImageData(imgData, 0, 0);
-
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(9, 9);
       return tex;
     }
 
-    function createRadialAlphaTexture() {
+    function createFoamNoiseTexture() {
+      const size = 256;
       const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
+      canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
-      const grad = ctx.createRadialGradient(128, 128, 30, 128, 128, 126);
-      grad.addColorStop(0.0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.65, 'rgba(255,255,255,0.92)');
-      grad.addColorStop(1.0, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 256, 256);
-      return new THREE.CanvasTexture(canvas);
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, size, size);
+      for (let i = 0; i < 90; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        const r = 4 + Math.random() * 18;
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const cx = x + ox * size;
+            const cy = y + oy * size;
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
 
     function setupWaterSurface() {
-      waterNormalTex = createWaterNormalTexture();
-      const radialAlpha = createRadialAlphaTexture();
+      const normalTex = createWaterNormalTexture();
+      const foamNoiseTex = createFoamNoiseTexture();
 
-      // Superficie circular sin bordes rígidos (luce limpia tanto en VR como en AR Passthrough)
-      const waterGeo = new THREE.CircleGeometry(18, 48);
+      const waterGeo = new THREE.PlaneGeometry(40, 40, 96, 96);
       waterGeo.rotateX(-Math.PI / 2);
 
-      const waterMat = new THREE.MeshStandardMaterial({
-        color: 0x064e3b,
-        emissive: 0x022c22,
-        emissiveIntensity: 0.35,
-        roughness: 0.16,
-        metalness: 0.55,
-        normalMap: waterNormalTex,
-        normalScale: new THREE.Vector2(0.45, 0.45),
-        alphaMap: radialAlpha,
+      waterUniforms = {
+        uTime:            { value: 0 },
+        uNormalMap:       { value: normalTex },
+        uFoamNoise:       { value: foamNoiseTex },
+        uSunDirection:    { value: new THREE.Vector3(4, 9, 5).normalize() },
+        uSkyColor:        { value: new THREE.Color(0x1a3838) },
+        uWaterDeepColor:  { value: new THREE.Color(0x021410) },
+        uWaterShallowColor:{ value: new THREE.Color(0x0a4a35) },
+        uFoamColor:       { value: new THREE.Color(0xe8f8ee) },
+        uHullRadiusX:     { value: 2.5 },
+        uHullRadiusZ:     { value: 3.5 },
+        uWaterFlow:       { value: new THREE.Vector2(0.0, 1.0) },
+        uFlowSpeed:       { value: 0.35 },
+        uOpacity:         { value: 1.0 }
+      };
+
+      const waterMat = new THREE.ShaderMaterial({
+        uniforms: waterUniforms,
         transparent: true,
-        opacity: 0.92
+        depthWrite: false,
+        side: THREE.FrontSide,
+
+        vertexShader: /* glsl */`
+          uniform float uTime;
+          varying vec3 vWorldPos;
+          varying vec3 vWaveNormal;
+          varying float vHeight;
+
+          void main() {
+            vec3 pos = position;
+            float w1 = sin(pos.z * 0.55 + uTime * 1.3) * 0.09;
+            float w2 = sin(pos.z * 0.95 + uTime * 1.9) * 0.055;
+            float w3 = sin(pos.x * 0.75 + uTime * 1.05) * 0.05;
+            float w4 = sin((pos.x * 0.35 + pos.z * 0.65) + uTime * 2.4) * 0.028;
+            float w5 = sin((pos.x * 1.8 - pos.z * 1.4) + uTime * 3.2) * 0.018;
+            float height = w1 + w2 + w3 + w4 + w5;
+            pos.y += height;
+            vHeight = height;
+
+            float dHdx =
+              cos(pos.x * 0.75 + uTime * 1.05) * 0.05 * 0.75 +
+              cos((pos.x * 0.35 + pos.z * 0.65) + uTime * 2.4) * 0.028 * 0.35 +
+              cos((pos.x * 1.8 - pos.z * 1.4) + uTime * 3.2) * 0.018 * 1.8;
+            float dHdz =
+              cos(pos.z * 0.55 + uTime * 1.3) * 0.09 * 0.55 +
+              cos(pos.z * 0.95 + uTime * 1.9) * 0.055 * 0.95 +
+              cos((pos.x * 0.35 + pos.z * 0.65) + uTime * 2.4) * 0.028 * 0.65 +
+              cos((pos.x * 1.8 - pos.z * 1.4) + uTime * 3.2) * 0.018 * (-1.4);
+            vWaveNormal = normalize(vec3(-dHdx, 1.0, -dHdz));
+
+            vec4 wp = modelMatrix * vec4(pos, 1.0);
+            vWorldPos = wp.xyz;
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+
+        fragmentShader: /* glsl */`
+          uniform sampler2D uNormalMap;
+          uniform sampler2D uFoamNoise;
+          uniform float uTime;
+          uniform vec3 uSunDirection;
+          uniform vec3 uSkyColor;
+          uniform vec3 uWaterDeepColor;
+          uniform vec3 uWaterShallowColor;
+          uniform vec3 uFoamColor;
+          uniform float uHullRadiusX;
+          uniform float uHullRadiusZ;
+          uniform vec2 uWaterFlow;
+          uniform float uFlowSpeed;
+          uniform float uOpacity;
+
+          varying vec3 vWorldPos;
+          varying vec3 vWaveNormal;
+          varying float vHeight;
+
+          void main() {
+            vec2 worldUV = vWorldPos.xz;
+            vec2 flow = uWaterFlow * uFlowSpeed;
+
+            vec3 n1 = texture2D(uNormalMap, worldUV * 0.15 - flow * uTime).xyz * 2.0 - 1.0;
+            vec3 n2 = texture2D(uNormalMap, worldUV * 0.38 - flow * uTime * 1.45 + vec2(0.31, 0.73)).xyz * 2.0 - 1.0;
+            vec3 detailN = normalize(n1 + n2 * 0.75);
+
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.55, 0.0, detailN.z * 0.55));
+            vec3 V = normalize(cameraPosition - vWorldPos);
+
+            float fresnel = clamp(pow(1.0 - max(dot(N, V), 0.0), 3.0), 0.04, 1.0);
+
+            vec3 L = normalize(uSunDirection);
+            vec3 H = normalize(L + V);
+            float spec  = pow(max(dot(N, H), 0.0), 120.0);
+            float glint = pow(max(dot(N, H), 0.0), 18.0) * 0.22;
+
+            float depthT = smoothstep(-0.12, 0.15, vHeight);
+            vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
+
+            vec3 reflColor = uSkyColor * (0.55 + fresnel * 1.0);
+            vec3 col = mix(waterColor, reflColor, fresnel * 0.78);
+            col += (spec * 1.2 + glint) * vec3(1.0, 0.96, 0.82);
+
+            float ellipseDist = length(vec2(vWorldPos.x / uHullRadiusX, vWorldPos.z / uHullRadiusZ));
+            float hullFoam = exp(-pow((ellipseDist - 1.0) * 4.8, 2.0)) * 0.75;
+
+            vec2 bowPoint = vec2(0.0, -uHullRadiusZ * 0.98);
+            float bowDist = length(vWorldPos.xz - bowPoint);
+            float bowFoam = exp(-bowDist * bowDist * 2.8) * 0.65;
+
+            float sternZ = uHullRadiusZ * 0.95;
+            float dZ = vWorldPos.z - sternZ;
+            float wakeArm = 0.0;
+            float wakeChurn = 0.0;
+            if (dZ > 0.0) {
+              float fade = exp(-dZ * 0.32);
+              float armX = 0.12 + dZ * 0.42;
+              float armDist = abs(abs(vWorldPos.x) - armX);
+              wakeArm = exp(-armDist * armDist * 3.2) * fade * 0.85;
+              wakeChurn = exp(-vWorldPos.x * vWorldPos.x * 2.8) * exp(-dZ * 0.85) * 0.55;
+            }
+
+            float totalFoam = clamp(hullFoam + bowFoam + wakeArm + wakeChurn, 0.0, 1.0);
+
+            float foamMask = texture2D(uFoamNoise, worldUV * 0.75 - flow * uTime * 0.85).r;
+            float noiseBreakup = 0.55 + 0.45 * foamMask;
+            totalFoam *= noiseBreakup;
+
+            col = mix(col, uFoamColor, clamp(totalFoam, 0.0, 1.0));
+
+            float centerDist = length(vWorldPos.xz);
+            float edgeFade = smoothstep(18.5, 14.5, centerDist);
+
+            float alpha = mix(0.72, 0.96, fresnel);
+            alpha = mix(alpha, 1.0, clamp(totalFoam, 0.0, 1.0));
+            alpha *= edgeFade * uOpacity;
+
+            gl_FragColor = vec4(col, alpha);
+          }
+        `
       });
 
       waterMesh = new THREE.Mesh(waterGeo, waterMat);
       waterMesh.position.set(0, 0, 0);
+      waterMesh.renderOrder = 1;
       barcaAnchorGroup.add(waterMesh);
     }
 
@@ -403,27 +487,20 @@
       const handModelFactory = new XRHandModelFactory();
 
       const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -2.0)
+        new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.0)
       ]);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: 0xa3e635,
-        transparent: true,
-        opacity: 0.45
-      });
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xa3e635, transparent: true, opacity: 0.45 });
 
       for (let i = 0; i < 2; i++) {
-        // Controladores físicos Touch Plus (anclados a cameraRig para moverse con el usuario)
         const controller = renderer.xr.getController(i);
         controller.add(new THREE.Line(lineGeo, lineMat));
         controller.addEventListener('selectstart', triggerMaterializationWave);
         cameraRig.add(controller);
 
-        const controllerGrip = renderer.xr.getControllerGrip(i);
-        controllerGrip.add(controllerModelFactory.createControllerModel(controllerGrip));
-        cameraRig.add(controllerGrip);
+        const grip = renderer.xr.getControllerGrip(i);
+        grip.add(controllerModelFactory.createControllerModel(grip));
+        cameraRig.add(grip);
 
-        // Seguimiento de manos (Hand Tracking Quest 3)
         const hand = renderer.xr.getHand(i);
         hand.add(handModelFactory.createHandModel(hand, 'spheres'));
         hand.addEventListener('pinchstart', triggerMaterializationWave);
@@ -433,42 +510,27 @@
 
     function createRadiantLeafTexture() {
       const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 128;
+      canvas.width = 128; canvas.height = 128;
       const ctx = canvas.getContext('2d');
-
-      ctx.save();
-      ctx.translate(64, 64);
-
+      ctx.save(); ctx.translate(64, 64);
       const aura = ctx.createRadialGradient(0, 0, 4, 0, 0, 60);
       aura.addColorStop(0, 'rgba(255, 255, 220, 0.55)');
       aura.addColorStop(0.5, 'rgba(190, 242, 100, 0.22)');
       aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, 0, 60, 0, Math.PI * 2);
-      ctx.fill();
-
+      ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath();
       ctx.moveTo(0, -48);
       ctx.bezierCurveTo(35, -30, 42, 14, 0, 46);
       ctx.bezierCurveTo(-42, 14, -35, -30, 0, -48);
       ctx.closePath();
-
       const leafGrad = ctx.createLinearGradient(0, -48, 0, 46);
       leafGrad.addColorStop(0, '#ffffff');
       leafGrad.addColorStop(0.5, '#f7fee7');
       leafGrad.addColorStop(1, '#d9f99d');
-      ctx.fillStyle = leafGrad;
-      ctx.fill();
-
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -42);
-      ctx.lineTo(0, 50);
-      ctx.stroke();
-
+      ctx.fillStyle = leafGrad; ctx.fill();
+      ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, -42); ctx.lineTo(0, 50); ctx.stroke();
       ctx.restore();
       const tex = new THREE.CanvasTexture(canvas);
       tex.needsUpdate = true;
@@ -477,22 +539,10 @@
 
     function setupMagicalLeafMaterialization() {
       clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-
       const leafTexture = createRadiantLeafTexture();
-      const palette = [
-        new THREE.Color('#16a34a'),
-        new THREE.Color('#22c55e'),
-        new THREE.Color('#4ade80'),
-        new THREE.Color('#84cc16'),
-        new THREE.Color('#a3e635'),
-        new THREE.Color('#bef264'),
-        new THREE.Color('#eab308'),
-        new THREE.Color('#facc15'),
-        new THREE.Color('#fde047'),
-        new THREE.Color('#fef08a')
-      ];
+      const palette = ['#16a34a','#22c55e','#4ade80','#84cc16','#a3e635','#bef264','#eab308','#facc15','#fde047','#fef08a'].map(c => new THREE.Color(c));
 
-      const leafCount = 750; // Balance óptimo de calidad y 90 FPS en Quest 3
+      const leafCount = 750;
       const geo = new THREE.BufferGeometry();
       const positions = new Float32Array(leafCount * 3);
       const colors = new Float32Array(leafCount * 3);
@@ -501,97 +551,63 @@
       for (let i = 0; i < leafCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         const radius = 0.4 + Math.random() * 3.6;
-        positions[i * 3] = Math.cos(angle) * radius;
-        positions[i * 3 + 1] = Math.random() * 6.5;
-        positions[i * 3 + 2] = Math.sin(angle) * radius;
-
+        positions[i*3] = Math.cos(angle) * radius;
+        positions[i*3+1] = Math.random() * 6.5;
+        positions[i*3+2] = Math.sin(angle) * radius;
         const c = palette[Math.floor(Math.random() * palette.length)];
-        colors[i * 3] = c.r;
-        colors[i * 3 + 1] = c.g;
-        colors[i * 3 + 2] = c.b;
-
-        seeds[i * 4] = Math.random() * Math.PI * 2;
-        seeds[i * 4 + 1] = 0.5 + Math.random() * 0.9;
-        seeds[i * 4 + 2] = (Math.random() - 0.5) * 4.0;
-        seeds[i * 4 + 3] = Math.random() < 0.3 ? 1.0 : 0.0;
+        colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+        seeds[i*4] = Math.random() * Math.PI * 2;
+        seeds[i*4+1] = 0.5 + Math.random() * 0.9;
+        seeds[i*4+2] = (Math.random() - 0.5) * 4.0;
+        seeds[i*4+3] = Math.random() < 0.3 ? 1.0 : 0.0;
       }
-
       geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
       geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
 
       leafMaterial = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
         uniforms: {
-          uMap: { value: leafTexture },
-          uTime: { value: 0 },
-          uProgress: { value: 1.0 },
-          uMaxHeight: { value: maxRevealHeight },
-          uOpacity: { value: 0.65 },
+          uMap: { value: leafTexture }, uTime: { value: 0 }, uProgress: { value: 1.0 },
+          uMaxHeight: { value: maxRevealHeight }, uOpacity: { value: 0.65 },
           uPixelRatio: { value: renderer.getPixelRatio() }
         },
         vertexShader: `
-          attribute vec3 aColor;
-          attribute vec4 aSeed;
-          varying vec3 vColor;
-          varying float vAngle;
-          varying float vAlpha;
-          varying float vSparkle;
-          varying float vWaveGlow;
-
-          uniform float uTime;
-          uniform float uProgress;
-          uniform float uMaxHeight;
-          uniform float uPixelRatio;
-
+          attribute vec3 aColor; attribute vec4 aSeed;
+          varying vec3 vColor; varying float vAngle; varying float vAlpha;
+          varying float vSparkle; varying float vWaveGlow;
+          uniform float uTime, uProgress, uMaxHeight, uPixelRatio;
           void main() {
             vColor = aColor;
-            float phase = aSeed.x;
-            float leafScale = aSeed.y;
-            float rotSpeed = aSeed.z;
+            float phase = aSeed.x, leafScale = aSeed.y, rotSpeed = aSeed.z;
             vSparkle = aSeed.w;
-
             vec3 pos = position;
             float bandY = uProgress * uMaxHeight;
-
             float vortexAngle = uTime * 1.8 + phase + pos.y * 0.5;
             float swirlRadius = 0.2 + 0.14 * sin(uTime * 1.5 + phase);
             pos.x += cos(vortexAngle) * swirlRadius;
             pos.z += sin(vortexAngle) * swirlRadius;
-
             float activeCeiling = max(0.5, bandY + 0.8);
             pos.y = mod(pos.y + uTime * (0.9 + leafScale * 0.35), activeCeiling);
-
             float distToWave = abs(pos.y - bandY);
             float waveBoost = smoothstep(1.8, 0.0, distToWave);
             vWaveGlow = waveBoost;
-
             float twinkle = 0.6 + 0.4 * sin(uTime * 6.0 + phase * 3.0);
             vAngle = phase + uTime * rotSpeed;
             vAlpha = clamp((0.35 + waveBoost * 0.65) * twinkle, 0.0, 1.0);
-
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
-
             float baseSize = (vSparkle > 0.5 ? 42.0 : 58.0) * leafScale * (1.0 + waveBoost * 0.45);
             gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 52.0);
           }
         `,
         fragmentShader: `
-          uniform sampler2D uMap;
-          uniform float uOpacity;
-          varying vec3 vColor;
-          varying float vAngle;
-          varying float vAlpha;
-          varying float vSparkle;
-          varying float vWaveGlow;
-
+          uniform sampler2D uMap; uniform float uOpacity;
+          varying vec3 vColor; varying float vAngle; varying float vAlpha;
+          varying float vSparkle; varying float vWaveGlow;
           void main() {
             vec2 centered = gl_PointCoord - vec2(0.5);
             float dist = length(centered);
-
             if (vSparkle > 0.5) {
               float crossStar = max(0.0, 1.0 - abs(centered.x * centered.y) * 90.0);
               float radial = smoothstep(0.5, 0.0, dist);
@@ -601,19 +617,11 @@
               gl_FragColor = vec4(sparkCol * 1.4, intensity * vAlpha * uOpacity);
               return;
             }
-
-            float c = cos(vAngle);
-            float s = sin(vAngle);
-            vec2 rotatedUV = vec2(
-              centered.x * c - centered.y * s,
-              centered.x * s + centered.y * c
-            ) + vec2(0.5);
-
+            float c = cos(vAngle), s = sin(vAngle);
+            vec2 rotatedUV = vec2(centered.x*c - centered.y*s, centered.x*s + centered.y*c) + vec2(0.5);
             if (rotatedUV.x < 0.0 || rotatedUV.x > 1.0 || rotatedUV.y < 0.0 || rotatedUV.y > 1.0) discard;
-
             vec4 texColor = texture2D(uMap, rotatedUV);
             if (texColor.a < 0.08) discard;
-
             vec3 radiantColor = mix(vColor * texColor.rgb, vec3(1.0, 0.98, 0.78), vWaveGlow * 0.45);
             gl_FragColor = vec4(radiantColor * 1.3, texColor.a * vAlpha * uOpacity);
           }
@@ -626,12 +634,8 @@
 
       const ringGeo = new THREE.RingGeometry(1.4, 2.0, 48).rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xfde047,
-        transparent: true,
-        opacity: 0.0,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
+        color: 0xfde047, transparent: true, opacity: 0.0,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
       });
       magicWaveRing = new THREE.Mesh(ringGeo, ringMat);
       magicWaveRing.visible = false;
@@ -643,7 +647,6 @@
 
     async function loadBarcaModel() {
       await MeshoptDecoder.ready;
-
       const dracoLoader = new DRACOLoader();
       dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
       gltfLoader = new GLTFLoader();
@@ -652,18 +655,13 @@
 
       try {
         const gltf = await new Promise((resolve, reject) => {
-          gltfLoader.load(
-            MODELS.sculpture,
-            resolve,
-            (xhr) => {
-              if (xhr.total > 0) {
-                const pct = Math.round((xhr.loaded / xhr.total) * 100);
-                document.getElementById('progress-bar').style.width = pct + '%';
-                document.getElementById('progress-text').textContent = pct + '%';
-              }
-            },
-            reject
-          );
+          gltfLoader.load(MODELS.sculpture, resolve, (xhr) => {
+            if (xhr.total > 0) {
+              const pct = Math.round((xhr.loaded / xhr.total) * 100);
+              document.getElementById('progress-bar').style.width = pct + '%';
+              document.getElementById('progress-text').textContent = pct + '%';
+            }
+          }, reject);
         });
 
         sculptureRoot = gltf.scene;
@@ -674,12 +672,13 @@
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        // Centrar exactamente sobre la superficie del agua en Y = 0
-        sculptureRoot.position.set(-center.x, -box.min.y, -center.z);
+        boatSubmersion = Math.min(0.65, Math.max(0.25, size.y * 0.12));
+        boatBaseY = -box.min.y - boatSubmersion;
+
+        sculptureRoot.position.set(-center.x, boatBaseY, -center.z);
         sculptureRoot.updateMatrixWorld(true);
         barcaAnchorGroup.add(sculptureRoot);
 
-        // Ajustar dinámicamente altura de revelado, anillo y distancia segura de aparición en VR
         maxRevealHeight = Math.max(size.y + 0.6, 2.5);
         leafMaterial.uniforms.uMaxHeight.value = maxRevealHeight;
 
@@ -687,6 +686,9 @@
         spawnDistance = Math.max(3.6, maxFootprint * 1.15 + 1.4);
         magicWaveRing.scale.setScalar(Math.max(1.0, maxFootprint * 0.32));
         resetViewerPosition(false);
+
+        waterUniforms.uHullRadiusX.value = Math.max(0.8, size.x * 0.42);
+        waterUniforms.uHullRadiusZ.value = Math.max(1.0, size.z * 0.42);
 
         const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
         sculptureRoot.traverse((node) => {
@@ -706,7 +708,7 @@
         document.getElementById('progress-bar').style.width = '100%';
         document.getElementById('progress-text').textContent = '100%';
         document.getElementById('progress-container').classList.add('hidden');
-        document.getElementById('loading-message').textContent = '¡La Barca de las Grullas está lista para VR!';
+        document.getElementById('loading-message').textContent = '¡La Barca de las Grullas está lista para navegar en VR!';
         launchControls.classList.remove('hidden');
         launchControls.classList.add('flex');
 
@@ -718,29 +720,19 @@
     }
 
     async function detectXRCapabilities() {
-      if (!navigator.xr) {
-        xrStatusBadge.textContent = 'Modo 3D Escritorio (sin WebXR)';
-        return;
-      }
+      if (!navigator.xr) { xrStatusBadge.textContent = 'Modo 3D Escritorio (sin WebXR)'; return; }
       const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
       const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-
-      if (vrSupported) {
-        xrStatusBadge.textContent = 'Meta Quest 3 · WebXR VR Listo';
-      } else if (arSupported) {
-        xrStatusBadge.textContent = 'WebXR AR Disponible';
-      } else {
-        xrStatusBadge.textContent = 'Vista 3D (abre en navegador Quest 3 para VR)';
-      }
+      if (vrSupported) xrStatusBadge.textContent = 'Meta Quest 3 · WebXR VR Listo';
+      else if (arSupported) xrStatusBadge.textContent = 'WebXR AR Disponible';
+      else xrStatusBadge.textContent = 'Vista 3D (abre en navegador Quest 3 para VR)';
     }
 
     function resetViewerPosition(notify = true) {
       cameraRig.position.set(0, 0, spawnDistance);
       cameraRig.rotation.set(0, 0, 0);
-
       if (!renderer.xr.isPresenting) {
-        yaw = 0;
-        pitch = 0;
+        yaw = 0; pitch = 0;
         camera.position.set(0, 1.6, 0);
         camera.rotation.set(0, 0, 0, 'YXZ');
       }
@@ -752,7 +744,6 @@
       cameraRig.rotation.y += angle;
       cameraRig.updateMatrixWorld(true);
       renderer.xr.getCamera().getWorldPosition(_headAfter);
-
       cameraRig.position.x += _headBefore.x - _headAfter.x;
       cameraRig.position.z += _headBefore.z - _headAfter.z;
     }
@@ -762,120 +753,71 @@
       isMaterializing = true;
       materializationT = 0;
       clippingPlane.constant = 0.05;
-
       leafParticles.visible = true;
       leafMaterial.uniforms.uProgress.value = 0;
       leafMaterial.uniforms.uOpacity.value = 1.0;
-
       magicWaveRing.visible = true;
       magicWaveRing.material.opacity = 0.85;
       magicWaveLight.intensity = 4.0;
-
-      if (!renderer.xr.isPresenting) {
-        showToast('✨ Revelando La Barca de las Grullas...');
-      }
+      if (!renderer.xr.isPresenting) showToast('✨ Revelando La Barca de las Grullas...');
     }
 
     function setupUIAndDesktopControls() {
       btnLaunchVRDirect.addEventListener('click', () => startXRSession('immersive-vr'));
-
       btnStartPreview.addEventListener('click', () => {
         loadingModal.classList.add('hidden');
         hudOverlay.classList.add('active');
         triggerMaterializationWave();
       });
-
       btnReplayMagic.addEventListener('click', triggerMaterializationWave);
       btnEnterVR.addEventListener('click', () => startXRSession('immersive-vr'));
       btnEnterAR.addEventListener('click', () => startXRSession('immersive-ar'));
       btnResetView.addEventListener('click', () => resetViewerPosition(true));
 
       const bindZoomButton = (btn, dir) => {
-        btn.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          btn.classList.add('pressing');
-          moveButtonDir = dir;
-        });
-        const stopPress = () => {
-          btn.classList.remove('pressing');
-          moveButtonDir = 0;
-        };
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.classList.add('pressing'); moveButtonDir = dir; });
+        const stopPress = () => { btn.classList.remove('pressing'); moveButtonDir = 0; };
         btn.addEventListener('pointerup', stopPress);
         btn.addEventListener('pointerleave', stopPress);
         btn.addEventListener('pointercancel', stopPress);
       };
-
       bindZoomButton(btnStepForward, 1);
       bindZoomButton(btnStepBack, -1);
 
-      // Teclado WASD para pruebas rápidas en PC
-      window.addEventListener('keydown', (e) => {
-        const k = e.key.toLowerCase();
-        if (k in keysPressed) keysPressed[k] = true;
-      });
-      window.addEventListener('keyup', (e) => {
-        const k = e.key.toLowerCase();
-        if (k in keysPressed) keysPressed[k] = false;
-      });
+      window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = true; });
+      window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = false; });
 
       const viewport = document.getElementById('webgl-viewport');
-      viewport.addEventListener('pointerdown', (e) => {
-        isPointerDown = true;
-        prevPointerX = e.clientX;
-        prevPointerY = e.clientY;
-      });
-
+      viewport.addEventListener('pointerdown', (e) => { isPointerDown = true; prevPointerX = e.clientX; prevPointerY = e.clientY; });
       window.addEventListener('pointermove', (e) => {
         if (!isPointerDown || renderer.xr.isPresenting) return;
-        const dx = e.clientX - prevPointerX;
-        const dy = e.clientY - prevPointerY;
-        prevPointerX = e.clientX;
-        prevPointerY = e.clientY;
-
+        const dx = e.clientX - prevPointerX, dy = e.clientY - prevPointerY;
+        prevPointerX = e.clientX; prevPointerY = e.clientY;
         yaw -= dx * 0.0045;
         pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -1.0, 1.0);
         camera.rotation.set(pitch, yaw, 0, 'YXZ');
       });
-
       window.addEventListener('pointerup', () => { isPointerDown = false; });
     }
 
     async function startXRSession(requestedMode = 'immersive-vr') {
       loadingModal.classList.add('hidden');
       hudOverlay.classList.add('active');
-
-      if (!navigator.xr) {
-        showToast('WebXR no disponible en este navegador · Modo 3D activo');
-        return;
-      }
-
+      if (!navigator.xr) { showToast('WebXR no disponible en este navegador · Modo 3D activo'); return; }
       try {
         let mode = requestedMode;
         let supported = await navigator.xr.isSessionSupported(mode);
-
         if (!supported) {
           const fallback = mode === 'immersive-vr' ? 'immersive-ar' : 'immersive-vr';
-          if (await navigator.xr.isSessionSupported(fallback)) {
-            mode = fallback;
-            supported = true;
-          }
+          if (await navigator.xr.isSessionSupported(fallback)) { mode = fallback; supported = true; }
         }
+        if (!supported) { showToast('Abre este enlace desde Meta Quest Browser para VR'); return; }
 
-        if (!supported) {
-          showToast('Abre este enlace desde Meta Quest Browser para VR');
-          return;
-        }
-
-        // Sin dom-overlay en immersive-vr para máxima compatibilidad con Meta Quest 3
-        const sessionInit = {
+        const session = await navigator.xr.requestSession(mode, {
           optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
-        };
-
-        const session = await navigator.xr.requestSession(mode, sessionInit);
+        });
 
         renderer.xr.setReferenceSpaceType('local-floor');
-
-        // Reiniciar la cámara local para que el visor tome tu estatura real desde el piso
         camera.position.set(0, 0, 0);
         camera.rotation.set(0, 0, 0);
         cameraRig.position.set(0, 0, spawnDistance);
@@ -890,13 +832,13 @@
           scene.fog = null;
           skyDome.visible = false;
           renderer.setClearColor(0x000000, 0);
-          waterMesh.material.opacity = 0.62;
+          waterUniforms.uOpacity.value = 0.58;
         } else {
           scene.background = new THREE.Color(0x030705);
           scene.fog = new THREE.FogExp2(0x030705, 0.028);
           skyDome.visible = true;
           renderer.setClearColor(0x030705, 1);
-          waterMesh.material.opacity = 0.92;
+          waterUniforms.uOpacity.value = 1.0;
         }
 
         triggerMaterializationWave();
@@ -906,7 +848,7 @@
           scene.fog = new THREE.FogExp2(0x030705, 0.028);
           skyDome.visible = true;
           renderer.setClearColor(0x030705, 1);
-          waterMesh.material.opacity = 0.92;
+          waterUniforms.uOpacity.value = 1.0;
           hudOverlay.classList.add('active');
           resetViewerPosition(false);
         });
@@ -919,85 +861,61 @@
     function updateVRLocomotion(dt) {
       const session = renderer.xr.getSession();
       if (!session) return;
-
       const xrCam = renderer.xr.getCamera();
       xrCam.getWorldDirection(_xrForward);
       _xrForward.y = 0;
       if (_xrForward.lengthSq() > 0.0001) _xrForward.normalize();
       else _xrForward.set(0, 0, -1);
-
       _xrRight.crossVectors(_xrForward, _upAxis).normalize();
 
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
         const axes = source.gamepad.axes;
         const buttons = source.gamepad.buttons;
-
-        // Meta Quest Touch Plus: axes[2] = X, axes[3] = Y
         const stickX = axes.length >= 4 ? axes[2] : (axes[0] || 0);
         const stickY = axes.length >= 4 ? axes[3] : (axes[1] || 0);
 
         if (source.handedness === 'left') {
           const speed = 2.4;
-          if (Math.abs(stickY) > 0.15) {
-            cameraRig.position.addScaledVector(_xrForward, -stickY * speed * dt);
-          }
-          if (Math.abs(stickX) > 0.15) {
-            cameraRig.position.addScaledVector(_xrRight, stickX * speed * dt);
-          }
-
-          const xPressed = !!(buttons[4] && buttons[4].pressed);
-          const yPressed = !!(buttons[5] && buttons[5].pressed);
-          if (xPressed && !prevButtons.leftX) triggerMaterializationWave();
-          if (yPressed && !prevButtons.leftY) resetViewerPosition(false);
-          prevButtons.leftX = xPressed;
-          prevButtons.leftY = yPressed;
+          if (Math.abs(stickY) > 0.15) cameraRig.position.addScaledVector(_xrForward, -stickY * speed * dt);
+          if (Math.abs(stickX) > 0.15) cameraRig.position.addScaledVector(_xrRight, stickX * speed * dt);
+          const xP = !!(buttons[4] && buttons[4].pressed);
+          const yP = !!(buttons[5] && buttons[5].pressed);
+          if (xP && !prevButtons.leftX) triggerMaterializationWave();
+          if (yP && !prevButtons.leftY) resetViewerPosition(false);
+          prevButtons.leftX = xP; prevButtons.leftY = yP;
         }
 
         if (source.handedness === 'right') {
-          // Giro confort 30° (Snap Turn) para evitar mareo en VR
           if (Math.abs(stickX) > 0.65 && snapTurnReady) {
-            const turnAngle = stickX > 0 ? -THREE.MathUtils.degToRad(30) : THREE.MathUtils.degToRad(30);
-            rotateRigAroundHead(turnAngle);
+            rotateRigAroundHead(stickX > 0 ? -THREE.MathUtils.degToRad(30) : THREE.MathUtils.degToRad(30));
             snapTurnReady = false;
-          } else if (Math.abs(stickX) < 0.25) {
-            snapTurnReady = true;
-          }
-
-          if (Math.abs(stickY) > 0.2) {
-            cameraRig.position.addScaledVector(_xrForward, -stickY * 1.8 * dt);
-          }
-
-          const aPressed = !!(buttons[4] && buttons[4].pressed);
-          const bPressed = !!(buttons[5] && buttons[5].pressed);
-          if (aPressed && !prevButtons.rightA) triggerMaterializationWave();
-          if (bPressed && !prevButtons.rightB) resetViewerPosition(false);
-          prevButtons.rightA = aPressed;
-          prevButtons.rightB = bPressed;
+          } else if (Math.abs(stickX) < 0.25) snapTurnReady = true;
+          if (Math.abs(stickY) > 0.2) cameraRig.position.addScaledVector(_xrForward, -stickY * 1.8 * dt);
+          const aP = !!(buttons[4] && buttons[4].pressed);
+          const bP = !!(buttons[5] && buttons[5].pressed);
+          if (aP && !prevButtons.rightA) triggerMaterializationWave();
+          if (bP && !prevButtons.rightB) resetViewerPosition(false);
+          prevButtons.rightA = aP; prevButtons.rightB = bP;
         }
       }
 
-      // Límite circular de 15m para no salirse del espejo de agua
       const dist = Math.hypot(cameraRig.position.x, cameraRig.position.z);
       if (dist > 15) {
-        const clampRatio = 15 / dist;
-        cameraRig.position.x *= clampRatio;
-        cameraRig.position.z *= clampRatio;
+        const ratio = 15 / dist;
+        cameraRig.position.x *= ratio;
+        cameraRig.position.z *= ratio;
       }
     }
 
     function updateDesktopMovement(dt) {
       if (renderer.xr.isPresenting) return;
-
       camera.getWorldDirection(_xrForward);
       _xrForward.y = 0;
       if (_xrForward.lengthSq() > 0.0001) _xrForward.normalize();
       _xrRight.crossVectors(_xrForward, _upAxis).normalize();
-
       const speed = 2.8;
-      if (moveButtonDir !== 0) {
-        cameraRig.position.addScaledVector(_xrForward, moveButtonDir * speed * dt);
-      }
+      if (moveButtonDir !== 0) cameraRig.position.addScaledVector(_xrForward, moveButtonDir * speed * dt);
       if (keysPressed.w) cameraRig.position.addScaledVector(_xrForward, speed * dt);
       if (keysPressed.s) cameraRig.position.addScaledVector(_xrForward, -speed * dt);
       if (keysPressed.d) cameraRig.position.addScaledVector(_xrRight, speed * dt);
@@ -1009,38 +927,34 @@
       lastFrameTime = timestamp;
       const timeSec = timestamp * 0.001;
 
-      if (renderer.xr.isPresenting) {
-        updateVRLocomotion(dt);
-      } else {
-        updateDesktopMovement(dt);
+      if (renderer.xr.isPresenting) updateVRLocomotion(dt);
+      else updateDesktopMovement(dt);
+
+      if (waterUniforms) {
+        waterUniforms.uTime.value = timeSec;
       }
 
-      // Animar flujo y oleaje sutil del agua
-      if (waterMesh && waterNormalTex) {
-        waterMesh.position.y = Math.sin(timeSec * 1.4) * 0.015;
-        waterNormalTex.offset.x = (timeSec * 0.035) % 1;
-        waterNormalTex.offset.y = (timeSec * 0.022) % 1;
+      if (sculptureRoot && !isMaterializing) {
+        sculptureRoot.position.y = boatBaseY
+          + Math.sin(timeSec * 0.72) * 0.07
+          + Math.sin(timeSec * 1.28 + 1.1) * 0.028;
+        sculptureRoot.rotation.z = Math.sin(timeSec * 0.55 + 0.4) * 0.016;
+        sculptureRoot.rotation.x = Math.sin(timeSec * 0.78 + 0.9) * 0.013;
       }
 
-      // Animación de revelación mágica
       if (isMaterializing) {
         materializationT = Math.min(1, materializationT + dt * 0.30);
         const eased = 1 - Math.pow(1 - materializationT, 3);
         const revealH = eased * maxRevealHeight;
-
         clippingPlane.constant = revealH;
-
         leafMaterial.uniforms.uTime.value = timeSec;
         leafMaterial.uniforms.uProgress.value = eased;
         leafMaterial.uniforms.uOpacity.value = 1.0;
-
         magicWaveRing.position.y = Math.min(revealH, maxRevealHeight * 0.85);
         magicWaveRing.rotation.z = timeSec * 1.8;
         magicWaveRing.material.opacity = (1.0 - materializationT) * 0.85;
-
         magicWaveLight.position.set(0, Math.min(revealH + 0.3, maxRevealHeight), 0);
         magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 4.0;
-
         if (materializationT >= 1) {
           isMaterializing = false;
           renderer.localClippingEnabled = false;

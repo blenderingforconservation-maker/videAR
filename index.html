@@ -51,7 +51,7 @@
       La Barca de las Grullas
     </h1>
     <p id="loading-message" class="text-xs text-slate-300 max-w-xs mb-6 leading-relaxed">
-      Sincronizando escultura, superficie acuática y entorno WebXR...
+      Sincronizando escultura, textura acuática y entorno WebXR...
     </p>
     <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
       <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -123,24 +123,34 @@
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: POSICIÓN, ORIENTACIÓN Y ESCALA DE LA ESCULTURA
+    // 📍 ZONA EDITABLE: POSICIÓN DE LA ESCULTURA Y ALTURA DEL AGUA
     // =========================================================================
     const SCULPTURE_CONFIG = {
       positionX: 0.0,        // Izquierda (-) / Derecha (+) en metros
-      positionY: 0.0,        // Ajuste vertical extra sobre el agua (+ sube / - baja)
+      positionY: 0.0,        // Ajuste vertical de la escultura (+ sube / - baja)
       positionZ: 0.0,        // Fondo (-) / Frente (+) en metros
-      rotationYDeg: 90,      // Giro horizontal en grados (90 o -90 para que el agua pegue de frente en la proa)
+      rotationYDeg: 90,      // Giro horizontal en grados (90 o -90 para que el agua pegue de frente)
       scale: 4.2,            // Escala general de la escultura
-      submersionRatio: 0.12  // Profundidad de inmersión del casco (0.05 = alto, 0.18 = más hundido)
+      submersionRatio: 0.14  // Inmersión base del casco antes del nivel del agua
+    };
+
+    const WATER_CONFIG = {
+      levelY: 0.28,          // Altura del agua en metros (sube este número para cubrir más el casco)
+      waveAmplitude: 1.15,   // Fuerza del oleaje (0.8 = calmo, 1.4 = más agitado)
+      flowSpeed: 0.46        // Velocidad de la corriente frontal (-Z -> +Z)
     };
     // =========================================================================
 
+    // Rutas verificadas del repo blenderingforconservation-maker/videAR
     const REPO_RAW_BASE = 'https://blenderingforconservation-maker.github.io/videAR/';
-    const MODELS = { sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb` };
+    const ASSETS = {
+      sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb`,
+      waterTexture: `${REPO_RAW_BASE}image_c713d6.png`
+    };
 
     const SCENE_BG_HEX = 0x09222e;
     const SCENE_FOG_HEX = 0x0b2c3a;
-    const SCENE_FOG_DENSITY = 0.018;
+    const SCENE_FOG_DENSITY = 0.017;
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
@@ -202,8 +212,8 @@
       cameraRig.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ + spawnDistance);
       scene.add(cameraRig);
 
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 140);
-      camera.position.set(0, 1.6, 0);
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 150);
+      camera.position.set(0, 1.65, 0);
       camera.rotation.order = 'YXZ';
       cameraRig.add(camera);
 
@@ -235,6 +245,7 @@
       boatBobbingGroup.add(sculpturePivot);
 
       setupWaterSurface();
+      loadRepoWaterTexture();
       setupMagicalLeafMaterialization();
       setupAmbientGlowParticles();
       await loadBarcaModel();
@@ -255,44 +266,38 @@
     }
 
     function setupLighting() {
-      // Luz ambiental limpia para evitar sombras empastadas
       scene.add(new THREE.AmbientLight(0xe6f7ff, 1.15));
 
-      // Hemisférica: cielo luminoso + rebote azul turquesa desde el agua
-      const hemi = new THREE.HemisphereLight(0xf2fbff, 0x157382, 1.95);
+      const hemi = new THREE.HemisphereLight(0xf2fbff, 0x15788a, 2.0);
       hemi.position.set(0, 16, 0);
       scene.add(hemi);
 
-      // Luz principal cálida (modela volumen de la escultura y brillos del agua)
-      const keyDir = new THREE.DirectionalLight(0xfff6e3, 2.8);
+      const keyDir = new THREE.DirectionalLight(0xfff6e3, 2.85);
       keyDir.position.set(6, 12, 7);
       scene.add(keyDir);
 
-      // Luz de relleno frontal-lateral (ilumina el lado contrario al sol)
       const fillDir = new THREE.DirectionalLight(0xb8ecff, 1.65);
       fillDir.position.set(-7, 7, 5);
       scene.add(fillDir);
 
-      // Contraluz turquesa suave para despegar las grullas de la neblina
-      const rimDir = new THREE.DirectionalLight(0x5eead4, 1.55);
+      const rimDir = new THREE.DirectionalLight(0x5eead4, 1.6);
       rimDir.position.set(-4, 8, -9);
       scene.add(rimDir);
 
-      // Rebote acuático sutil bajo la barca
-      const waterBounce = new THREE.PointLight(0x38bdf8, 2.2, 15);
-      waterBounce.position.set(SCULPTURE_CONFIG.positionX, 0.8, SCULPTURE_CONFIG.positionZ);
+      const waterBounce = new THREE.PointLight(0x38bdf8, 2.4, 16);
+      waterBounce.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.7, SCULPTURE_CONFIG.positionZ);
       scene.add(waterBounce);
     }
 
     function setupAtmosphereDome() {
-      const domeGeo = new THREE.SphereGeometry(65, 24, 16);
+      const domeGeo = new THREE.SphereGeometry(68, 24, 16);
       const domeMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
         fog: false,
         uniforms: {
-          uTopColor: { value: new THREE.Color(0x061826) },
-          uHorizonColor: { value: new THREE.Color(0x164c5c) },
+          uTopColor: { value: new THREE.Color(0x061928) },
+          uHorizonColor: { value: new THREE.Color(0x185263) },
           uBottomColor: { value: new THREE.Color(0x062330) }
         },
         vertexShader: `
@@ -311,8 +316,8 @@
           void main() {
             float h = normalize(vWorldPos).y;
             vec3 col = h >= 0.0
-              ? mix(uHorizonColor, uTopColor, pow(h, 0.52))
-              : mix(uHorizonColor, uBottomColor, pow(-h, 0.48));
+              ? mix(uHorizonColor, uTopColor, pow(max(h, 0.0001), 0.52))
+              : mix(uHorizonColor, uBottomColor, pow(max(-h, 0.0001), 0.48));
             gl_FragColor = vec4(col, 1.0);
           }
         `
@@ -321,7 +326,7 @@
       scene.add(skyDome);
     }
 
-    function createWaterNormalTexture() {
+    function createFallbackWaterNormalTexture() {
       const size = 256;
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
@@ -332,12 +337,12 @@
         for (let x = 0; x < size; x++) {
           const u = (x / size) * Math.PI * 2;
           const v = (y / size) * Math.PI * 2;
-          const dx = Math.cos(u * 3 + v * 2) * 0.4 + Math.cos(u * 5 - v * 3) * 0.3 + Math.sin(u * 2 + v * 6) * 0.3;
-          const dy = Math.sin(u * 2 + v * 4) * 0.4 + Math.cos(u * 4 + v * 5) * 0.3 + Math.sin(u * 6 - v * 2) * 0.3;
+          const dx = Math.cos(u * 3 + v * 2) * 0.38 + Math.cos(u * 5 - v * 3) * 0.30 + Math.sin(u * 2 + v * 6) * 0.25 + Math.cos(u * 9 + v * 7) * 0.14;
+          const dy = Math.sin(u * 2 + v * 4) * 0.38 + Math.cos(u * 4 + v * 5) * 0.30 + Math.sin(u * 6 - v * 2) * 0.25 + Math.sin(u * 8 - v * 9) * 0.14;
           const idx = (y * size + x) * 4;
-          data[idx]     = Math.floor((dx * 0.5 + 0.5) * 255);
-          data[idx + 1] = Math.floor((dy * 0.5 + 0.5) * 255);
-          data[idx + 2] = 235;
+          data[idx]     = Math.floor((dx * 0.45 + 0.5) * 255);
+          data[idx + 1] = Math.floor((dy * 0.45 + 0.5) * 255);
+          data[idx + 2] = 238;
           data[idx + 3] = 255;
         }
       }
@@ -353,18 +358,20 @@
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, size, size);
-      for (let i = 0; i < 90; i++) {
+      for (let i = 0; i < 160; i++) {
         const x = Math.random() * size;
         const y = Math.random() * size;
-        const r = 4 + Math.random() * 18;
+        const r = 2.5 + Math.random() * 14;
+        const intensity = 0.45 + Math.random() * 0.5;
         for (let ox = -1; ox <= 1; ox++) {
           for (let oy = -1; oy <= 1; oy++) {
             const cx = x + ox * size;
             const cy = y + oy * size;
             const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+            grad.addColorStop(0, `rgba(255,255,255,${intensity})`);
+            grad.addColorStop(0.55, `rgba(210,210,210,${intensity * 0.45})`);
             grad.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = grad;
             ctx.beginPath();
@@ -379,30 +386,160 @@
       return tex;
     }
 
+    // Convierte automáticamente image_c713d6.png en un Normal Map Sobel si la imagen es textura de agua/altura
+    function buildSobelNormalTextureFromImage(img, strength = 2.8) {
+      const size = 512;
+      const srcCanvas = document.createElement('canvas');
+      srcCanvas.width = size; srcCanvas.height = size;
+      const srcCtx = srcCanvas.getContext('2d');
+      srcCtx.drawImage(img, 0, 0, size, size);
+      const srcData = srcCtx.getImageData(0, 0, size, size).data;
+
+      const lum = new Float32Array(size * size);
+      let sumR = 0, sumG = 0, sumB = 0;
+      const step = 8;
+      let samples = 0;
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const i = (y * size + x) * 4;
+          const r = srcData[i] / 255;
+          const g = srcData[i + 1] / 255;
+          const b = srcData[i + 2] / 255;
+          lum[y * size + x] = r * 0.299 + g * 0.587 + b * 0.114;
+          if ((x % step === 0) && (y % step === 0)) {
+            sumR += r; sumG += g; sumB += b; samples++;
+          }
+        }
+      }
+
+      const avgR = sumR / samples;
+      const avgG = sumG / samples;
+      const avgB = sumB / samples;
+      const isAlreadyNormalMap = (avgB > 0.72) && (Math.abs(avgR - 0.5) < 0.16) && (Math.abs(avgG - 0.5) < 0.16);
+
+      if (isAlreadyNormalMap) {
+        return { isNormalMap: true, normalTex: null };
+      }
+
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = size; outCanvas.height = size;
+      const outCtx = outCanvas.getContext('2d');
+      const outImg = outCtx.createImageData(size, size);
+      const out = outImg.data;
+
+      const sampleLum = (x, y) => {
+        const wx = (x + size) % size;
+        const wy = (y + size) % size;
+        return lum[wy * size + wx];
+      };
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const tl = sampleLum(x - 1, y - 1);
+          const t  = sampleLum(x,     y - 1);
+          const tr = sampleLum(x + 1, y - 1);
+          const l  = sampleLum(x - 1, y);
+          const r  = sampleLum(x + 1, y);
+          const bl = sampleLum(x - 1, y + 1);
+          const b  = sampleLum(x,     y + 1);
+          const br = sampleLum(x + 1, y + 1);
+
+          const dx = (tr + 2 * r + br - tl - 2 * l - bl) * strength;
+          const dy = (bl + 2 * b + br - tl - 2 * t - tr) * strength;
+          const dz = 1.0;
+          const invLen = 1.0 / Math.hypot(dx, dy, dz);
+
+          const idx = (y * size + x) * 4;
+          out[idx]     = Math.floor((-dx * invLen * 0.5 + 0.5) * 255);
+          out[idx + 1] = Math.floor((-dy * invLen * 0.5 + 0.5) * 255);
+          out[idx + 2] = Math.floor(( dz * invLen * 0.5 + 0.5) * 255);
+          out[idx + 3] = 255;
+        }
+      }
+
+      outCtx.putImageData(outImg, 0, 0);
+      const normalTex = new THREE.CanvasTexture(outCanvas);
+      normalTex.wrapS = THREE.RepeatWrapping;
+      normalTex.wrapT = THREE.RepeatWrapping;
+      normalTex.needsUpdate = true;
+      return { isNormalMap: false, normalTex };
+    }
+
+    function loadRepoWaterTexture() {
+      const texLoader = new THREE.TextureLoader();
+      texLoader.setCrossOrigin('anonymous');
+
+      texLoader.load(
+        ASSETS.waterTexture,
+        (loadedTex) => {
+          const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          loadedTex.wrapS = THREE.RepeatWrapping;
+          loadedTex.wrapT = THREE.RepeatWrapping;
+          loadedTex.anisotropy = maxAniso;
+          loadedTex.needsUpdate = true;
+
+          try {
+            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 3.0);
+            if (analysis.isNormalMap) {
+              // image_c713d6.png es un Normal Map directo
+              waterUniforms.uNormalMap.value = loadedTex;
+              waterUniforms.uWaterTex.value = loadedTex;
+              waterUniforms.uUseDetailTex.value = 0.0;
+              waterUniforms.uIsNormalDetail.value = 1.0;
+            } else {
+              // image_c713d6.png es textura de agua/espuma/cáusticas: usar ambos (Sobel normal + detalle visual)
+              analysis.normalTex.anisotropy = maxAniso;
+              loadedTex.colorSpace = THREE.SRGBColorSpace;
+              waterUniforms.uNormalMap.value = analysis.normalTex;
+              waterUniforms.uWaterTex.value = loadedTex;
+              waterUniforms.uUseDetailTex.value = 0.36;
+              waterUniforms.uIsNormalDetail.value = 0.0;
+            }
+          } catch (err) {
+            // Respaldo seguro si el navegador restringe lectura de píxeles
+            loadedTex.colorSpace = THREE.SRGBColorSpace;
+            waterUniforms.uWaterTex.value = loadedTex;
+            waterUniforms.uUseDetailTex.value = 0.30;
+          }
+        },
+        undefined,
+        (err) => {
+          console.warn('No se pudo cargar image_c713d6.png, usando normales procedurales:', err);
+        }
+      );
+    }
+
     function setupWaterSurface() {
-      const normalTex = createWaterNormalTexture();
+      const normalTex = createFallbackWaterNormalTexture();
       const foamNoiseTex = createFoamNoiseTexture();
 
-      const waterGeo = new THREE.PlaneGeometry(46, 46, 96, 96);
+      // Mayor resolución (128x128) para crestas realistas y estela 3D fluida en Quest 3
+      const waterGeo = new THREE.PlaneGeometry(52, 52, 128, 128);
       waterGeo.rotateX(-Math.PI / 2);
 
       waterUniforms = {
         uTime:              { value: 0 },
         uNormalMap:         { value: normalTex },
+        uWaterTex:          { value: foamNoiseTex },
         uFoamNoise:         { value: foamNoiseTex },
+        uUseDetailTex:      { value: 0.0 },
+        uIsNormalDetail:    { value: 1.0 },
         uSunDirection:      { value: new THREE.Vector3(6, 12, 7).normalize() },
-        uSkyColor:          { value: new THREE.Color(0x3eb4c4) }, // Reflejo celeste turquesa
-        uWaterDeepColor:    { value: new THREE.Color(0x053252) }, // Azul marino profundo
-        uWaterShallowColor: { value: new THREE.Color(0x1493a1) }, // Azul ligeramente verde turquesa
-        uCrestGlowColor:    { value: new THREE.Color(0x28c9c4) }, // Brillo subsuperficial turquesa
-        uFoamColor:         { value: new THREE.Color(0xeafcff) }, // Espuma blanca azulada
+        uSkyZenithColor:    { value: new THREE.Color(0x0b354d) },
+        uSkyHorizonColor:   { value: new THREE.Color(0x4fc6d4) },
+        uWaterDeepColor:    { value: new THREE.Color(0x03263d) }, // Azul marino profundo
+        uWaterShallowColor: { value: new THREE.Color(0x0e8b9c) }, // Azul verde turquesa realista
+        uCrestGlowColor:    { value: new THREE.Color(0x28d6cc) }, // Luz subsuperficial en crestas
+        uFoamColor:         { value: new THREE.Color(0xf0fdff) }, // Espuma natural brillante
         uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
         uFogDensity:        { value: SCENE_FOG_DENSITY },
         uHullCenter:        { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
         uHullRadiusX:       { value: 1.5 },
         uHullRadiusZ:       { value: 3.4 },
-        uWaterFlow:         { value: new THREE.Vector2(0.0, 1.0) }, // +Z: proa (-Z) -> popa (+Z)
-        uFlowSpeed:         { value: 0.42 },
+        uWaterFlow:         { value: new THREE.Vector2(0.0, 1.0) },
+        uFlowSpeed:         { value: WATER_CONFIG.flowSpeed },
+        uWaveAmp:           { value: WATER_CONFIG.waveAmplitude },
         uOpacity:           { value: 1.0 }
       };
 
@@ -414,6 +551,7 @@
 
         vertexShader: /* glsl */`
           uniform float uTime;
+          uniform float uWaveAmp;
           uniform vec2 uHullCenter;
           uniform float uHullRadiusX;
           uniform float uHullRadiusZ;
@@ -421,42 +559,81 @@
           varying vec3 vWorldPos;
           varying vec3 vWaveNormal;
           varying float vHeight;
+          varying float vSteepness;
           varying float vFogDepth;
 
-          float waterHeight(vec2 p, float t) {
-            float h = 0.0;
-            // Olas viajando frontalmente en +Z (proa -> popa)
-            h += sin(p.y * 0.55 - t * 1.45) * 0.095;
-            h += sin(p.y * 0.98 - t * 2.10) * 0.052;
-            h += sin(p.x * 0.72 - t * 0.65) * 0.025;
-            h += sin((p.x * 0.30 + p.y * 0.72) - t * 2.50) * 0.028;
-            h += sin((p.x * 0.75 + p.y * 1.45) - t * 3.30) * 0.018;
+          // Oleaje realista tipo Gerstner (crestas más agudas, valles suaves) + desplazamiento de proa y estela Kelvin 3D
+          vec3 sampleGerstner(vec2 p, float t) {
+            vec3 disp = vec3(0.0);
 
+            // Ola 1: oleaje frontal principal (-Z -> +Z)
+            float ph1 = p.y * 0.58 - t * 1.65;
+            disp.y += sin(ph1) * 0.088;
+            disp.z += cos(ph1) * 0.042;
+
+            // Ola 2: oleaje frontal secundario más rápido
+            float ph2 = p.y * 1.12 - t * 2.35 + p.x * 0.16;
+            disp.y += sin(ph2) * 0.048;
+            disp.z += cos(ph2) * 0.024;
+
+            // Ola 3: swell diagonal izquierdo
+            float ph3 = (p.x * 0.42 + p.y * 0.78) - t * 2.75;
+            disp.y += sin(ph3) * 0.032;
+            disp.x += cos(ph3) * 0.012;
+            disp.z += cos(ph3) * 0.018;
+
+            // Ola 4: swell diagonal derecho
+            float ph4 = (-p.x * 0.38 + p.y * 0.92) - t * 2.95;
+            disp.y += sin(ph4) * 0.026;
+            disp.x -= cos(ph4) * 0.010;
+
+            // Ola 5: rizo corto superficial
+            float ph5 = (p.x * 1.15 + p.y * 1.85) - t * 3.85;
+            disp.y += sin(ph5) * 0.014;
+
+            disp *= uWaveAmp;
+
+            // Interacción física 3D con el casco de La Barca
             vec2 rel = p - uHullCenter;
 
-            // Elevación frontal en la proa (-Z local del casco)
-            float bowZ = -uHullRadiusZ * 1.12;
-            h += exp(-pow(rel.y - bowZ, 2.0) * 0.40) * exp(-rel.x * rel.x * 0.55) * 0.12;
+            // Ola de choque frontal elevándose en la proa (-Z local)
+            float bowZ = -uHullRadiusZ * 1.08;
+            float bowPulse = 0.88 + 0.18 * sin(t * 3.6);
+            float bowMound = exp(-pow(rel.y - bowZ, 2.0) * 0.48) * exp(-rel.x * rel.x * 0.65) * 0.17 * bowPulse;
+            disp.y += bowMound;
 
-            // Depresión en la popa (+Z local del casco)
-            float sternZ = uHullRadiusZ * 1.10;
-            h -= exp(-pow(rel.y - sternZ, 2.0) * 0.50) * exp(-rel.x * rel.x * 0.60) * 0.055;
+            // Crestas 3D de la estela en V abriéndose hacia popa (+Z)
+            float distFromBow = rel.y - bowZ;
+            if (distFromBow > 0.0) {
+              float armX = uHullRadiusX * 0.30 + distFromBow * 0.42;
+              float armDist = abs(abs(rel.x) - armX);
+              float wakeFade = exp(-distFromBow * 0.19);
+              float wakeCrest = exp(-armDist * armDist * 2.8) * wakeFade * 0.095;
+              disp.y += wakeCrest * (0.85 + 0.15 * sin(distFromBow * 2.8 - t * 5.0));
+            }
 
-            return h;
+            // Depresión leve detrás de la popa (+Z)
+            float sternZ = uHullRadiusZ * 1.08;
+            disp.y -= exp(-pow(rel.y - sternZ, 2.0) * 0.55) * exp(-rel.x * rel.x * 0.65) * 0.06;
+
+            return disp;
           }
 
           void main() {
             vec3 pos = position;
-            float h = waterHeight(pos.xz, uTime);
-            pos.y += h;
-            vHeight = h;
+            vec3 disp = sampleGerstner(pos.xz, uTime);
+            pos += disp;
+            vHeight = disp.y;
 
-            float eps = 0.18;
-            float hL = waterHeight(pos.xz + vec2(-eps, 0.0), uTime);
-            float hR = waterHeight(pos.xz + vec2( eps, 0.0), uTime);
-            float hD = waterHeight(pos.xz + vec2(0.0, -eps), uTime);
-            float hU = waterHeight(pos.xz + vec2(0.0,  eps), uTime);
-            vWaveNormal = normalize(vec3(hL - hR, 2.0 * eps, hD - hU));
+            float eps = 0.16;
+            float hL = sampleGerstner(position.xz + vec2(-eps, 0.0), uTime).y;
+            float hR = sampleGerstner(position.xz + vec2( eps, 0.0), uTime).y;
+            float hD = sampleGerstner(position.xz + vec2(0.0, -eps), uTime).y;
+            float hU = sampleGerstner(position.xz + vec2(0.0,  eps), uTime).y;
+
+            vec3 n = normalize(vec3(hL - hR, 2.0 * eps, hD - hU));
+            vWaveNormal = n;
+            vSteepness = clamp(1.0 - n.y, 0.0, 1.0);
 
             vec4 wp = modelMatrix * vec4(pos, 1.0);
             vWorldPos = wp.xyz;
@@ -468,10 +645,14 @@
 
         fragmentShader: /* glsl */`
           uniform sampler2D uNormalMap;
+          uniform sampler2D uWaterTex;
           uniform sampler2D uFoamNoise;
+          uniform float uUseDetailTex;
+          uniform float uIsNormalDetail;
           uniform float uTime;
           uniform vec3 uSunDirection;
-          uniform vec3 uSkyColor;
+          uniform vec3 uSkyZenithColor;
+          uniform vec3 uSkyHorizonColor;
           uniform vec3 uWaterDeepColor;
           uniform vec3 uWaterShallowColor;
           uniform vec3 uCrestGlowColor;
@@ -488,83 +669,142 @@
           varying vec3 vWorldPos;
           varying vec3 vWaveNormal;
           varying float vHeight;
+          varying float vSteepness;
           varying float vFogDepth;
 
           void main() {
-            vec2 worldUV = vWorldPos.xz;
             vec2 relXZ = vWorldPos.xz - uHullCenter;
-            vec2 flow = uWaterFlow * uFlowSpeed;
 
-            // Normales de detalle fluyendo de proa a popa (+Z)
-            vec3 n1 = texture2D(uNormalMap, worldUV * 0.16 - flow * uTime).xyz * 2.0 - 1.0;
-            vec3 n2 = texture2D(uNormalMap, worldUV * 0.40 - flow * uTime * 1.48 + vec2(0.31, 0.73)).xyz * 2.0 - 1.0;
-            vec3 detailN = normalize(n1 + n2 * 0.75);
+            // Deflexión realista del flujo alrededor del casco (el agua se abre al rodear la proa)
+            float ellDist = length(vec2(relXZ.x / max(uHullRadiusX, 0.1), relXZ.y / max(uHullRadiusZ, 0.1)));
+            float deflect = exp(-max(ellDist - 0.85, 0.0) * 1.45);
+            vec2 flowDir = uWaterFlow;
+            vec2 deflectedUV = vWorldPos.xz + vec2(sign(relXZ.x + 0.0001) * deflect * 0.45, 0.0);
+            vec2 flow = flowDir * uFlowSpeed;
 
-            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.52, 0.0, detailN.z * 0.52));
+            // === 3 CAPAS DE NORMALES (macro + medio + micro-rizos) desde image_c713d6.png ===
+            vec2 uv1 = deflectedUV * 0.14 - flow * uTime * 0.95;
+            vec2 uv2 = deflectedUV * 0.34 - flow * uTime * 1.42 + vec2(0.37, 0.61);
+            vec2 uv3 = deflectedUV * 0.78 - vec2(flow.y * 0.22, flow.y * 1.85) * uTime + vec2(0.71, 0.19);
+
+            vec3 n1 = texture2D(uNormalMap, uv1).xyz * 2.0 - 1.0;
+            vec3 n2 = texture2D(uNormalMap, uv2).xyz * 2.0 - 1.0;
+            vec3 n3 = texture2D(uNormalMap, uv3).xyz * 2.0 - 1.0;
+            vec3 detailN = normalize(n1 * 0.95 + n2 * 0.70 + n3 * 0.42);
+
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.62, 0.0, detailN.z * 0.62));
             vec3 V = normalize(cameraPosition - vWorldPos);
+            float NdotV = max(dot(N, V), 0.001);
 
-            float fresnel = clamp(pow(1.0 - max(dot(N, V), 0.0), 2.8), 0.06, 1.0);
+            // === FRESNEL DE SCHLICK FÍSICO (F0 = 0.02 para agua) ===
+            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.6);
 
+            // Reflejo realista del domo celeste (horizonte luminoso -> cenit profundo)
+            vec3 R = reflect(-V, N);
+            float reflElev = clamp(R.y, 0.0, 1.0);
+            vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.58));
+
+            // === DOBLE ESPECULAR (destello solar nítido + brillo húmedo amplio) ===
             vec3 L = normalize(uSunDirection);
             vec3 H = normalize(L + V);
-            float spec  = pow(max(dot(N, H), 0.0), 110.0);
-            float glint = pow(max(dot(N, H), 0.0), 16.0) * 0.28;
+            float NdotH = max(dot(N, H), 0.0);
+            float sunSparkle = pow(max(NdotH, 0.0001), 240.0) * 1.9;
+            float wetSheen   = pow(max(NdotH, 0.0001), 26.0) * 0.34;
+            float rimGlint   = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 42.0) * 0.25;
 
-            // Color base azul con matiz verde turquesa y luz subsuperficial en crestas
-            float depthT = smoothstep(-0.14, 0.18, vHeight);
+            // === COLOR Y PROFUNDIDAD DEL AGUA AZUL-TURQUESA ===
+            float depthT = smoothstep(-0.14, 0.19, vHeight);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
 
-            float crestSSS = smoothstep(0.03, 0.20, vHeight) * (0.45 + 0.55 * max(dot(V, -L), 0.0));
-            waterColor = mix(waterColor, uCrestGlowColor, crestSSS * 0.42);
+            // Detalle orgánico y micro-cáusticas desde image_c713d6.png (si no es normal map)
+            float repoPattern = 0.5;
+            if (uUseDetailTex > 0.01) {
+              vec3 tA = texture2D(uWaterTex, deflectedUV * 0.22 - flow * uTime * 0.82).rgb;
+              vec3 tB = texture2D(uWaterTex, deflectedUV * 0.48 - flow * uTime * 1.25 + vec2(0.41, 0.27)).rgb;
+              vec3 texBlend = mix(tA, tB, 0.5);
+              repoPattern = dot(texBlend, vec3(0.299, 0.587, 0.114));
+              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.75, 1.08, 1.12), 0.65);
+              waterColor = mix(waterColor, tintedDetail, uUseDetailTex);
+              // Cáusticas sutiles brillantes en zonas medias
+              float caustics = smoothstep(0.58, 0.92, repoPattern) * 0.22;
+              waterColor += uCrestGlowColor * caustics;
+            } else {
+              // Si image_c713d6.png es normal map, usar su pendiente para micro-cáusticas
+              repoPattern = clamp(0.5 + (n1.x + n2.y) * 0.45, 0.0, 1.0);
+              waterColor += uCrestGlowColor * smoothstep(0.68, 0.98, repoPattern) * 0.14;
+            }
 
-            vec3 reflColor = uSkyColor * (0.68 + fresnel * 0.95);
-            vec3 col = mix(waterColor, reflColor, fresnel * 0.68);
-            col += (spec * 1.35 + glint) * vec3(0.95, 0.99, 1.0);
+            // Dispersión subsuperficial (SSS) turquesa en crestas iluminadas
+            float sssMask = smoothstep(0.02, 0.22, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
+            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.52, 0.0, 0.55));
+
+            // Oclusión oscura bajo el casco para anclar físicamente la barca al agua
+            float hullShadow = 1.0 - smoothstep(0.82, 1.28, ellDist) * 0.0;
+            float underHullDarken = smoothstep(1.25, 0.72, ellDist) * 0.48;
+            waterColor *= (1.0 - underHullDarken);
+
+            // Composición óptica base
+            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.85, 0.08, 0.88));
+            col += sunSparkle * vec3(1.0, 0.99, 0.94);
+            col += wetSheen * vec3(0.82, 0.97, 1.0);
+            col += rimGlint * vec3(0.45, 0.96, 0.92);
 
             // ============================================================
-            // ESPUMA DE IMPACTO FRONTAL (proa en -Z, flujo hacia +Z)
+            // ESPUMA REALISTA DE IMPACTO FRONTAL (proa en -Z, flujo hacia +Z)
             // ============================================================
-            vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
+            vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.03);
 
-            // 1) Choque frontal en la proa
+            // 1) Choque frontal efervescente en la proa
             float bowD = length(relXZ - bowPos);
-            float bowCrash = exp(-bowD * bowD * 2.9) * (0.84 + 0.16 * sin(uTime * 4.4)) * 1.0;
+            float bowCrash = exp(-bowD * bowD * 2.55) * (0.85 + 0.15 * sin(uTime * 4.8)) * 1.05;
 
-            // 2) Estela Kelvin en V abriéndose desde la proa hacia la popa (+Z)
+            // 2) Estela Kelvin en V (brazos laterales abriéndose hacia popa)
             float distFromBow = relXZ.y - bowPos.y;
             float bowArm = 0.0;
             if (distFromBow > 0.0) {
-              float fade = exp(-distFromBow * 0.20);
-              float armX = uHullRadiusX * 0.28 + distFromBow * 0.40;
+              float fade = exp(-distFromBow * 0.18);
+              float armX = uHullRadiusX * 0.28 + distFromBow * 0.42;
               float armDist = abs(abs(relXZ.x) - armX);
-              bowArm = exp(-armDist * armDist * 2.5) * fade * 0.88;
+              float armCore = exp(-armDist * armDist * 2.7);
+              float armOuter = exp(-armDist * armDist * 0.85) * 0.35;
+              bowArm = (armCore + armOuter) * fade * 0.88;
             }
 
-            // 3) Línea de flotación alrededor del casco
-            float ellipseDist = length(vec2(relXZ.x / uHullRadiusX, relXZ.y / uHullRadiusZ));
-            float hullContact = exp(-pow((ellipseDist - 1.0) * 5.0, 2.0)) * 0.58;
+            // 3) Menisco de flotación pegado al casco
+            float hullContact = exp(-pow((ellDist - 1.0) * 5.6, 2.0)) * 0.72;
 
-            // 4) Corrientes laterales rozando el casco (de proa a popa)
-            float sideDist = abs(abs(relXZ.x) - uHullRadiusX * 0.96);
-            float sideProx = exp(-sideDist * sideDist * 5.5);
-            float zWindow = smoothstep(-uHullRadiusZ * 1.20, -uHullRadiusZ * 0.55, relXZ.y)
-                          * smoothstep( uHullRadiusZ * 1.25,  uHullRadiusZ * 0.45, relXZ.y);
-            float streak1 = smoothstep(0.70, 0.98, fract((relXZ.y - uTime * 1.9) * 0.55));
-            float streak2 = smoothstep(0.76, 0.96, fract((relXZ.y - uTime * 2.5) * 0.32 + 0.5));
-            float streak = (streak1 * 0.45 + streak2 * 0.32) * sideProx * zWindow;
+            // 4) Estelas laterales rozando el casco (proa -> popa)
+            float sideDist = abs(abs(relXZ.x) - uHullRadiusX * 0.97);
+            float sideProx = exp(-sideDist * sideDist * 5.2);
+            float zWindow = smoothstep(-uHullRadiusZ * 1.22, -uHullRadiusZ * 0.55, relXZ.y) * smoothstep(uHullRadiusZ * 1.28, uHullRadiusZ * 0.45, relXZ.y);
+            float streak1 = smoothstep(0.68, 0.98, fract((relXZ.y - uTime * 2.0) * 0.56));
+            float streak2 = smoothstep(0.75, 0.97, fract((relXZ.y - uTime * 2.65) * 0.34 + 0.45));
+            float streak = (streak1 * 0.48 + streak2 * 0.34) * sideProx * zWindow;
 
-            // 5) Turbulencia trasera (popa)
-            float dZ = relXZ.y - uHullRadiusZ * 0.90;
+            // 5) Turbulencia espumosa tras la popa
+            float dZ = relXZ.y - uHullRadiusZ * 0.88;
             float sternChurn = 0.0;
             if (dZ > 0.0) {
-              sternChurn = exp(-relXZ.x * relXZ.x * 2.1) * exp(-dZ * 0.52) * 0.68;
+              sternChurn = exp(-relXZ.x * relXZ.x * 1.9) * exp(-dZ * 0.46) * 0.74;
             }
 
-            float totalFoam = clamp(bowCrash + bowArm + hullContact + streak + sternChurn, 0.0, 1.0);
-            float foamMask = texture2D(uFoamNoise, worldUV * 0.75 - flow * uTime * 0.85).r;
-            totalFoam *= (0.58 + 0.42 * foamMask);
+            // 6) Pequeñas crestas blancas (whitecaps) en olas empinadas
+            float whitecaps = smoothstep(0.11, 0.24, vHeight) * smoothstep(0.025, 0.11, vSteepness) * 0.55;
 
-            col = mix(col, uFoamColor, clamp(totalFoam, 0.0, 1.0));
+            // Erosión orgánica en encaje de espuma usando ruido dual + textura del repo
+            float fNoise1 = texture2D(uFoamNoise, deflectedUV * 0.65 - flow * uTime * 0.90).r;
+            float fNoise2 = texture2D(uFoamNoise, deflectedUV * 1.55 - flow * uTime * 1.35 + vec2(0.29, 0.63)).r;
+            float laceMask = mix(fNoise1 * 0.65 + fNoise2 * 0.35, repoPattern, 0.28);
+
+            float rawFoam = clamp(bowCrash + bowArm + hullContact + streak + sternChurn + whitecaps, 0.0, 1.35);
+            float erodedFoam = smoothstep(0.16, 0.78, rawFoam * (0.48 + 0.85 * laceMask));
+            // Núcleo denso en el impacto de la proa y línea del casco
+            float denseCore = clamp((bowCrash * 0.72 + hullContact * 0.45) * (0.65 + 0.35 * fNoise2), 0.0, 1.0);
+            float finalFoam = clamp(max(erodedFoam, denseCore), 0.0, 1.0);
+
+            // Iluminar ligeramente la espuma para darle volumen real
+            float foamLit = 0.84 + 0.22 * max(dot(N, L), 0.0);
+            col = mix(col, uFoamColor * foamLit, finalFoam);
 
             // Neblina ligera sincronizada con la escena
             if (uFogDensity > 0.0) {
@@ -572,12 +812,12 @@
               col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.88));
             }
 
-            // Desvanecimiento suave en bordes del plano
+            // Borde suave hacia el horizonte
             float centerDist = length(vWorldPos.xz);
-            float edgeFade = smoothstep(22.0, 16.5, centerDist);
+            float edgeFade = smoothstep(25.0, 18.0, centerDist);
 
-            float alpha = mix(0.80, 0.97, fresnel);
-            alpha = mix(alpha, 1.0, clamp(totalFoam, 0.0, 1.0));
+            float alpha = mix(0.84, 0.98, fresnel);
+            alpha = mix(alpha, 1.0, finalFoam);
             alpha *= edgeFade * uOpacity;
 
             gl_FragColor = vec4(col, alpha);
@@ -586,7 +826,7 @@
       });
 
       waterMesh = new THREE.Mesh(waterGeo, waterMat);
-      waterMesh.position.set(0, 0, 0);
+      waterMesh.position.set(0, WATER_CONFIG.levelY, 0);
       waterMesh.renderOrder = 1;
       barcaAnchorGroup.add(waterMesh);
     }
@@ -599,18 +839,18 @@
       const seeds = new Float32Array(count * 4);
 
       const palette = [
-        new THREE.Color(0xfef08a), // Dorado brillante
-        new THREE.Color(0x67e8f9), // Turquesa luminoso
-        new THREE.Color(0x5eead4), // Aguamarina
-        new THREE.Color(0xe0f2fe), // Blanco azulado
-        new THREE.Color(0xfde047)  // Luz cálida
+        new THREE.Color(0xfef08a),
+        new THREE.Color(0x67e8f9),
+        new THREE.Color(0x5eead4),
+        new THREE.Color(0xe0f2fe),
+        new THREE.Color(0xfde047)
       ];
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const radius = 1.2 + Math.pow(Math.random(), 0.75) * 14.5;
         positions[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
-        positions[i * 3 + 1] = 0.25 + Math.random() * 6.8;
+        positions[i * 3 + 1] = WATER_CONFIG.levelY + 0.25 + Math.random() * 6.8;
         positions[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
 
         const c = palette[Math.floor(Math.random() * palette.length)];
@@ -618,10 +858,10 @@
         colors[i * 3 + 1] = c.g;
         colors[i * 3 + 2] = c.b;
 
-        seeds[i * 4]     = Math.random() * Math.PI * 2; // fase pulso
-        seeds[i * 4 + 1] = 1.2 + Math.random() * 2.4;   // velocidad de pulso
-        seeds[i * 4 + 2] = 0.65 + Math.random() * 1.15; // escala base
-        seeds[i * 4 + 3] = 0.18 + Math.random() * 0.45; // velocidad de deriva vertical
+        seeds[i * 4]     = Math.random() * Math.PI * 2;
+        seeds[i * 4 + 1] = 1.2 + Math.random() * 2.4;
+        seeds[i * 4 + 2] = 0.65 + Math.random() * 1.15;
+        seeds[i * 4 + 3] = 0.18 + Math.random() * 0.45;
       }
 
       geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -634,12 +874,14 @@
         blending: THREE.AdditiveBlending,
         uniforms: {
           uTime: { value: 0 },
+          uBaseY: { value: WATER_CONFIG.levelY + 0.25 },
           uPixelRatio: { value: renderer.getPixelRatio() }
         },
         vertexShader: /* glsl */`
           attribute vec3 aColor;
           attribute vec4 aSeed;
           uniform float uTime;
+          uniform float uBaseY;
           uniform float uPixelRatio;
 
           varying vec3 vColor;
@@ -655,10 +897,10 @@
             vec3 pos = position;
             pos.x += sin(uTime * 0.45 + phase) * 0.35;
             pos.z += cos(uTime * 0.40 + phase * 1.3) * 0.35;
-            pos.y = 0.25 + mod(pos.y + uTime * driftSpeed, 7.0);
+            pos.y = uBaseY + mod(pos.y + uTime * driftSpeed, 7.0);
 
             float pulseWave = 0.5 + 0.5 * sin(uTime * pulseSpeed + phase);
-            vPulse = 0.28 + 0.72 * pow(pulseWave, 1.4);
+            vPulse = 0.28 + 0.72 * pow(max(pulseWave, 0.0001), 1.4);
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
@@ -677,7 +919,7 @@
             if (d > 0.5) discard;
 
             float core = smoothstep(0.24, 0.0, d);
-            float halo = pow(smoothstep(0.5, 0.0, d), 2.1);
+            float halo = pow(max(smoothstep(0.5, 0.0, d), 0.0001), 2.1);
             float starCross = max(0.0, 1.0 - abs(uv.x * uv.y) * 110.0) * halo * 0.55;
 
             float alpha = clamp((halo * 0.75 + core * 0.95 + starCross) * vPulse, 0.0, 1.0);
@@ -837,7 +1079,7 @@
       });
 
       leafParticles = new THREE.Points(geo, leafMaterial);
-      leafParticles.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ);
+      leafParticles.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
       leafParticles.frustumCulled = false;
       barcaAnchorGroup.add(leafParticles);
 
@@ -847,12 +1089,12 @@
         side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
       });
       magicWaveRing = new THREE.Mesh(ringGeo, ringMat);
-      magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ);
+      magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
       magicWaveRing.visible = false;
       barcaAnchorGroup.add(magicWaveRing);
 
       magicWaveLight = new THREE.PointLight(0xfde047, 0, 14);
-      magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ);
+      magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
       barcaAnchorGroup.add(magicWaveLight);
     }
 
@@ -866,7 +1108,7 @@
 
       try {
         const gltf = await new Promise((resolve, reject) => {
-          gltfLoader.load(MODELS.sculpture, resolve, (xhr) => {
+          gltfLoader.load(ASSETS.sculpture, resolve, (xhr) => {
             if (xhr.total > 0) {
               const pct = Math.round((xhr.loaded / xhr.total) * 100);
               document.getElementById('progress-bar').style.width = pct + '%';
@@ -879,16 +1121,14 @@
         sculptureRoot.scale.setScalar(SCULPTURE_CONFIG.scale);
         sculptureRoot.updateMatrixWorld(true);
 
-        // Centrar modelo en su propio origen antes de rotarlo en sculpturePivot
         const rawBox = new THREE.Box3().setFromObject(sculptureRoot);
         const rawCenter = rawBox.getCenter(new THREE.Vector3());
         const rawSize = rawBox.getSize(new THREE.Vector3());
 
-        boatSubmersion = Math.min(0.75, Math.max(0.15, rawSize.y * SCULPTURE_CONFIG.submersionRatio));
+        boatSubmersion = Math.min(0.85, Math.max(0.18, rawSize.y * SCULPTURE_CONFIG.submersionRatio));
         sculptureRoot.position.set(-rawCenter.x, -rawBox.min.y - boatSubmersion, -rawCenter.z);
         sculpturePivot.add(sculptureRoot);
 
-        // Recalcular caja orientada en espacio de mundo para ajustar espuma y colisión exacta
         boatBobbingGroup.updateMatrixWorld(true);
         const orientedBox = new THREE.Box3().setFromObject(sculpturePivot);
         const orientedSize = orientedBox.getSize(new THREE.Vector3());
@@ -901,10 +1141,9 @@
         magicWaveRing.scale.setScalar(Math.max(1.0, maxFootprint * 0.32));
         resetViewerPosition(false);
 
-        // Radios del casco ya alineados con la rotación actual (X = manga, Z = eslora)
         waterUniforms.uHullCenter.value.set(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ);
-        waterUniforms.uHullRadiusX.value = Math.max(0.7, orientedSize.x * 0.42);
-        waterUniforms.uHullRadiusZ.value = Math.max(1.0, orientedSize.z * 0.44);
+        waterUniforms.uHullRadiusX.value = Math.max(0.7, orientedSize.x * 0.43);
+        waterUniforms.uHullRadiusZ.value = Math.max(1.0, orientedSize.z * 0.45);
 
         const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
         sculptureRoot.traverse((node) => {
@@ -953,7 +1192,7 @@
       cameraRig.rotation.set(0, 0, 0);
       if (!renderer.xr.isPresenting) {
         yaw = 0; pitch = 0;
-        camera.position.set(0, 1.6, 0);
+        camera.position.set(0, 1.65, 0);
         camera.rotation.set(0, 0, 0, 'YXZ');
       }
       if (notify) showToast('Posición centrada frente a la Barca');
@@ -972,7 +1211,7 @@
       renderer.localClippingEnabled = true;
       isMaterializing = true;
       materializationT = 0;
-      clippingPlane.constant = 0.05;
+      clippingPlane.constant = WATER_CONFIG.levelY + 0.05;
       leafParticles.visible = true;
       leafMaterial.uniforms.uProgress.value = 0;
       leafMaterial.uniforms.uOpacity.value = 1.0;
@@ -1052,7 +1291,7 @@
           scene.fog = null;
           skyDome.visible = false;
           renderer.setClearColor(0x000000, 0);
-          waterUniforms.uOpacity.value = 0.62;
+          waterUniforms.uOpacity.value = 0.68;
           waterUniforms.uFogDensity.value = 0.0;
         } else {
           scene.background = new THREE.Color(SCENE_BG_HEX);
@@ -1156,31 +1395,31 @@
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
       if (glowMaterial) glowMaterial.uniforms.uTime.value = timeSec;
 
-      // Cabeceo frontal contra las olas (-Z -> +Z) aplicado al grupo exterior
+      // Cabeceo frontal contra las olas (-Z -> +Z)
       if (sculptureRoot && !isMaterializing) {
         boatBobbingGroup.position.set(
           SCULPTURE_CONFIG.positionX,
           SCULPTURE_CONFIG.positionY
-            + Math.sin(timeSec * 0.78) * 0.075
-            + Math.sin(timeSec * 1.35 + 1.1) * 0.03,
+            + Math.sin(timeSec * 0.82) * 0.08
+            + Math.sin(timeSec * 1.42 + 1.1) * 0.032,
           SCULPTURE_CONFIG.positionZ
         );
-        boatBobbingGroup.rotation.z = Math.sin(timeSec * 0.55 + 0.4) * 0.016;
-        boatBobbingGroup.rotation.x = Math.sin(timeSec * 0.82 + 0.9) * 0.016 + 0.012;
+        boatBobbingGroup.rotation.z = Math.sin(timeSec * 0.58 + 0.4) * 0.017;
+        boatBobbingGroup.rotation.x = Math.sin(timeSec * 0.86 + 0.9) * 0.018 + 0.014;
       }
 
       if (isMaterializing) {
         materializationT = Math.min(1, materializationT + dt * 0.30);
         const eased = 1 - Math.pow(1 - materializationT, 3);
-        const revealH = eased * maxRevealHeight;
+        const revealH = WATER_CONFIG.levelY + eased * maxRevealHeight;
         clippingPlane.constant = revealH;
         leafMaterial.uniforms.uTime.value = timeSec;
         leafMaterial.uniforms.uProgress.value = eased;
         leafMaterial.uniforms.uOpacity.value = 1.0;
-        magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH, maxRevealHeight * 0.85), SCULPTURE_CONFIG.positionZ);
+        magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH, WATER_CONFIG.levelY + maxRevealHeight * 0.85), SCULPTURE_CONFIG.positionZ);
         magicWaveRing.rotation.z = timeSec * 1.8;
         magicWaveRing.material.opacity = (1.0 - materializationT) * 0.85;
-        magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH + 0.3, maxRevealHeight), SCULPTURE_CONFIG.positionZ);
+        magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH + 0.3, WATER_CONFIG.levelY + maxRevealHeight), SCULPTURE_CONFIG.positionZ);
         magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 4.0;
         if (materializationT >= 1) {
           isMaterializing = false;

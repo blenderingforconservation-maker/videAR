@@ -21,18 +21,18 @@
 
   <style>
     * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: #051c1f; font-family: 'Inter', sans-serif; touch-action: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: #0b2f35; font-family: 'Inter', sans-serif; touch-action: none; }
     .font-museum { font-family: 'Cormorant Garamond', Georgia, serif; }
     #webgl-viewport { position: fixed; inset: 0; z-index: 2; cursor: grab; }
     #webgl-viewport:active { cursor: grabbing; }
     #hud-overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: none; flex-direction: column; justify-content: space-between; padding: env(safe-area-inset-top, 14px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 18px) env(safe-area-inset-left, 16px); }
     #hud-overlay.active { display: flex; }
     .interactive { pointer-events: auto; }
-    .magic-btn { background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.26), rgba(6, 31, 34, 0.92) 75%); border: 1px solid rgba(94, 234, 212, 0.42); box-shadow: 0 0 20px rgba(20, 184, 166, 0.22), inset 0 1px 1px rgba(204, 251, 241, 0.32); transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+    .magic-btn { background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.28), rgba(10, 42, 46, 0.90) 75%); border: 1px solid rgba(94, 234, 212, 0.45); box-shadow: 0 0 20px rgba(20, 184, 166, 0.22), inset 0 1px 1px rgba(204, 251, 241, 0.32); transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
     .magic-btn:active, .magic-btn.pressing { transform: scale(0.94); border-color: rgba(253, 224, 71, 0.95); box-shadow: 0 0 28px rgba(45, 212, 191, 0.50), inset 0 0 12px rgba(45, 212, 191, 0.42); }
     .magic-cta { background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 55%, #fde047 100%); box-shadow: 0 0 30px rgba(45, 212, 191, 0.50), 0 0 60px rgba(20, 184, 166, 0.24); transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .magic-cta:active { transform: scale(0.95); }
-    #toast-banner { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(6, 28, 32, 0.94); border: 1px solid rgba(94, 234, 212, 0.42); border-radius: 999px; color: #ccfbf1; font-size: 12px; font-weight: 500; letter-spacing: 0.03em; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; text-align: center; white-space: nowrap; z-index: 30; }
+    #toast-banner { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(9, 36, 40, 0.94); border: 1px solid rgba(94, 234, 212, 0.45); border-radius: 999px; color: #ccfbf1; font-size: 12px; font-weight: 500; letter-spacing: 0.03em; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; text-align: center; white-space: nowrap; z-index: 30; }
   </style>
 </head>
 <body>
@@ -51,7 +51,7 @@
       La Barca de las Grullas
     </h1>
     <p id="loading-message" class="text-xs text-slate-300 max-w-xs mb-6 leading-relaxed">
-      Sincronizando esculturas, río nocturno y entorno WebXR...
+      Sincronizando esculturas, atmósfera luminosa y entorno WebXR...
     </p>
     <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
       <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -123,7 +123,7 @@
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: POSICIÓN DE ESCULTURAS, AGUA Y LUCIÉRNAGAS
+    // 📍 ZONA EDITABLE: POSICIÓN DE ESCULTURAS, AGUA, MATERIALIZACIÓN Y LUCIÉRNAGAS
     // =========================================================================
     const SCULPTURE_CONFIG = {
       positionX: 0.0,        // Izquierda (-) / Derecha (+) en metros
@@ -137,19 +137,25 @@
     const WATER_CONFIG = {
       levelY: 0.28,          // Altura del agua en metros
       subdivisions: 224,     // Alta subdivisión de la malla de agua (224x224)
-      waveAmplitude: 1.52,   // Mayor ondulación fluvial suave y visible
-      flowSpeed: 0.22,       // Velocidad pausada de la corriente (-Z -> +Z)
-      turbulence: 1.22       // Nivel de turbulencia orgánica en superficie
+      waveAmplitude: 1.52,   // Ondulación fluvial amplia y suave
+      flowSpeed: 0.34,       // Velocidad de corriente ligeramente más viva (-Z -> +Z)
+      turbulence: 1.22       // Turbulencia orgánica en superficie
+    };
+
+    const MATERIALIZATION_CONFIG = {
+      mainDuration: 2.5,     // Segundos que tarda en materializarse la barca principal
+      fleetDuration: 2.2,    // Segundos por cada barca circundante
+      fleetMaxDelay: 1.75    // Desfase máximo entre las barcas más cercanas y lejanas
     };
 
     const FIREFLY_CONFIG = {
-      count: 195,            // Cantidad de luciérnagas volando sobre el río
-      minHeight: 0.42,       // Altura mínima sobre el nivel del agua
-      maxHeight: 5.4,        // Altura máxima de vuelo
-      spreadRadius: 21.0     // Radio de distribución alrededor de las barcas
+      count: 210,            // Cantidad de luciérnagas volando sobre el río
+      minHeight: 0.36,       // Altura mínima sobre el nivel del agua
+      maxHeight: 4.8,        // Altura máxima de vuelo
+      spreadRadius: 20.5     // Radio de distribución alrededor de las barcas
     };
 
-    // 12 barcas adicionales alrededor de la escena (ángulo en grados respecto a +Z, radio en m, escala relativa, giro extra)
+    // 12 barcas adicionales alrededor de la escena
     const SURROUNDING_BOATS_LAYOUT = [
       { angleDeg: -52,  radius: 8.8,  scaleMul: 0.84, yawOffsetDeg: -10 },
       { angleDeg:  54,  radius: 9.2,  scaleMul: 0.80, yawOffsetDeg:  12 },
@@ -172,14 +178,15 @@
       waterTexture: `${REPO_RAW_BASE}image_c713d6.png`
     };
 
-    const SCENE_BG_HEX = 0x051c1f;
-    const SCENE_FOG_HEX = 0x072629;
-    const SCENE_FOG_DENSITY = 0.017;
+    // Atmósfera luminosa crepuscular aqua-bruma (evita cielo negro y ambiente desolado)
+    const SCENE_BG_HEX = 0x0d363c;
+    const SCENE_FOG_HEX = 0x12474c;
+    const SCENE_FOG_DENSITY = 0.0155;
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
     let fleetGroup;
-    const boatControllers = []; // Contiene la barca principal + las 12 barcas para bobbing y materialización
+    const boatControllers = [];
     let waterMesh, waterUniforms, skyDome;
     let magicWaveLight;
     let firefliesMesh, firefliesMaterial;
@@ -224,12 +231,12 @@
       toastBanner.textContent = msg;
       toastBanner.style.opacity = '1';
       clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3200);
+      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3000);
     }
 
-    // Misma función de ondulación del río en CPU para sincronizar el movimiento de las 13 barcas
+    // Misma función de ondulación del río en CPU para sincronizar las 13 barcas
     function sampleRiverHeightJS(px, pz, t) {
-      const flowT = t * (0.50 + WATER_CONFIG.flowSpeed * 1.10);
+      const flowT = t * (0.64 + WATER_CONFIG.flowSpeed * 1.25);
       const amp = WATER_CONFIG.waveAmplitude;
       const turb = WATER_CONFIG.turbulence;
 
@@ -269,7 +276,7 @@
       renderer.localClippingEnabled = false;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.18;
+      renderer.toneMappingExposure = 1.28;
       container.appendChild(renderer.domElement);
 
       setupLighting();
@@ -290,7 +297,7 @@
       fleetGroup = new THREE.Group();
       barcaAnchorGroup.add(fleetGroup);
 
-      magicWaveLight = new THREE.PointLight(0xeef59b, 0, 14);
+      magicWaveLight = new THREE.PointLight(0xeef7a3, 0, 16);
       magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.5, SCULPTURE_CONFIG.positionZ);
       barcaAnchorGroup.add(magicWaveLight);
 
@@ -315,39 +322,51 @@
     }
 
     function setupLighting() {
-      scene.add(new THREE.AmbientLight(0xdff7f4, 1.25));
+      // Luz atmosférica envolvente suave para eliminar sombras duras y darle calidez mística a la escena
+      scene.add(new THREE.AmbientLight(0xd9f7f2, 1.65));
 
-      const hemi = new THREE.HemisphereLight(0xeefcf9, 0x0e5e59, 1.95);
-      hemi.position.set(0, 16, 0);
+      const hemi = new THREE.HemisphereLight(0xeefcf9, 0x1b857b, 2.45);
+      hemi.position.set(0, 18, 0);
       scene.add(hemi);
 
-      const keyDir = new THREE.DirectionalLight(0xfff4df, 2.7);
-      keyDir.position.set(6, 12, 7);
+      // Luz principal difusa de luna/atardecer crepuscular
+      const keyDir = new THREE.DirectionalLight(0xfff5e0, 2.55);
+      keyDir.position.set(6, 13, 8);
       scene.add(keyDir);
 
-      const fillDir = new THREE.DirectionalLight(0x9ee3d9, 1.5);
-      fillDir.position.set(-7, 7, 5);
+      // Luz atmosférica de relleno lateral-izquierda para levantar sombras en toda la flota
+      const fillDir = new THREE.DirectionalLight(0xaef2e8, 1.85);
+      fillDir.position.set(-9, 9, 6);
       scene.add(fillDir);
 
-      const rimDir = new THREE.DirectionalLight(0x52c4b8, 1.35);
-      rimDir.position.set(-4, 8, -9);
+      // Contraluz suave aqua-cálida
+      const rimDir = new THREE.DirectionalLight(0x6ee7d8, 1.65);
+      rimDir.position.set(-3, 9, -11);
       scene.add(rimDir);
 
-      const waterBounce = new THREE.PointLight(0x1f998c, 0.95, 13);
-      waterBounce.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.65, SCULPTURE_CONFIG.positionZ);
-      scene.add(waterBounce);
+      // Luz ambiental amplia sobre el espejo del río para suavizar el entorno de las barcas
+      const atmoGlow = new THREE.PointLight(0x4fd1c5, 2.1, 34, 1.3);
+      atmoGlow.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 5.8, SCULPTURE_CONFIG.positionZ + 2.5);
+      scene.add(atmoGlow);
+
+      const warmMistLight = new THREE.PointLight(0xf6f0b2, 1.25, 28, 1.4);
+      warmMistLight.position.set(SCULPTURE_CONFIG.positionX - 5.5, WATER_CONFIG.levelY + 4.2, SCULPTURE_CONFIG.positionZ - 6.0);
+      scene.add(warmMistLight);
     }
 
     function setupAtmosphereDome() {
-      const domeGeo = new THREE.SphereGeometry(68, 24, 16);
+      const domeGeo = new THREE.SphereGeometry(68, 28, 18);
       const domeMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
         fog: false,
         uniforms: {
-          uTopColor: { value: new THREE.Color(0x031318) },
-          uHorizonColor: { value: new THREE.Color(0x0e3f41) },
-          uBottomColor: { value: new THREE.Color(0x031d1f) }
+          uTopColor:      { value: new THREE.Color(0x0b2634) }, // Cielo crepuscular azul-petróleo
+          uMidSkyColor:   { value: new THREE.Color(0x144952) }, // Transición atmosférica aqua
+          uHorizonColor:  { value: new THREE.Color(0x287878) }, // Bruma luminosa en el horizonte
+          uMistGlowColor: { value: new THREE.Color(0x4fb3a8) }, // Halo atmosférico cálido-aqua
+          uBottomColor:   { value: new THREE.Color(0x0a3034) },
+          uMoonDir:       { value: new THREE.Vector3(-0.32, 0.24, -0.92).normalize() }
         },
         vertexShader: `
           varying vec3 vWorldPos;
@@ -359,14 +378,34 @@
         `,
         fragmentShader: `
           uniform vec3 uTopColor;
+          uniform vec3 uMidSkyColor;
           uniform vec3 uHorizonColor;
+          uniform vec3 uMistGlowColor;
           uniform vec3 uBottomColor;
+          uniform vec3 uMoonDir;
           varying vec3 vWorldPos;
+
           void main() {
-            float h = normalize(vWorldPos).y;
-            vec3 col = h >= 0.0
-              ? mix(uHorizonColor, uTopColor, pow(max(h, 0.0001), 0.52))
-              : mix(uHorizonColor, uBottomColor, pow(max(-h, 0.0001), 0.48));
+            vec3 dir = normalize(vWorldPos);
+            float h = dir.y;
+
+            vec3 col;
+            if (h >= 0.0) {
+              vec3 lower = mix(uHorizonColor, uMidSkyColor, smoothstep(0.0, 0.30, h));
+              col = mix(lower, uTopColor, smoothstep(0.22, 0.85, h));
+            } else {
+              col = mix(uHorizonColor, uBottomColor, pow(max(-h, 0.0001), 0.55));
+            }
+
+            // Banda de bruma luminosa suave en el horizonte para dar amplitud al entorno
+            float horizonBand = exp(-abs(h) * 7.5);
+            col += uMistGlowColor * horizonBand * 0.22;
+
+            // Resplandor atmosférico sutil tipo luna entre niebla al fondo
+            float moonAlign = max(dot(dir, uMoonDir), 0.0);
+            float moonHalo = pow(max(moonAlign, 0.0001), 7.0) * 0.26 + pow(max(moonAlign, 0.0001), 36.0) * 0.24;
+            col += vec3(0.76, 0.96, 0.90) * moonHalo;
+
             gl_FragColor = vec4(col, 1.0);
           }
         `
@@ -567,13 +606,14 @@
         uWaterTex:          { value: foamNoiseTex },
         uFoamNoise:         { value: foamNoiseTex },
         uUseDetailTex:      { value: 0.0 },
-        uSunDirection:      { value: new THREE.Vector3(6, 12, 7).normalize() },
-        uSkyZenithColor:    { value: new THREE.Color(0x062026) },
-        uSkyHorizonColor:   { value: new THREE.Color(0x1f6b66) }, // Reflejo celeste suave, no metálico
-        uWaterDeepColor:    { value: new THREE.Color(0x042527) }, // Verde aqua profundo natural
-        uWaterShallowColor: { value: new THREE.Color(0x0d6b63) }, // Verde aqua sedoso sin sobresaturar
-        uCrestGlowColor:    { value: new THREE.Color(0x1c9687) }, // Luz subsuperficial contenida
-        uFoamColor:         { value: new THREE.Color(0xb4d6d1) }, // Espuma suave mate
+        uSunDirection:      { value: new THREE.Vector3(6, 13, 8).normalize() },
+        uSkyZenithColor:    { value: new THREE.Color(0x11404a) },
+        uSkyHorizonColor:   { value: new THREE.Color(0x32968e) }, // Reflejo atmosférico suave, sin brillo metálico
+        uWaterDeepColor:    { value: new THREE.Color(0x0b4547) }, // Verde aqua profundo levantado (sin zonas negras)
+        uWaterShallowColor: { value: new THREE.Color(0x188f84) }, // Verde aqua fluvial luminoso y sedoso
+        uCrestGlowColor:    { value: new THREE.Color(0x33bfa9) }, // Luz subsuperficial suave en crestas
+        uAtmoAmbientColor:  { value: new THREE.Color(0x1d706b) }, // Relleno atmosférico en valles del agua
+        uFoamColor:         { value: new THREE.Color(0xc4e3de) }, // Espuma suave natural
         uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
         uFogDensity:        { value: SCENE_FOG_DENSITY },
         uHullCenter:        { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
@@ -624,17 +664,15 @@
             return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
           }
 
-          // Mayor ondulación fluvial suave + turbulencia celular orgánica (sincronizada con CPU)
+          // Ondulación fluvial suave + turbulencia orgánica (sincronizada con CPU)
           vec3 sampleRiverSurface(vec2 p, float t) {
             vec3 disp = vec3(0.0);
-            float flowT = t * (0.50 + uFlowSpeed * 1.10);
+            float flowT = t * (0.64 + uFlowSpeed * 1.25);
 
-            // Ondulación principal amplia del cauce
             float ph0 = p.y * 0.42 - flowT * 0.78 + p.x * 0.16;
             disp.y += sin(ph0) * 0.068;
             disp.z += cos(ph0) * 0.026;
 
-            // Ondas cruzadas orgánicas
             float ph1 = p.y * 0.76 - flowT * 1.05 + p.x * 0.28;
             float ph2 = p.x * 0.64 + p.y * 0.92 - flowT * 1.28;
             float ph3 = -p.x * 0.78 + p.y * 1.12 - flowT * 1.42;
@@ -653,19 +691,17 @@
             disp.y += sin(ph4) * 0.018 * uTurbulence;
             disp.y += cos(ph5) * 0.015 * uTurbulence;
 
-            // Turbulencia celular multi-escala en malla 224x224
-            vec2 eddyUV1 = vec2(p.x * 0.54, p.y * 0.54 - flowT * 0.38);
-            vec2 eddyUV2 = vec2(p.x * 1.16 + 4.3, p.y * 1.16 - flowT * 0.62);
+            vec2 eddyUV1 = vec2(p.x * 0.54, p.y * 0.54 - flowT * 0.44);
+            vec2 eddyUV2 = vec2(p.x * 1.16 + 4.3, p.y * 1.16 - flowT * 0.70);
             float n1 = valueNoise(eddyUV1) - 0.5;
             float n2 = valueNoise(eddyUV2) - 0.5;
             disp.y += (n1 * 0.064 + n2 * 0.028) * uTurbulence;
 
             disp *= uWaveAmp;
 
-            // Interacción sutil con el casco central
             vec2 rel = p - uHullCenter;
             float bowZ = -uHullRadiusZ * 1.04;
-            float bowPulse = 0.92 + 0.08 * sin(t * 2.2 + rel.x * 1.4);
+            float bowPulse = 0.92 + 0.08 * sin(t * 2.5 + rel.x * 1.4);
             float bowRipple = exp(-pow(rel.y - bowZ, 2.0) * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.055 * bowPulse;
             disp.y += bowRipple;
 
@@ -717,6 +753,7 @@
           uniform vec3 uWaterDeepColor;
           uniform vec3 uWaterShallowColor;
           uniform vec3 uCrestGlowColor;
+          uniform vec3 uAtmoAmbientColor;
           uniform vec3 uFoamColor;
           uniform vec3 uFogColor;
           uniform float uFogDensity;
@@ -774,81 +811,76 @@
             vec2 flow = uWaterFlow * uFlowSpeed;
             float tFlow = uTime * uFlowSpeed;
 
-            // Distorsión turbulenta suave para romper cualquier patrón lineal
             vec2 warp = vec2(
-              fbmTurbulence(basePos * 0.32 - vec2(0.0, tFlow * 0.60)) - 0.5,
-              fbmTurbulence(basePos * 0.32 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.54)) - 0.5
+              fbmTurbulence(basePos * 0.32 - vec2(0.0, tFlow * 0.65)) - 0.5,
+              fbmTurbulence(basePos * 0.32 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.58)) - 0.5
             ) * 0.72 * uTurbulence;
             vec2 turbPos = basePos + warp;
 
-            // 3 capas de normales rotadas (textura orgánica, sin rayas continuas)
             mat2 rotA = mat2( 0.94, -0.34,  0.34,  0.94);
             mat2 rotB = mat2( 0.92,  0.39, -0.39,  0.92);
 
-            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.78;
-            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.08 + vec2(0.37, 0.61);
-            vec2 uv3 = (rotB * turbPos) * 0.90 - (rotB * flow) * uTime * 1.42 + vec2(0.71, 0.19);
+            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.82;
+            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.14 + vec2(0.37, 0.61);
+            vec2 uv3 = (rotB * turbPos) * 0.90 - (rotB * flow) * uTime * 1.48 + vec2(0.71, 0.19);
 
             vec3 n1 = texture2D(uNormalMap, uv1).xyz * 2.0 - 1.0;
             vec3 n2 = texture2D(uNormalMap, uv2).xyz * 2.0 - 1.0;
             vec3 n3 = texture2D(uNormalMap, uv3).xyz * 2.0 - 1.0;
             vec3 detailN = normalize(n1 * 0.85 + n2 * 0.72 + n3 * 0.52);
 
-            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.56, 0.0, detailN.z * 0.56));
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.54, 0.0, detailN.z * 0.54));
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
-            // === FRESNEL CONTENIDO (aspecto acuático orgánico, NO metálico) ===
+            // Fresnel suave (sin aspecto espejo/metálico)
             float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.8);
 
             vec3 R = reflect(-V, N);
             float reflElev = clamp(R.y, 0.0, 1.0);
             vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.62));
 
-            // === ILUMINACIÓN DIFUSA Y ESPECULAR SUAVE (sin destellos metálicos) ===
+            // Iluminación difusa envolvente (evita sombras oscuras en los valles del agua)
             vec3 L = normalize(uSunDirection);
-            float NdotL = max(dot(N, L), 0.0);
+            float wrapDiffuse = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
             vec3 H = normalize(L + V);
             float NdotH = max(dot(N, H), 0.0);
 
-            float softSparkle = pow(max(NdotH, 0.0001), 95.0) * 0.26;
-            float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.08;
-            float rimGlint    = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 32.0) * 0.05;
+            float softSparkle = pow(max(NdotH, 0.0001), 90.0) * 0.22;
+            float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.07;
 
-            // === COLOR VERDE AQUA PROFUNDO Y SEDOSO ===
-            float eddyTone = fbmTurbulence(turbPos * 0.50 - vec2(0.0, tFlow * 0.88));
-            float depthT = clamp(smoothstep(-0.18, 0.20, vHeight) * 0.66 + eddyTone * 0.34, 0.0, 1.0);
+            // Color verde aqua luminoso y uniforme con relleno atmosférico suave
+            float eddyTone = fbmTurbulence(turbPos * 0.50 - vec2(0.0, tFlow * 0.92));
+            float depthT = clamp(smoothstep(-0.20, 0.22, vHeight) * 0.60 + eddyTone * 0.40, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
 
-            // Sombreado difuso sutil para dar volumen real a las ondulaciones sin brillar como metal
-            waterColor *= (0.76 + 0.34 * NdotL);
+            // Relleno atmosférico que elimina sombras pesadas en la superficie del agua
+            waterColor = waterColor * (0.88 + 0.20 * wrapDiffuse) + uAtmoAmbientColor * 0.16;
 
             if (uUseDetailTex > 0.01) {
-              vec3 tA = texture2D(uWaterTex, turbPos * 0.25 - flow * uTime * 0.70).rgb;
-              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.50 - (rotA * flow) * uTime * 1.00 + vec2(0.41, 0.27)).rgb;
+              vec3 tA = texture2D(uWaterTex, turbPos * 0.25 - flow * uTime * 0.74).rgb;
+              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.50 - (rotA * flow) * uTime * 1.06 + vec2(0.41, 0.27)).rgb;
               vec3 texBlend = mix(tA, tB, 0.5);
-              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.48, 0.94, 0.86), 0.48);
+              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.55, 1.02, 0.94), 0.46);
               waterColor = mix(waterColor, tintedDetail, uUseDetailTex);
             }
 
-            // Dispersión subsuperficial (SSS) suave en las crestas altas
-            float sssMask = smoothstep(0.05, 0.24, vHeight) * (0.35 + 0.65 * pow(max(dot(V, -L), 0.0001), 2.0));
-            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.32, 0.0, 0.34));
+            // Dispersión subsuperficial suave en crestas
+            float sssMask = smoothstep(0.04, 0.24, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
+            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.30, 0.0, 0.32));
 
-            // Oclusión natural bajo el casco
-            float underHullDarken = smoothstep(1.20, 0.70, ellDist) * 0.44;
+            // Oclusión muy ligera bajo el casco (sin mancha negra dura)
+            float underHullDarken = smoothstep(1.18, 0.70, ellDist) * 0.22;
             waterColor *= (1.0 - underHullDarken);
 
-            // Mezcla de reflexión reducida para eliminar efecto espejo/metálico
-            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.38, 0.03, 0.40));
-            col += softSparkle * vec3(0.86, 0.94, 0.90);
-            col += softSheen * vec3(0.55, 0.82, 0.78);
-            col += rimGlint * vec3(0.32, 0.76, 0.70);
+            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.34, 0.04, 0.36));
+            col += softSparkle * vec3(0.86, 0.95, 0.92);
+            col += softSheen * vec3(0.56, 0.84, 0.80);
 
-            // === ESPUMA MUY DISCRETA Y ORGÁNICA (sin silueta brillante) ===
+            // Espuma muy discreta y orgánica
             vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
             float bowD = length(relXZ - bowPos);
-            float bowSplash = exp(-bowD * bowD * 3.6) * 0.36;
+            float bowSplash = exp(-bowD * bowD * 3.6) * 0.34;
 
             float distFromBow = relXZ.y - bowPos.y;
             float bowArm = 0.0;
@@ -856,27 +888,27 @@
               float fade = exp(-distFromBow * 0.26);
               float armX = uHullRadiusX * 0.34 + distFromBow * 0.34;
               float armDist = abs(abs(relXZ.x) - armX);
-              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.26;
+              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.24;
             }
 
-            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.22;
+            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.20;
 
             float dZ = relXZ.y - uHullRadiusZ * 0.88;
             float sternChurn = 0.0;
             if (dZ > 0.0) {
-              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.24;
+              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.22;
             }
 
-            float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.24;
+            float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.22;
 
-            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.54 - flow * uTime * 0.85).r;
-            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.32 - (rotB * flow) * uTime * 1.25 + vec2(0.29, 0.63)).r;
+            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.54 - flow * uTime * 0.88).r;
+            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.32 - (rotB * flow) * uTime * 1.28 + vec2(0.29, 0.63)).r;
             float organicBreakup = fNoise1 * 0.52 + fNoise2 * 0.48;
 
-            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.85);
-            float finalFoam = smoothstep(0.26, 0.82, rawFoam * (0.35 + 1.02 * organicBreakup)) * 0.45;
+            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.82);
+            float finalFoam = smoothstep(0.26, 0.82, rawFoam * (0.35 + 1.02 * organicBreakup)) * 0.42;
 
-            float foamLit = 0.72 + 0.18 * NdotL;
+            float foamLit = 0.82 + 0.14 * wrapDiffuse;
             col = mix(col, uFoamColor * foamLit, finalFoam);
 
             if (uFogDensity > 0.0) {
@@ -887,7 +919,7 @@
             float centerDist = length(vWorldPos.xz);
             float edgeFade = smoothstep(28.0, 20.5, centerDist);
 
-            float alpha = mix(0.88, 0.96, fresnel * 0.5);
+            float alpha = mix(0.89, 0.96, fresnel * 0.5);
             alpha = mix(alpha, 0.98, finalFoam);
             alpha *= edgeFade * uOpacity;
 
@@ -903,7 +935,7 @@
     }
 
     // =========================================================================
-    // 🪲 LUCIÉRNAGAS CON VUELO ORGÁNICO Y BIOLUMINISCENCIA REALISTA
+    // 🪲 LUCIÉRNAGAS MÁS GRANDES CON VUELO ORGÁNICO Y PULSACIONES SUAVES
     // =========================================================================
     function setupOrganicFireflies() {
       const count = FIREFLY_CONFIG.count;
@@ -911,23 +943,22 @@
       const origins = new Float32Array(count * 3);
       const colors = new Float32Array(count * 3);
       const flightA = new Float32Array(count * 4); // phaseX, phaseY, phaseZ, wanderRadius
-      const flightB = new Float32Array(count * 4); // speed, blinkPeriod, blinkPhase, sizeScale
+      const flightB = new Float32Array(count * 4); // speed, pulseSpeed, pulsePhase, sizeScale
 
-      // Tonos bioluminiscentes naturales de luciérnaga (verde-lima cálido a amarillo dorado)
       const palette = [
-        new THREE.Color(0xcff868),
         new THREE.Color(0xd9f99d),
+        new THREE.Color(0xcff868),
         new THREE.Color(0xbef264),
-        new THREE.Color(0xf4e869),
+        new THREE.Color(0xfef08a),
         new THREE.Color(0xfde047)
       ];
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 1.4 + Math.pow(Math.random(), 0.72) * FIREFLY_CONFIG.spreadRadius;
+        const radius = 1.1 + Math.pow(Math.random(), 0.78) * FIREFLY_CONFIG.spreadRadius;
         origins[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
         origins[i * 3 + 1] = WATER_CONFIG.levelY + FIREFLY_CONFIG.minHeight
-                           + Math.pow(Math.random(), 1.35) * (FIREFLY_CONFIG.maxHeight - FIREFLY_CONFIG.minHeight);
+                           + Math.pow(Math.random(), 1.25) * (FIREFLY_CONFIG.maxHeight - FIREFLY_CONFIG.minHeight);
         origins[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
 
         const c = palette[Math.floor(Math.random() * palette.length)];
@@ -938,12 +969,12 @@
         flightA[i * 4]     = Math.random() * Math.PI * 2;
         flightA[i * 4 + 1] = Math.random() * Math.PI * 2;
         flightA[i * 4 + 2] = Math.random() * Math.PI * 2;
-        flightA[i * 4 + 3] = 0.75 + Math.random() * 1.95; // Radio de merodeo orgánico
+        flightA[i * 4 + 3] = 0.75 + Math.random() * 1.85;
 
-        flightB[i * 4]     = 0.22 + Math.random() * 0.34; // Velocidad de vuelo suave
-        flightB[i * 4 + 1] = 3.8 + Math.random() * 5.2;   // Periodo entre destellos (3.8s - 9s)
-        flightB[i * 4 + 2] = Math.random() * 9.0;         // Desfase de destello individual
-        flightB[i * 4 + 3] = 0.72 + Math.random() * 0.68; // Tamaño natural variado
+        flightB[i * 4]     = 0.24 + Math.random() * 0.34; // Velocidad de vuelo suave
+        flightB[i * 4 + 1] = 0.75 + Math.random() * 0.95; // Frecuencia de pulsación suave
+        flightB[i * 4 + 2] = Math.random() * Math.PI * 2; // Desfase individual de pulso
+        flightB[i * 4 + 3] = 1.05 + Math.random() * 0.95; // Mayor tamaño visible
       }
 
       geo.setAttribute('position', new THREE.BufferAttribute(origins, 3));
@@ -981,39 +1012,34 @@
             float wanderR = aFlightA.w;
 
             float spd = aFlightB.x;
-            float blinkPeriod = aFlightB.y;
-            float blinkOffset = aFlightB.z;
+            float pulseSpeed = aFlightB.y;
+            float pulsePhase = aFlightB.z;
             float sizeScale = aFlightB.w;
 
             float t = uTime * spd;
 
-            // Trayectoria curva orgánica (armónicos irracionales que evitan bucles mecánicos)
+            // Vuelo curvo orgánico con armónicos suaves
             vec3 offset;
             offset.x = (sin(t * 1.00 + pX) * 0.62 + sin(t * 2.13 + pZ * 1.4) * 0.28 + cos(t * 0.47 + pY) * 0.35) * wanderR;
             offset.z = (cos(t * 0.89 + pZ) * 0.62 + sin(t * 1.91 + pX * 1.3) * 0.28 + sin(t * 0.53 + pY) * 0.35) * wanderR;
             offset.y = (sin(t * 1.27 + pY) * 0.45 + cos(t * 2.61 + pX) * 0.18 + sin(t * 0.61 + pZ) * 0.22) * (wanderR * 0.42);
-
-            // Micro-aleteo sutil
-            offset.y += sin(uTime * 5.8 + pX * 3.0) * 0.025;
+            offset.y += sin(uTime * 5.2 + pX * 3.0) * 0.025;
 
             vec3 pos = position + offset;
             pos.y = max(pos.y, uMinY);
 
-            // Ciclo de destello bioluminiscente realista: pausa oscura -> encendido rápido -> caída suave
-            float cyclePos = fract((uTime + blinkOffset) / blinkPeriod);
-            float rise = smoothstep(0.04, 0.13, cyclePos);
-            float fall = 1.0 - smoothstep(0.16, 0.36, cyclePos);
-            float mainFlash = rise * fall;
-
-            // Leve doble titileo natural en algunas luciérnagas
-            float flutter = 0.88 + 0.12 * sin(uTime * 11.0 + pZ * 5.0);
-            vGlow = clamp(mainFlash * flutter, 0.0, 1.0);
+            // Pulsación suave y continua tipo respiración orgánica (sin apagados bruscos)
+            float waveA = 0.5 + 0.5 * sin(uTime * pulseSpeed + pulsePhase);
+            float waveB = 0.5 + 0.5 * sin(uTime * (pulseSpeed * 0.47) + pulsePhase * 1.7);
+            float breath = pow(max(waveA, 0.0001), 1.65) * (0.55 + 0.45 * waveB);
+            vGlow = 0.14 + 0.86 * breath;
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
 
-            float baseSize = (11.0 + 21.0 * pow(max(vGlow, 0.0001), 0.7)) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 34.0);
+            // Mayor tamaño con dilatación suave en cada pulsación
+            float baseSize = (24.0 + 30.0 * vGlow) * sizeScale;
+            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 56.0);
           }
         `,
         fragmentShader: /* glsl */`
@@ -1021,19 +1047,17 @@
           varying float vGlow;
 
           void main() {
-            if (vGlow < 0.015) discard;
-
             vec2 uv = gl_PointCoord - vec2(0.5);
             float d = length(uv);
             if (d > 0.5) discard;
 
-            // Núcleo biológico cálido + aura suave atmosférica (sin destellos en cruz artificiales)
-            float core = smoothstep(0.14, 0.0, d);
-            float innerHalo = exp(-d * 7.5);
-            float outerMist = smoothstep(0.5, 0.0, d) * 0.26;
+            // Núcleo bioluminiscente cálido + halo blando y amplio
+            float core = smoothstep(0.17, 0.0, d);
+            float innerHalo = exp(-d * 5.6);
+            float outerMist = smoothstep(0.5, 0.0, d) * 0.36;
 
-            float alpha = clamp((core * 0.95 + innerHalo * 0.72 + outerMist) * vGlow, 0.0, 1.0);
-            vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.90), core * 0.78) * (0.95 + vGlow * 0.65);
+            float alpha = clamp((core * 0.95 + innerHalo * 0.78 + outerMist) * vGlow, 0.0, 1.0);
+            vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.92), core * 0.75) * (0.95 + vGlow * 0.60);
 
             gl_FragColor = vec4(finalCol, alpha);
           }
@@ -1047,7 +1071,7 @@
     }
 
     // =========================================================================
-    // ✨ MUESTREO DE SUPERFICIE 3D Y MATERIALIZACIÓN GRADUAL CON PARTÍCULAS
+    // ✨ MUESTREO 3D Y MATERIALIZACIÓN ÁGIL CON PARTÍCULAS SOBRE LAS ESCULTURAS
     // =========================================================================
     function buildSurfaceParticleGeometry(sourceRoot, referenceParent, particleCount) {
       referenceParent.updateMatrixWorld(true);
@@ -1118,7 +1142,7 @@
 
       const positions = new Float32Array(particleCount * 3);
       const scatterDirs = new Float32Array(particleCount * 3);
-      const meta = new Float32Array(particleCount * 4); // normY, phase, sizeScale, colorMix
+      const meta = new Float32Array(particleCount * 4);
 
       const pickTriangle = (targetArea) => {
         let lo = 0, hi = triangles.length - 1;
@@ -1150,16 +1174,15 @@
         positions[i * 3 + 1] = py;
         positions[i * 3 + 2] = pz;
 
-        // Dirección orgánica de dispersión hacia afuera + ligero ascenso
         const theta = Math.random() * Math.PI * 2;
-        const horiz = 0.55 + Math.random() * 1.15;
+        const horiz = 0.55 + Math.random() * 1.10;
         scatterDirs[i * 3]     = Math.cos(theta) * horiz;
-        scatterDirs[i * 3 + 1] = (Math.random() - 0.30) * 0.95;
+        scatterDirs[i * 3 + 1] = (Math.random() - 0.30) * 0.90;
         scatterDirs[i * 3 + 2] = Math.sin(theta) * horiz;
 
         meta[i * 4]     = THREE.MathUtils.clamp((py - minY) / heightSpan, 0, 1);
         meta[i * 4 + 1] = Math.random() * Math.PI * 2;
-        meta[i * 4 + 2] = 0.65 + Math.random() * 0.95;
+        meta[i * 4 + 2] = 0.78 + Math.random() * 0.95;
         meta[i * 4 + 3] = Math.random();
       }
 
@@ -1179,8 +1202,8 @@
           uTime: { value: 0 },
           uProgress: { value: 0 },
           uPixelRatio: { value: renderer.getPixelRatio() },
-          uColorA: { value: new THREE.Color(0x7af0dc) }, // Aqua bruma sutil
-          uColorB: { value: new THREE.Color(0xeef59b) }  // Dorado luciérnaga al solidificarse
+          uColorA: { value: new THREE.Color(0x7af5df) },
+          uColorB: { value: new THREE.Color(0xf4f99b) }
         },
         vertexShader: /* glsl */`
           attribute vec3 aScatter;
@@ -1200,39 +1223,35 @@
             float sizeScale = aMeta.z;
             vColorMix = aMeta.w;
 
-            // El frente de materialización recorre la altura de la escultura (de 0 a 1)
             float wavePos = uProgress * 1.24 - 0.10;
             float dist = normY - wavePos;
 
-            // Estado 1: aún por materializar (dist > 0) -> las partículas convergen suavemente hacia la silueta
             float approach = smoothstep(0.42, 0.0, dist);
-            // Estado 2: recién materializado (dist < 0) -> las partículas se disipan suavemente tras el borde sólido
             float afterFade = smoothstep(-0.14, 0.02, dist);
 
-            // Fuerza de dispersión: lejos del frente están abiertas en remolino; al llegar al frente se fijan a la escultura
-            float scatterAmt = clamp(max(dist, 0.0) * 2.2, 0.0, 1.0);
-            float swirlAngle = uTime * 1.4 + phase + scatterAmt * 2.4;
+            // Movimiento más ágil y energético de las partículas al condensarse
+            float scatterAmt = clamp(max(dist, 0.0) * 2.1, 0.0, 1.0);
+            float swirlAngle = uTime * 3.2 + phase + scatterAmt * 2.8;
             vec3 swirlOffset = vec3(
-              cos(swirlAngle) * 0.24,
-              sin(uTime * 1.1 + phase) * 0.14,
-              sin(swirlAngle) * 0.24
+              cos(swirlAngle) * 0.25,
+              sin(uTime * 2.6 + phase) * 0.14,
+              sin(swirlAngle) * 0.25
             ) * scatterAmt;
 
-            vec3 pos = position + aScatter * (scatterAmt * scatterAmt * 1.15) + swirlOffset;
+            vec3 pos = position + aScatter * (scatterAmt * scatterAmt * 1.12) + swirlOffset;
 
-            // Destello de condensación justo en el borde donde aparece la piedra/escultura
-            float edgeBand = exp(-dist * dist * 135.0);
-            vHeat = clamp(edgeBand * 1.25, 0.0, 1.0);
+            float edgeBand = exp(-dist * dist * 125.0);
+            vHeat = clamp(edgeBand * 1.35, 0.0, 1.0);
 
-            float twinkle = 0.65 + 0.35 * sin(uTime * 6.5 + phase * 3.0);
-            float envelope = smoothstep(0.0, 0.06, uProgress) * (1.0 - smoothstep(0.92, 1.0, uProgress));
-            vAlpha = clamp((approach * afterFade * 0.72 + edgeBand * 0.95) * twinkle * envelope, 0.0, 1.0);
+            float twinkle = 0.68 + 0.32 * sin(uTime * 11.5 + phase * 3.0);
+            float envelope = smoothstep(0.0, 0.05, uProgress) * (1.0 - smoothstep(0.92, 1.0, uProgress));
+            vAlpha = clamp((approach * afterFade * 0.78 + edgeBand * 0.98) * twinkle * envelope, 0.0, 1.0);
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
 
-            float baseSize = (10.0 + 13.0 * vHeat) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.0, 26.0);
+            float baseSize = (13.0 + 16.0 * vHeat) * sizeScale;
+            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 32.0);
           }
         `,
         fragmentShader: /* glsl */`
@@ -1250,13 +1269,13 @@
             float d = length(uv);
             if (d > 0.5) discard;
 
-            float core = smoothstep(0.18, 0.0, d);
-            float halo = exp(-d * 6.2);
+            float core = smoothstep(0.19, 0.0, d);
+            float halo = exp(-d * 5.8);
 
             vec3 baseCol = mix(uColorA, uColorB, clamp(vColorMix * 0.55 + vHeat * 0.65, 0.0, 1.0));
-            vec3 finalCol = mix(baseCol, vec3(1.0, 0.99, 0.92), core * (0.45 + vHeat * 0.45));
+            vec3 finalCol = mix(baseCol, vec3(1.0, 0.99, 0.92), core * (0.48 + vHeat * 0.45));
 
-            gl_FragColor = vec4(finalCol, clamp((core * 0.9 + halo * 0.65) * vAlpha, 0.0, 1.0));
+            gl_FragColor = vec4(finalCol, clamp((core * 0.92 + halo * 0.68) * vAlpha, 0.0, 1.0));
           }
         `
       });
@@ -1305,7 +1324,6 @@
         fleetGroup.remove(fleetGroup.children[0]);
       }
 
-      // Muestrear puntos exactos sobre la superficie de la escultura (alta densidad para la principal, ligera para las 12 barcas)
       const mainParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 1750);
       const fleetParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 460);
 
@@ -1331,11 +1349,11 @@
         particles: mainParticles,
         particleMat: mainParticleMat,
         delay: 0.0,
-        duration: 6.2,
+        duration: MATERIALIZATION_CONFIG.mainDuration,
         done: false
       });
 
-      // 2) 12 Barcas adicionales con materialización escalonada y progresiva
+      // 2) 12 Barcas adicionales con materialización ágil y escalonada
       SURROUNDING_BOATS_LAYOUT.forEach((cfg, idx) => {
         const rad = THREE.MathUtils.degToRad(cfg.angleDeg);
         const bx = SCULPTURE_CONFIG.positionX + Math.sin(rad) * cfg.radius;
@@ -1364,9 +1382,8 @@
         bobGroup.add(pivot);
         fleetGroup.add(bobGroup);
 
-        // Desfase suave desde las barcas más cercanas hacia las más lejanas
         const radialNorm = THREE.MathUtils.clamp((cfg.radius - 8.5) / 11.0, 0, 1);
-        const staggerDelay = 1.15 + radialNorm * 3.8 + (idx % 3) * 0.45;
+        const staggerDelay = 0.32 + radialNorm * MATERIALIZATION_CONFIG.fleetMaxDelay + (idx % 3) * 0.14;
 
         boatControllers.push({
           isMain: false,
@@ -1380,7 +1397,7 @@
           particles: pPoints,
           particleMat: pMat,
           delay: staggerDelay,
-          duration: 5.4,
+          duration: MATERIALIZATION_CONFIG.fleetDuration,
           done: false
         });
       });
@@ -1432,7 +1449,6 @@
         const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
         sculptureRoot.traverse((node) => { node.frustumCulled = false; });
 
-        // Construir la barca principal + 12 barcas con sistemas de partículas de materialización
         buildFleetAndMaterializers(sculptureRoot, maxAniso);
 
         dracoLoader.dispose();
@@ -1498,7 +1514,7 @@
         b.particles.visible = true;
       }
 
-      magicWaveLight.intensity = 2.6;
+      magicWaveLight.intensity = 2.8;
       if (!renderer.xr.isPresenting) showToast('✨ Materializando las barcas sobre el río...');
     }
 
@@ -1675,9 +1691,9 @@
       const slopeZ = (hFront - hCenter) / sampleSpan;
 
       group.position.set(
-        bx + Math.sin(timeSec * 0.38 + phaseOffset) * 0.04,
-        by + hCenter * 0.72 + Math.sin(timeSec * 0.72 + phaseOffset) * 0.02,
-        bz + Math.cos(timeSec * 0.34 + phaseOffset) * 0.04
+        bx + Math.sin(timeSec * 0.44 + phaseOffset) * 0.04,
+        by + hCenter * 0.72 + Math.sin(timeSec * 0.82 + phaseOffset) * 0.02,
+        bz + Math.cos(timeSec * 0.38 + phaseOffset) * 0.04
       );
       group.rotation.z = THREE.MathUtils.clamp(-slopeX * 0.28, -0.075, 0.075);
       group.rotation.x = THREE.MathUtils.clamp(slopeZ * 0.28, -0.075, 0.075);
@@ -1694,13 +1710,11 @@
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
       if (firefliesMaterial) firefliesMaterial.uniforms.uTime.value = timeSec;
 
-      // Movimiento oscilatorio sincronizado con la mayor ondulación del río para las 13 barcas
       for (let i = 0; i < boatControllers.length; i++) {
         const b = boatControllers[i];
         applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
       }
 
-      // Materialización progresiva y escalonada con partículas sobre todas las esculturas
       if (isMaterializing) {
         materializationElapsed += dt;
         let allDone = true;
@@ -1728,7 +1742,6 @@
           }
 
           allDone = false;
-          // Curva suave (smoothstep cúbico) para que emerja poco a poco
           const eased = localT * localT * (3.0 - 2.0 * localT);
           const worldMinY = b.group.position.y + localBoundsMinY * b.scaleMul;
           const worldMaxY = b.group.position.y + (localBoundsMaxY + 0.18) * b.scaleMul;
@@ -1740,7 +1753,7 @@
 
           if (b.isMain) {
             magicWaveLight.position.set(b.group.position.x, currentRevealY, b.group.position.z);
-            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.6;
+            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.8;
           }
         }
 

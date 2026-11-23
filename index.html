@@ -21,18 +21,18 @@
 
   <style>
     * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: #062124; font-family: 'Inter', sans-serif; touch-action: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: #051c1f; font-family: 'Inter', sans-serif; touch-action: none; }
     .font-museum { font-family: 'Cormorant Garamond', Georgia, serif; }
     #webgl-viewport { position: fixed; inset: 0; z-index: 2; cursor: grab; }
     #webgl-viewport:active { cursor: grabbing; }
     #hud-overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: none; flex-direction: column; justify-content: space-between; padding: env(safe-area-inset-top, 14px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 18px) env(safe-area-inset-left, 16px); }
     #hud-overlay.active { display: flex; }
     .interactive { pointer-events: auto; }
-    .magic-btn { background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.28), rgba(6, 33, 36, 0.92) 75%); border: 1px solid rgba(94, 234, 212, 0.45); box-shadow: 0 0 20px rgba(20, 184, 166, 0.25), inset 0 1px 1px rgba(204, 251, 241, 0.35); transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
-    .magic-btn:active, .magic-btn.pressing { transform: scale(0.94); border-color: rgba(253, 224, 71, 0.95); box-shadow: 0 0 28px rgba(45, 212, 191, 0.55), inset 0 0 12px rgba(45, 212, 191, 0.45); }
-    .magic-cta { background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 55%, #fde047 100%); box-shadow: 0 0 30px rgba(45, 212, 191, 0.55), 0 0 60px rgba(20, 184, 166, 0.28); transition: transform 0.15s ease, box-shadow 0.2s ease; }
+    .magic-btn { background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.26), rgba(6, 31, 34, 0.92) 75%); border: 1px solid rgba(94, 234, 212, 0.42); box-shadow: 0 0 20px rgba(20, 184, 166, 0.22), inset 0 1px 1px rgba(204, 251, 241, 0.32); transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+    .magic-btn:active, .magic-btn.pressing { transform: scale(0.94); border-color: rgba(253, 224, 71, 0.95); box-shadow: 0 0 28px rgba(45, 212, 191, 0.50), inset 0 0 12px rgba(45, 212, 191, 0.42); }
+    .magic-cta { background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 55%, #fde047 100%); box-shadow: 0 0 30px rgba(45, 212, 191, 0.50), 0 0 60px rgba(20, 184, 166, 0.24); transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .magic-cta:active { transform: scale(0.95); }
-    #toast-banner { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(6, 30, 34, 0.94); border: 1px solid rgba(94, 234, 212, 0.45); border-radius: 999px; color: #ccfbf1; font-size: 12px; font-weight: 500; letter-spacing: 0.03em; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; text-align: center; white-space: nowrap; z-index: 30; }
+    #toast-banner { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(6, 28, 32, 0.94); border: 1px solid rgba(94, 234, 212, 0.42); border-radius: 999px; color: #ccfbf1; font-size: 12px; font-weight: 500; letter-spacing: 0.03em; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; text-align: center; white-space: nowrap; z-index: 30; }
   </style>
 </head>
 <body>
@@ -42,7 +42,7 @@
 
   <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 px-6 text-center transition-opacity duration-500">
     <div class="w-14 h-14 mb-4 rounded-full bg-teal-500/10 border border-teal-300/40 flex items-center justify-center shadow-[0_0_30px_rgba(45,212,191,0.3)]">
-      <div class="w-3.5 h-3.5 rounded-full bg-yellow-300 animate-ping"></div>
+      <div class="w-3.5 h-3.5 rounded-full bg-lime-300 animate-ping"></div>
     </div>
     <span class="text-[10px] uppercase tracking-[0.3em] text-teal-300/90 font-semibold mb-1">
       Museo Leonora Carrington SLP · Meta Quest 3
@@ -51,11 +51,11 @@
       La Barca de las Grullas
     </h1>
     <p id="loading-message" class="text-xs text-slate-300 max-w-xs mb-6 leading-relaxed">
-      Sincronizando escultura, corriente fluvial y entorno WebXR...
+      Sincronizando esculturas, río nocturno y entorno WebXR...
     </p>
     <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
       <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-        <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-yellow-300 w-0 transition-all duration-200"></div>
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-300 w-0 transition-all duration-200"></div>
       </div>
       <span id="progress-text" class="text-[10px] font-mono text-teal-300/80 mt-2">0%</span>
     </div>
@@ -71,7 +71,7 @@
       <p class="text-teal-300 font-semibold uppercase tracking-wider text-[10px] mb-1">Controles Meta Quest 3</p>
       <p>• <strong class="text-slate-100">Stick Izq:</strong> Caminar alrededor de la obra</p>
       <p>• <strong class="text-slate-100">Stick Der:</strong> Giro 30° / Acercar-Alejar</p>
-      <p>• <strong class="text-slate-100">Gatillo / A / Pellizco:</strong> Revelación mágica</p>
+      <p>• <strong class="text-slate-100">Gatillo / A / Pellizco:</strong> Materializar esculturas</p>
       <p>• <strong class="text-slate-100">Botón B / Y:</strong> Centrar posición</p>
     </div>
   </div>
@@ -123,7 +123,7 @@
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: POSICIÓN DE LA ESCULTURA, AGUA Y FLOTA DE BARCAS
+    // 📍 ZONA EDITABLE: POSICIÓN DE ESCULTURAS, AGUA Y LUCIÉRNAGAS
     // =========================================================================
     const SCULPTURE_CONFIG = {
       positionX: 0.0,        // Izquierda (-) / Derecha (+) en metros
@@ -137,9 +137,16 @@
     const WATER_CONFIG = {
       levelY: 0.28,          // Altura del agua en metros
       subdivisions: 224,     // Alta subdivisión de la malla de agua (224x224)
-      waveAmplitude: 0.92,   // Amplitud de turbulencia fluvial leve
-      flowSpeed: 0.24,       // Velocidad pausada de la corriente (-Z -> +Z)
-      turbulence: 1.18       // Nivel de turbulencia orgánica en superficie
+      waveAmplitude: 1.52,   // Mayor ondulación fluvial suave y visible
+      flowSpeed: 0.22,       // Velocidad pausada de la corriente (-Z -> +Z)
+      turbulence: 1.22       // Nivel de turbulencia orgánica en superficie
+    };
+
+    const FIREFLY_CONFIG = {
+      count: 195,            // Cantidad de luciérnagas volando sobre el río
+      minHeight: 0.42,       // Altura mínima sobre el nivel del agua
+      maxHeight: 5.4,        // Altura máxima de vuelo
+      spreadRadius: 21.0     // Radio de distribución alrededor de las barcas
     };
 
     // 12 barcas adicionales alrededor de la escena (ángulo en grados respecto a +Z, radio en m, escala relativa, giro extra)
@@ -159,32 +166,32 @@
     ];
     // =========================================================================
 
-    // Rutas verificadas del repo blenderingforconservation-maker/videAR
     const REPO_RAW_BASE = 'https://blenderingforconservation-maker.github.io/videAR/';
     const ASSETS = {
       sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb`,
       waterTexture: `${REPO_RAW_BASE}image_c713d6.png`
     };
 
-    const SCENE_BG_HEX = 0x061f22;
-    const SCENE_FOG_HEX = 0x092c2f;
+    const SCENE_BG_HEX = 0x051c1f;
+    const SCENE_FOG_HEX = 0x072629;
     const SCENE_FOG_DENSITY = 0.017;
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
     let fleetGroup;
-    const surroundingBoats = [];
+    const boatControllers = []; // Contiene la barca principal + las 12 barcas para bobbing y materialización
     let waterMesh, waterUniforms, skyDome;
-    let clippingPlane, magicWaveRing, magicWaveLight;
-    let glowParticles, glowMaterial;
+    let magicWaveLight;
+    let firefliesMesh, firefliesMaterial;
 
     let isMaterializing = false;
-    let materializationT = 0;
-    let maxRevealHeight = 6.5;
+    let materializationElapsed = 0;
     let spawnDistance = 4.6;
     let lastFrameTime = performance.now();
 
     let boatSubmersion = 0;
+    let localBoundsMinY = -0.3;
+    let localBoundsMaxY = 4.5;
 
     let moveButtonDir = 0;
     const keysPressed = { w: false, s: false, a: false, d: false };
@@ -217,22 +224,23 @@
       toastBanner.textContent = msg;
       toastBanner.style.opacity = '1';
       clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3000);
+      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3200);
     }
 
-    // Misma función de altura de río en CPU para sincronizar el vaivén de las 13 barcas con el agua
+    // Misma función de ondulación del río en CPU para sincronizar el movimiento de las 13 barcas
     function sampleRiverHeightJS(px, pz, t) {
-      const flowT = t * (0.55 + WATER_CONFIG.flowSpeed * 1.15);
+      const flowT = t * (0.50 + WATER_CONFIG.flowSpeed * 1.10);
       const amp = WATER_CONFIG.waveAmplitude;
       const turb = WATER_CONFIG.turbulence;
 
-      const w1 = Math.sin(pz * 0.72 - flowT * 1.10 + px * 0.24) * 0.044;
-      const w2 = Math.sin(px * 0.68 + pz * 0.96 - flowT * 1.38) * 0.032;
-      const w3 = Math.sin(-px * 0.82 + pz * 1.18 - flowT * 1.52) * 0.026;
-      const w4 = Math.sin(px * 1.45 - pz * 0.62 - flowT * 1.85) * 0.017 * turb;
-      const w5 = Math.cos(px * 1.15 + pz * 1.85 - flowT * 2.15) * 0.014 * turb;
+      const swell = Math.sin(pz * 0.42 - flowT * 0.78 + px * 0.16) * 0.068;
+      const w1 = Math.sin(pz * 0.76 - flowT * 1.05 + px * 0.28) * 0.048;
+      const w2 = Math.sin(px * 0.64 + pz * 0.92 - flowT * 1.28) * 0.038;
+      const w3 = Math.sin(-px * 0.78 + pz * 1.12 - flowT * 1.42) * 0.032;
+      const w4 = Math.sin(px * 1.38 - pz * 0.68 - flowT * 1.72) * 0.018 * turb;
+      const w5 = Math.cos(px * 1.12 + pz * 1.78 - flowT * 1.98) * 0.015 * turb;
 
-      return (w1 + w2 + w3 + w4 + w5) * amp;
+      return (swell + w1 + w2 + w3 + w4 + w5) * amp;
     }
 
     init();
@@ -261,7 +269,7 @@
       renderer.localClippingEnabled = false;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.35;
+      renderer.toneMappingExposure = 1.18;
       container.appendChild(renderer.domElement);
 
       setupLighting();
@@ -282,10 +290,13 @@
       fleetGroup = new THREE.Group();
       barcaAnchorGroup.add(fleetGroup);
 
+      magicWaveLight = new THREE.PointLight(0xeef59b, 0, 14);
+      magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.5, SCULPTURE_CONFIG.positionZ);
+      barcaAnchorGroup.add(magicWaveLight);
+
       setupWaterSurface();
       loadRepoWaterTexture();
-      setupMagicalReveal();
-      setupAmbientGlowParticles();
+      setupOrganicFireflies();
       await loadBarcaModel();
 
       await detectXRCapabilities();
@@ -304,25 +315,25 @@
     }
 
     function setupLighting() {
-      scene.add(new THREE.AmbientLight(0xe4faf7, 1.12));
+      scene.add(new THREE.AmbientLight(0xdff7f4, 1.25));
 
-      const hemi = new THREE.HemisphereLight(0xebfffb, 0x106e67, 1.9);
+      const hemi = new THREE.HemisphereLight(0xeefcf9, 0x0e5e59, 1.95);
       hemi.position.set(0, 16, 0);
       scene.add(hemi);
 
-      const keyDir = new THREE.DirectionalLight(0xfff6e3, 2.75);
+      const keyDir = new THREE.DirectionalLight(0xfff4df, 2.7);
       keyDir.position.set(6, 12, 7);
       scene.add(keyDir);
 
-      const fillDir = new THREE.DirectionalLight(0xa7ede3, 1.55);
+      const fillDir = new THREE.DirectionalLight(0x9ee3d9, 1.5);
       fillDir.position.set(-7, 7, 5);
       scene.add(fillDir);
 
-      const rimDir = new THREE.DirectionalLight(0x4fd1c5, 1.45);
+      const rimDir = new THREE.DirectionalLight(0x52c4b8, 1.35);
       rimDir.position.set(-4, 8, -9);
       scene.add(rimDir);
 
-      const waterBounce = new THREE.PointLight(0x26b5a5, 1.35, 14);
+      const waterBounce = new THREE.PointLight(0x1f998c, 0.95, 13);
       waterBounce.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.65, SCULPTURE_CONFIG.positionZ);
       scene.add(waterBounce);
     }
@@ -334,9 +345,9 @@
         depthWrite: false,
         fog: false,
         uniforms: {
-          uTopColor: { value: new THREE.Color(0x04171d) },
-          uHorizonColor: { value: new THREE.Color(0x124d4e) },
-          uBottomColor: { value: new THREE.Color(0x042224) }
+          uTopColor: { value: new THREE.Color(0x031318) },
+          uHorizonColor: { value: new THREE.Color(0x0e3f41) },
+          uBottomColor: { value: new THREE.Color(0x031d1f) }
         },
         vertexShader: `
           varying vec3 vWorldPos;
@@ -375,12 +386,12 @@
         for (let x = 0; x < size; x++) {
           const u = (x / size) * Math.PI * 2;
           const v = (y / size) * Math.PI * 2;
-          const dx = Math.cos(u * 3 + v * 2) * 0.36 + Math.cos(u * 5 - v * 4) * 0.28 + Math.sin(u * 2 + v * 6) * 0.24 + Math.cos(u * 9 + v * 7) * 0.16;
-          const dy = Math.sin(u * 2 + v * 4) * 0.36 + Math.cos(u * 4 + v * 5) * 0.28 + Math.sin(u * 6 - v * 3) * 0.24 + Math.sin(u * 8 - v * 9) * 0.16;
+          const dx = Math.cos(u * 3 + v * 2) * 0.34 + Math.cos(u * 5 - v * 4) * 0.26 + Math.sin(u * 2 + v * 6) * 0.22 + Math.cos(u * 9 + v * 7) * 0.14;
+          const dy = Math.sin(u * 2 + v * 4) * 0.34 + Math.cos(u * 4 + v * 5) * 0.26 + Math.sin(u * 6 - v * 3) * 0.22 + Math.sin(u * 8 - v * 9) * 0.14;
           const idx = (y * size + x) * 4;
-          data[idx]     = Math.floor((dx * 0.45 + 0.5) * 255);
-          data[idx + 1] = Math.floor((dy * 0.45 + 0.5) * 255);
-          data[idx + 2] = 236;
+          data[idx]     = Math.floor((dx * 0.44 + 0.5) * 255);
+          data[idx + 1] = Math.floor((dy * 0.44 + 0.5) * 255);
+          data[idx + 2] = 238;
           data[idx + 3] = 255;
         }
       }
@@ -398,12 +409,11 @@
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, size, size);
-      // Motas orgánicas isotrópicas para espuma y micro-turbulencia sin rayas estiradas
       for (let i = 0; i < 220; i++) {
         const x = Math.random() * size;
         const y = Math.random() * size;
         const r = 2.0 + Math.random() * 11.0;
-        const intensity = 0.38 + Math.random() * 0.52;
+        const intensity = 0.36 + Math.random() * 0.48;
         for (let ox = -1; ox <= 1; ox++) {
           for (let oy = -1; oy <= 1; oy++) {
             const cx = x + ox * size;
@@ -425,7 +435,7 @@
       return tex;
     }
 
-    function buildSobelNormalTextureFromImage(img, strength = 3.2) {
+    function buildSobelNormalTextureFromImage(img, strength = 2.9) {
       const size = 512;
       const srcCanvas = document.createElement('canvas');
       srcCanvas.width = size; srcCanvas.height = size;
@@ -518,7 +528,7 @@
           loadedTex.needsUpdate = true;
 
           try {
-            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 3.3);
+            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 2.9);
             if (analysis.isNormalMap) {
               waterUniforms.uNormalMap.value = loadedTex;
               waterUniforms.uWaterTex.value = loadedTex;
@@ -528,12 +538,12 @@
               loadedTex.colorSpace = THREE.SRGBColorSpace;
               waterUniforms.uNormalMap.value = analysis.normalTex;
               waterUniforms.uWaterTex.value = loadedTex;
-              waterUniforms.uUseDetailTex.value = 0.24;
+              waterUniforms.uUseDetailTex.value = 0.22;
             }
           } catch (err) {
             loadedTex.colorSpace = THREE.SRGBColorSpace;
             waterUniforms.uWaterTex.value = loadedTex;
-            waterUniforms.uUseDetailTex.value = 0.20;
+            waterUniforms.uUseDetailTex.value = 0.18;
           }
         },
         undefined,
@@ -547,7 +557,6 @@
       const normalTex = createFallbackWaterNormalTexture();
       const foamNoiseTex = createFoamNoiseTexture();
 
-      // Mayor subdivisión (224x224) para captar turbulencia fluvial orgánica y suave
       const segs = WATER_CONFIG.subdivisions;
       const waterGeo = new THREE.PlaneGeometry(58, 58, segs, segs);
       waterGeo.rotateX(-Math.PI / 2);
@@ -559,12 +568,12 @@
         uFoamNoise:         { value: foamNoiseTex },
         uUseDetailTex:      { value: 0.0 },
         uSunDirection:      { value: new THREE.Vector3(6, 12, 7).normalize() },
-        uSkyZenithColor:    { value: new THREE.Color(0x072c33) },
-        uSkyHorizonColor:   { value: new THREE.Color(0x3ba89c) },
-        uWaterDeepColor:    { value: new THREE.Color(0x032a2c) }, // Verde aqua profundo de río
-        uWaterShallowColor: { value: new THREE.Color(0x0c7f75) }, // Verde aqua natural equilibrado
-        uCrestGlowColor:    { value: new THREE.Color(0x28bda8) }, // Luz subsuperficial suave en crestas
-        uFoamColor:         { value: new THREE.Color(0xcceae5) }, // Espuma suave natural (sin brillo excesivo)
+        uSkyZenithColor:    { value: new THREE.Color(0x062026) },
+        uSkyHorizonColor:   { value: new THREE.Color(0x1f6b66) }, // Reflejo celeste suave, no metálico
+        uWaterDeepColor:    { value: new THREE.Color(0x042527) }, // Verde aqua profundo natural
+        uWaterShallowColor: { value: new THREE.Color(0x0d6b63) }, // Verde aqua sedoso sin sobresaturar
+        uCrestGlowColor:    { value: new THREE.Color(0x1c9687) }, // Luz subsuperficial contenida
+        uFoamColor:         { value: new THREE.Color(0xb4d6d1) }, // Espuma suave mate
         uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
         uFogDensity:        { value: SCENE_FOG_DENSITY },
         uHullCenter:        { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
@@ -615,53 +624,58 @@
             return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
           }
 
-          // Superficie de río más subdividida, pausada y levemente turbulenta (multi-direccional)
+          // Mayor ondulación fluvial suave + turbulencia celular orgánica (sincronizada con CPU)
           vec3 sampleRiverSurface(vec2 p, float t) {
             vec3 disp = vec3(0.0);
-            float flowT = t * (0.55 + uFlowSpeed * 1.15);
+            float flowT = t * (0.50 + uFlowSpeed * 1.10);
 
-            // Ondas cruzadas orgánicas (coinciden con el muestreo en JS de las barcas)
-            float ph1 = p.y * 0.72 - flowT * 1.10 + p.x * 0.24;
-            float ph2 = p.x * 0.68 + p.y * 0.96 - flowT * 1.38;
-            float ph3 = -p.x * 0.82 + p.y * 1.18 - flowT * 1.52;
-            float ph4 = p.x * 1.45 - p.y * 0.62 - flowT * 1.85;
-            float ph5 = p.x * 1.15 + p.y * 1.85 - flowT * 2.15;
+            // Ondulación principal amplia del cauce
+            float ph0 = p.y * 0.42 - flowT * 0.78 + p.x * 0.16;
+            disp.y += sin(ph0) * 0.068;
+            disp.z += cos(ph0) * 0.026;
 
-            disp.y += sin(ph1) * 0.044;
-            disp.z += cos(ph1) * 0.015;
+            // Ondas cruzadas orgánicas
+            float ph1 = p.y * 0.76 - flowT * 1.05 + p.x * 0.28;
+            float ph2 = p.x * 0.64 + p.y * 0.92 - flowT * 1.28;
+            float ph3 = -p.x * 0.78 + p.y * 1.12 - flowT * 1.42;
+            float ph4 = p.x * 1.38 - p.y * 0.68 - flowT * 1.72;
+            float ph5 = p.x * 1.12 + p.y * 1.78 - flowT * 1.98;
 
-            disp.y += sin(ph2) * 0.032;
-            disp.x += cos(ph2) * 0.010;
+            disp.y += sin(ph1) * 0.048;
+            disp.z += cos(ph1) * 0.018;
 
-            disp.y += sin(ph3) * 0.026;
-            disp.x -= cos(ph3) * 0.009;
+            disp.y += sin(ph2) * 0.038;
+            disp.x += cos(ph2) * 0.013;
 
-            disp.y += sin(ph4) * 0.017 * uTurbulence;
-            disp.y += cos(ph5) * 0.014 * uTurbulence;
+            disp.y += sin(ph3) * 0.032;
+            disp.x -= cos(ph3) * 0.012;
 
-            // Turbulencia celular/remolinos cortos aprovechando la malla 224x224
-            vec2 eddyUV1 = vec2(p.x * 0.58, p.y * 0.58 - flowT * 0.42);
-            vec2 eddyUV2 = vec2(p.x * 1.18 + 4.3, p.y * 1.18 - flowT * 0.68);
+            disp.y += sin(ph4) * 0.018 * uTurbulence;
+            disp.y += cos(ph5) * 0.015 * uTurbulence;
+
+            // Turbulencia celular multi-escala en malla 224x224
+            vec2 eddyUV1 = vec2(p.x * 0.54, p.y * 0.54 - flowT * 0.38);
+            vec2 eddyUV2 = vec2(p.x * 1.16 + 4.3, p.y * 1.16 - flowT * 0.62);
             float n1 = valueNoise(eddyUV1) - 0.5;
             float n2 = valueNoise(eddyUV2) - 0.5;
-            disp.y += (n1 * 0.055 + n2 * 0.026) * uTurbulence;
+            disp.y += (n1 * 0.064 + n2 * 0.028) * uTurbulence;
 
             disp *= uWaveAmp;
 
-            // Interacción sutil y suave con el casco central (sin elevaciones abruptas)
+            // Interacción sutil con el casco central
             vec2 rel = p - uHullCenter;
             float bowZ = -uHullRadiusZ * 1.04;
-            float bowPulse = 0.92 + 0.08 * sin(t * 2.4 + rel.x * 1.5);
-            float bowRipple = exp(-pow(rel.y - bowZ, 2.0) * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.065 * bowPulse;
+            float bowPulse = 0.92 + 0.08 * sin(t * 2.2 + rel.x * 1.4);
+            float bowRipple = exp(-pow(rel.y - bowZ, 2.0) * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.055 * bowPulse;
             disp.y += bowRipple;
 
             float distFromBow = rel.y - bowZ;
             if (distFromBow > 0.0) {
               float armX = uHullRadiusX * 0.36 + distFromBow * 0.34;
               float armDist = abs(abs(rel.x) - armX);
-              float wakeFade = exp(-distFromBow * 0.22);
-              float wakeCrest = exp(-armDist * armDist * 2.8) * wakeFade * 0.036;
-              disp.y += wakeCrest * (0.88 + 0.12 * sin(distFromBow * 2.6 - flowT * 1.8));
+              float wakeFade = exp(-distFromBow * 0.24);
+              float wakeCrest = exp(-armDist * armDist * 2.8) * wakeFade * 0.032;
+              disp.y += wakeCrest * (0.88 + 0.12 * sin(distFromBow * 2.4 - flowT * 1.6));
             }
 
             return disp;
@@ -673,7 +687,7 @@
             pos += disp;
             vHeight = disp.y;
 
-            float eps = 0.12;
+            float eps = 0.13;
             float hL = sampleRiverSurface(position.xz + vec2(-eps, 0.0), uTime).y;
             float hR = sampleRiverSurface(position.xz + vec2( eps, 0.0), uTime).y;
             float hD = sampleRiverSurface(position.xz + vec2(0.0, -eps), uTime).y;
@@ -753,7 +767,6 @@
             vec2 relXZ = vWorldPos.xz - uHullCenter;
             float ellDist = length(vec2(relXZ.x / max(uHullRadiusX, 0.1), relXZ.y / max(uHullRadiusZ, 0.1)));
 
-            // Deflexión continua y suave sin saltos en relXZ.x == 0
             float deflect = exp(-max(ellDist - 0.85, 0.0) * 1.45);
             float smoothSide = relXZ.x / (abs(relXZ.x) + 0.75);
             vec2 basePos = vWorldPos.xz - vec2(smoothSide * deflect * 0.35, 0.0);
@@ -761,132 +774,120 @@
             vec2 flow = uWaterFlow * uFlowSpeed;
             float tFlow = uTime * uFlowSpeed;
 
-            // Distorsión turbulenta leve (domain warping) para romper cualquier patrón lineal
+            // Distorsión turbulenta suave para romper cualquier patrón lineal
             vec2 warp = vec2(
-              fbmTurbulence(basePos * 0.34 - vec2(0.0, tFlow * 0.65)) - 0.5,
-              fbmTurbulence(basePos * 0.34 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.58)) - 0.5
-            ) * 0.68 * uTurbulence;
+              fbmTurbulence(basePos * 0.32 - vec2(0.0, tFlow * 0.60)) - 0.5,
+              fbmTurbulence(basePos * 0.32 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.54)) - 0.5
+            ) * 0.72 * uTurbulence;
             vec2 turbPos = basePos + warp;
 
-            // === 3 CAPAS DE NORMALES ROTADAS (sin líneas continuas estiradas) ===
-            mat2 rotA = mat2( 0.94, -0.34,  0.34,  0.94); // +20°
-            mat2 rotB = mat2( 0.92,  0.39, -0.39,  0.92); // -23°
+            // 3 capas de normales rotadas (textura orgánica, sin rayas continuas)
+            mat2 rotA = mat2( 0.94, -0.34,  0.34,  0.94);
+            mat2 rotB = mat2( 0.92,  0.39, -0.39,  0.92);
 
-            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.82;
-            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.15 + vec2(0.37, 0.61);
-            vec2 uv3 = (rotB * turbPos) * 0.92 - (rotB * flow) * uTime * 1.52 + vec2(0.71, 0.19);
+            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.78;
+            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.08 + vec2(0.37, 0.61);
+            vec2 uv3 = (rotB * turbPos) * 0.90 - (rotB * flow) * uTime * 1.42 + vec2(0.71, 0.19);
 
             vec3 n1 = texture2D(uNormalMap, uv1).xyz * 2.0 - 1.0;
             vec3 n2 = texture2D(uNormalMap, uv2).xyz * 2.0 - 1.0;
             vec3 n3 = texture2D(uNormalMap, uv3).xyz * 2.0 - 1.0;
-            vec3 detailN = normalize(n1 * 0.88 + n2 * 0.76 + n3 * 0.58);
+            vec3 detailN = normalize(n1 * 0.85 + n2 * 0.72 + n3 * 0.52);
 
-            // Micro-turbulencia extra en normales
-            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.68, 0.0, detailN.z * 0.68));
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.56, 0.0, detailN.z * 0.56));
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
-            // === FRESNEL DE SCHLICK ===
-            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.5);
+            // === FRESNEL CONTENIDO (aspecto acuático orgánico, NO metálico) ===
+            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.8);
 
             vec3 R = reflect(-V, N);
             float reflElev = clamp(R.y, 0.0, 1.0);
-            vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.58));
+            vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.62));
 
-            // === ESPECULAR EQUILIBRADO ===
+            // === ILUMINACIÓN DIFUSA Y ESPECULAR SUAVE (sin destellos metálicos) ===
             vec3 L = normalize(uSunDirection);
+            float NdotL = max(dot(N, L), 0.0);
             vec3 H = normalize(L + V);
             float NdotH = max(dot(N, H), 0.0);
-            float sunSparkle = pow(max(NdotH, 0.0001), 195.0) * 1.45;
-            float wetSheen   = pow(max(NdotH, 0.0001), 26.0) * 0.28;
-            float rimGlint   = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 40.0) * 0.22;
 
-            // === COLOR VERDE AQUA CON TURBULENCIA ORGÁNICA ===
-            float eddyTone = fbmTurbulence(turbPos * 0.52 - vec2(0.0, tFlow * 0.95));
-            float depthT = clamp(smoothstep(-0.09, 0.11, vHeight) * 0.68 + eddyTone * 0.34, 0.0, 1.0);
+            float softSparkle = pow(max(NdotH, 0.0001), 95.0) * 0.26;
+            float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.08;
+            float rimGlint    = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 32.0) * 0.05;
+
+            // === COLOR VERDE AQUA PROFUNDO Y SEDOSO ===
+            float eddyTone = fbmTurbulence(turbPos * 0.50 - vec2(0.0, tFlow * 0.88));
+            float depthT = clamp(smoothstep(-0.18, 0.20, vHeight) * 0.66 + eddyTone * 0.34, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
 
-            float repoPattern = 0.5;
+            // Sombreado difuso sutil para dar volumen real a las ondulaciones sin brillar como metal
+            waterColor *= (0.76 + 0.34 * NdotL);
+
             if (uUseDetailTex > 0.01) {
-              vec3 tA = texture2D(uWaterTex, turbPos * 0.26 - flow * uTime * 0.72).rgb;
-              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.52 - (rotA * flow) * uTime * 1.05 + vec2(0.41, 0.27)).rgb;
+              vec3 tA = texture2D(uWaterTex, turbPos * 0.25 - flow * uTime * 0.70).rgb;
+              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.50 - (rotA * flow) * uTime * 1.00 + vec2(0.41, 0.27)).rgb;
               vec3 texBlend = mix(tA, tB, 0.5);
-              repoPattern = dot(texBlend, vec3(0.299, 0.587, 0.114));
-              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.55, 1.12, 0.98), 0.55);
+              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.48, 0.94, 0.86), 0.48);
               waterColor = mix(waterColor, tintedDetail, uUseDetailTex);
-              float caustics = smoothstep(0.60, 0.92, repoPattern) * 0.14;
-              waterColor += uCrestGlowColor * caustics;
-            } else {
-              repoPattern = clamp(0.5 + (n1.x + n2.y) * 0.45, 0.0, 1.0);
-              waterColor += uCrestGlowColor * smoothstep(0.68, 0.96, repoPattern) * 0.10;
             }
 
-            // Dispersión subsuperficial (SSS) discreta en crestas turbulentas
-            float sssMask = smoothstep(0.025, 0.14, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
-            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.38, 0.0, 0.40));
+            // Dispersión subsuperficial (SSS) suave en las crestas altas
+            float sssMask = smoothstep(0.05, 0.24, vHeight) * (0.35 + 0.65 * pow(max(dot(V, -L), 0.0001), 2.0));
+            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.32, 0.0, 0.34));
 
-            // Sombra sutil bajo el casco para anclar la barca sin contraste duro
-            float underHullDarken = smoothstep(1.20, 0.70, ellDist) * 0.46;
+            // Oclusión natural bajo el casco
+            float underHullDarken = smoothstep(1.20, 0.70, ellDist) * 0.44;
             waterColor *= (1.0 - underHullDarken);
 
-            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.74, 0.08, 0.80));
-            col += sunSparkle * vec3(0.95, 1.0, 0.95);
-            col += wetSheen * vec3(0.70, 0.96, 0.92);
-            col += rimGlint * vec3(0.38, 0.92, 0.85);
+            // Mezcla de reflexión reducida para eliminar efecto espejo/metálico
+            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.38, 0.03, 0.40));
+            col += softSparkle * vec3(0.86, 0.94, 0.90);
+            col += softSheen * vec3(0.55, 0.82, 0.78);
+            col += rimGlint * vec3(0.32, 0.76, 0.70);
 
-            // ============================================================
-            // ESPUMA SUTIL Y ROTA (sin silueta brillante alrededor del casco)
-            // ============================================================
+            // === ESPUMA MUY DISCRETA Y ORGÁNICA (sin silueta brillante) ===
             vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
-
-            // 1) Ligera rotura en la proa
             float bowD = length(relXZ - bowPos);
-            float bowSplash = exp(-bowD * bowD * 3.4) * 0.46;
+            float bowSplash = exp(-bowD * bowD * 3.6) * 0.36;
 
-            // 2) Estela en V discreta
             float distFromBow = relXZ.y - bowPos.y;
             float bowArm = 0.0;
             if (distFromBow > 0.0) {
-              float fade = exp(-distFromBow * 0.24);
+              float fade = exp(-distFromBow * 0.26);
               float armX = uHullRadiusX * 0.34 + distFromBow * 0.34;
               float armDist = abs(abs(relXZ.x) - armX);
-              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.34;
+              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.26;
             }
 
-            // 3) Contacto muy tenue y roto en el borde del casco (evita halo brillante)
-            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.30;
+            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.22;
 
-            // 4) Remolino suave tras la popa
             float dZ = relXZ.y - uHullRadiusZ * 0.88;
             float sternChurn = 0.0;
             if (dZ > 0.0) {
-              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.48) * 0.30;
+              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.24;
             }
 
-            // 5) Micro-espuma dispersa en las crestas más turbulentas del río
-            float chopFoam = smoothstep(0.075, 0.16, vHeight) * smoothstep(0.03, 0.12, vSteepness) * 0.28;
+            float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.24;
 
-            // Erosión orgánica multi-escala (rompe cualquier contorno sólido)
-            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.55 - flow * uTime * 0.90).r;
-            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.35 - (rotB * flow) * uTime * 1.35 + vec2(0.29, 0.63)).r;
+            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.54 - flow * uTime * 0.85).r;
+            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.32 - (rotB * flow) * uTime * 1.25 + vec2(0.29, 0.63)).r;
             float organicBreakup = fNoise1 * 0.52 + fNoise2 * 0.48;
 
-            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.95);
-            float finalFoam = smoothstep(0.24, 0.80, rawFoam * (0.35 + 1.05 * organicBreakup)) * 0.58;
+            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.85);
+            float finalFoam = smoothstep(0.26, 0.82, rawFoam * (0.35 + 1.02 * organicBreakup)) * 0.45;
 
-            float foamLit = 0.78 + 0.18 * max(dot(N, L), 0.0);
+            float foamLit = 0.72 + 0.18 * NdotL;
             col = mix(col, uFoamColor * foamLit, finalFoam);
 
-            // Neblina sincronizada con la escena
             if (uFogDensity > 0.0) {
               float fogFactor = 1.0 - exp(-uFogDensity * uFogDensity * vFogDepth * vFogDepth);
-              col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.88));
+              col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.90));
             }
 
             float centerDist = length(vWorldPos.xz);
             float edgeFade = smoothstep(28.0, 20.5, centerDist);
 
-            float alpha = mix(0.86, 0.97, fresnel);
+            float alpha = mix(0.88, 0.96, fresnel * 0.5);
             alpha = mix(alpha, 0.98, finalFoam);
             alpha *= edgeFade * uOpacity;
 
@@ -901,109 +902,379 @@
       barcaAnchorGroup.add(waterMesh);
     }
 
-    function setupAmbientGlowParticles() {
-      const count = 420;
+    // =========================================================================
+    // 🪲 LUCIÉRNAGAS CON VUELO ORGÁNICO Y BIOLUMINISCENCIA REALISTA
+    // =========================================================================
+    function setupOrganicFireflies() {
+      const count = FIREFLY_CONFIG.count;
       const geo = new THREE.BufferGeometry();
-      const positions = new Float32Array(count * 3);
+      const origins = new Float32Array(count * 3);
       const colors = new Float32Array(count * 3);
-      const seeds = new Float32Array(count * 4);
+      const flightA = new Float32Array(count * 4); // phaseX, phaseY, phaseZ, wanderRadius
+      const flightB = new Float32Array(count * 4); // speed, blinkPeriod, blinkPhase, sizeScale
 
+      // Tonos bioluminiscentes naturales de luciérnaga (verde-lima cálido a amarillo dorado)
       const palette = [
-        new THREE.Color(0xfef08a),
-        new THREE.Color(0x5eead4),
-        new THREE.Color(0x2dd4bf),
-        new THREE.Color(0xccfbf1),
+        new THREE.Color(0xcff868),
+        new THREE.Color(0xd9f99d),
+        new THREE.Color(0xbef264),
+        new THREE.Color(0xf4e869),
         new THREE.Color(0xfde047)
       ];
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 1.2 + Math.pow(Math.random(), 0.75) * 18.0;
-        positions[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
-        positions[i * 3 + 1] = WATER_CONFIG.levelY + 0.25 + Math.random() * 6.8;
-        positions[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
+        const radius = 1.4 + Math.pow(Math.random(), 0.72) * FIREFLY_CONFIG.spreadRadius;
+        origins[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
+        origins[i * 3 + 1] = WATER_CONFIG.levelY + FIREFLY_CONFIG.minHeight
+                           + Math.pow(Math.random(), 1.35) * (FIREFLY_CONFIG.maxHeight - FIREFLY_CONFIG.minHeight);
+        origins[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
 
         const c = palette[Math.floor(Math.random() * palette.length)];
         colors[i * 3]     = c.r;
         colors[i * 3 + 1] = c.g;
         colors[i * 3 + 2] = c.b;
 
-        seeds[i * 4]     = Math.random() * Math.PI * 2;
-        seeds[i * 4 + 1] = 1.2 + Math.random() * 2.4;
-        seeds[i * 4 + 2] = 0.65 + Math.random() * 1.15;
-        seeds[i * 4 + 3] = 0.18 + Math.random() * 0.45;
+        flightA[i * 4]     = Math.random() * Math.PI * 2;
+        flightA[i * 4 + 1] = Math.random() * Math.PI * 2;
+        flightA[i * 4 + 2] = Math.random() * Math.PI * 2;
+        flightA[i * 4 + 3] = 0.75 + Math.random() * 1.95; // Radio de merodeo orgánico
+
+        flightB[i * 4]     = 0.22 + Math.random() * 0.34; // Velocidad de vuelo suave
+        flightB[i * 4 + 1] = 3.8 + Math.random() * 5.2;   // Periodo entre destellos (3.8s - 9s)
+        flightB[i * 4 + 2] = Math.random() * 9.0;         // Desfase de destello individual
+        flightB[i * 4 + 3] = 0.72 + Math.random() * 0.68; // Tamaño natural variado
       }
 
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('position', new THREE.BufferAttribute(origins, 3));
       geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
-      geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
+      geo.setAttribute('aFlightA', new THREE.BufferAttribute(flightA, 4));
+      geo.setAttribute('aFlightB', new THREE.BufferAttribute(flightB, 4));
 
-      glowMaterial = new THREE.ShaderMaterial({
+      firefliesMaterial = new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         uniforms: {
           uTime: { value: 0 },
-          uBaseY: { value: WATER_CONFIG.levelY + 0.25 },
+          uMinY: { value: WATER_CONFIG.levelY + 0.32 },
           uPixelRatio: { value: renderer.getPixelRatio() }
         },
         vertexShader: /* glsl */`
           attribute vec3 aColor;
-          attribute vec4 aSeed;
+          attribute vec4 aFlightA;
+          attribute vec4 aFlightB;
+
           uniform float uTime;
-          uniform float uBaseY;
+          uniform float uMinY;
           uniform float uPixelRatio;
 
           varying vec3 vColor;
-          varying float vPulse;
+          varying float vGlow;
 
           void main() {
             vColor = aColor;
-            float phase = aSeed.x;
-            float pulseSpeed = aSeed.y;
-            float sizeScale = aSeed.z;
-            float driftSpeed = aSeed.w;
 
-            vec3 pos = position;
-            pos.x += sin(uTime * 0.45 + phase) * 0.35;
-            pos.z += cos(uTime * 0.40 + phase * 1.3) * 0.35;
-            pos.y = uBaseY + mod(pos.y + uTime * driftSpeed, 7.0);
+            float pX = aFlightA.x;
+            float pY = aFlightA.y;
+            float pZ = aFlightA.z;
+            float wanderR = aFlightA.w;
 
-            float pulseWave = 0.5 + 0.5 * sin(uTime * pulseSpeed + phase);
-            vPulse = 0.28 + 0.72 * pow(max(pulseWave, 0.0001), 1.4);
+            float spd = aFlightB.x;
+            float blinkPeriod = aFlightB.y;
+            float blinkOffset = aFlightB.z;
+            float sizeScale = aFlightB.w;
+
+            float t = uTime * spd;
+
+            // Trayectoria curva orgánica (armónicos irracionales que evitan bucles mecánicos)
+            vec3 offset;
+            offset.x = (sin(t * 1.00 + pX) * 0.62 + sin(t * 2.13 + pZ * 1.4) * 0.28 + cos(t * 0.47 + pY) * 0.35) * wanderR;
+            offset.z = (cos(t * 0.89 + pZ) * 0.62 + sin(t * 1.91 + pX * 1.3) * 0.28 + sin(t * 0.53 + pY) * 0.35) * wanderR;
+            offset.y = (sin(t * 1.27 + pY) * 0.45 + cos(t * 2.61 + pX) * 0.18 + sin(t * 0.61 + pZ) * 0.22) * (wanderR * 0.42);
+
+            // Micro-aleteo sutil
+            offset.y += sin(uTime * 5.8 + pX * 3.0) * 0.025;
+
+            vec3 pos = position + offset;
+            pos.y = max(pos.y, uMinY);
+
+            // Ciclo de destello bioluminiscente realista: pausa oscura -> encendido rápido -> caída suave
+            float cyclePos = fract((uTime + blinkOffset) / blinkPeriod);
+            float rise = smoothstep(0.04, 0.13, cyclePos);
+            float fall = 1.0 - smoothstep(0.16, 0.36, cyclePos);
+            float mainFlash = rise * fall;
+
+            // Leve doble titileo natural en algunas luciérnagas
+            float flutter = 0.88 + 0.12 * sin(uTime * 11.0 + pZ * 5.0);
+            vGlow = clamp(mainFlash * flutter, 0.0, 1.0);
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
 
-            float baseSize = (24.0 + 18.0 * vPulse) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 4.0, 42.0);
+            float baseSize = (11.0 + 21.0 * pow(max(vGlow, 0.0001), 0.7)) * sizeScale;
+            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 34.0);
           }
         `,
         fragmentShader: /* glsl */`
           varying vec3 vColor;
-          varying float vPulse;
+          varying float vGlow;
 
           void main() {
+            if (vGlow < 0.015) discard;
+
             vec2 uv = gl_PointCoord - vec2(0.5);
             float d = length(uv);
             if (d > 0.5) discard;
 
-            float core = smoothstep(0.24, 0.0, d);
-            float halo = pow(max(smoothstep(0.5, 0.0, d), 0.0001), 2.1);
-            float starCross = max(0.0, 1.0 - abs(uv.x * uv.y) * 110.0) * halo * 0.55;
+            // Núcleo biológico cálido + aura suave atmosférica (sin destellos en cruz artificiales)
+            float core = smoothstep(0.14, 0.0, d);
+            float innerHalo = exp(-d * 7.5);
+            float outerMist = smoothstep(0.5, 0.0, d) * 0.26;
 
-            float alpha = clamp((halo * 0.75 + core * 0.95 + starCross) * vPulse, 0.0, 1.0);
-            vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.96), core * 0.72) * (1.1 + vPulse * 0.55);
+            float alpha = clamp((core * 0.95 + innerHalo * 0.72 + outerMist) * vGlow, 0.0, 1.0);
+            vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.90), core * 0.78) * (0.95 + vGlow * 0.65);
 
             gl_FragColor = vec4(finalCol, alpha);
           }
         `
       });
 
-      glowParticles = new THREE.Points(geo, glowMaterial);
-      glowParticles.frustumCulled = false;
-      glowParticles.renderOrder = 3;
-      scene.add(glowParticles);
+      firefliesMesh = new THREE.Points(geo, firefliesMaterial);
+      firefliesMesh.frustumCulled = false;
+      firefliesMesh.renderOrder = 4;
+      scene.add(firefliesMesh);
+    }
+
+    // =========================================================================
+    // ✨ MUESTREO DE SUPERFICIE 3D Y MATERIALIZACIÓN GRADUAL CON PARTÍCULAS
+    // =========================================================================
+    function buildSurfaceParticleGeometry(sourceRoot, referenceParent, particleCount) {
+      referenceParent.updateMatrixWorld(true);
+      const invParent = new THREE.Matrix4().copy(referenceParent.matrixWorld).invert();
+      const relMat = new THREE.Matrix4();
+
+      const triangles = [];
+      let totalArea = 0;
+
+      const vA = new THREE.Vector3();
+      const vB = new THREE.Vector3();
+      const vC = new THREE.Vector3();
+      const e1 = new THREE.Vector3();
+      const e2 = new THREE.Vector3();
+      const cross = new THREE.Vector3();
+
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      sourceRoot.traverse((node) => {
+        if (!node.isMesh || !node.geometry) return;
+        const posAttr = node.geometry.attributes.position;
+        if (!posAttr) return;
+
+        relMat.multiplyMatrices(invParent, node.matrixWorld);
+        const indexAttr = node.geometry.index;
+        const triCount = indexAttr ? Math.floor(indexAttr.count / 3) : Math.floor(posAttr.count / 3);
+
+        for (let i = 0; i < triCount; i++) {
+          const i0 = indexAttr ? indexAttr.getX(i * 3)     : i * 3;
+          const i1 = indexAttr ? indexAttr.getX(i * 3 + 1) : i * 3 + 1;
+          const i2 = indexAttr ? indexAttr.getX(i * 3 + 2) : i * 3 + 2;
+
+          vA.fromBufferAttribute(posAttr, i0).applyMatrix4(relMat);
+          vB.fromBufferAttribute(posAttr, i1).applyMatrix4(relMat);
+          vC.fromBufferAttribute(posAttr, i2).applyMatrix4(relMat);
+
+          if (vA.y < minY) minY = vA.y;
+          if (vB.y < minY) minY = vB.y;
+          if (vC.y < minY) minY = vC.y;
+          if (vA.y > maxY) maxY = vA.y;
+          if (vB.y > maxY) maxY = vB.y;
+          if (vC.y > maxY) maxY = vC.y;
+
+          e1.subVectors(vB, vA);
+          e2.subVectors(vC, vA);
+          cross.crossVectors(e1, e2);
+          const area = cross.length() * 0.5;
+          if (area > 1e-7) {
+            totalArea += area;
+            triangles.push({
+              ax: vA.x, ay: vA.y, az: vA.z,
+              bx: vB.x, by: vB.y, bz: vB.z,
+              cx: vC.x, cy: vC.y, cz: vC.z,
+              cumArea: totalArea
+            });
+          }
+        }
+      });
+
+      if (!isFinite(minY) || !isFinite(maxY) || maxY <= minY) {
+        minY = -0.3;
+        maxY = 4.2;
+      }
+      localBoundsMinY = minY;
+      localBoundsMaxY = maxY;
+      const heightSpan = Math.max(0.01, maxY - minY);
+
+      const positions = new Float32Array(particleCount * 3);
+      const scatterDirs = new Float32Array(particleCount * 3);
+      const meta = new Float32Array(particleCount * 4); // normY, phase, sizeScale, colorMix
+
+      const pickTriangle = (targetArea) => {
+        let lo = 0, hi = triangles.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (triangles[mid].cumArea < targetArea) lo = mid + 1;
+          else hi = mid;
+        }
+        return triangles[lo];
+      };
+
+      for (let i = 0; i < particleCount; i++) {
+        let px = 0, py = minY, pz = 0;
+        if (triangles.length > 0) {
+          const tri = pickTriangle(Math.random() * totalArea);
+          let r1 = Math.random();
+          let r2 = Math.random();
+          if (r1 + r2 > 1.0) {
+            r1 = 1.0 - r1;
+            r2 = 1.0 - r2;
+          }
+          const r0 = 1.0 - r1 - r2;
+          px = tri.ax * r0 + tri.bx * r1 + tri.cx * r2;
+          py = tri.ay * r0 + tri.by * r1 + tri.cy * r2;
+          pz = tri.az * r0 + tri.bz * r1 + tri.cz * r2;
+        }
+
+        positions[i * 3]     = px;
+        positions[i * 3 + 1] = py;
+        positions[i * 3 + 2] = pz;
+
+        // Dirección orgánica de dispersión hacia afuera + ligero ascenso
+        const theta = Math.random() * Math.PI * 2;
+        const horiz = 0.55 + Math.random() * 1.15;
+        scatterDirs[i * 3]     = Math.cos(theta) * horiz;
+        scatterDirs[i * 3 + 1] = (Math.random() - 0.30) * 0.95;
+        scatterDirs[i * 3 + 2] = Math.sin(theta) * horiz;
+
+        meta[i * 4]     = THREE.MathUtils.clamp((py - minY) / heightSpan, 0, 1);
+        meta[i * 4 + 1] = Math.random() * Math.PI * 2;
+        meta[i * 4 + 2] = 0.65 + Math.random() * 0.95;
+        meta[i * 4 + 3] = Math.random();
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('aScatter', new THREE.BufferAttribute(scatterDirs, 3));
+      geo.setAttribute('aMeta', new THREE.BufferAttribute(meta, 4));
+      return geo;
+    }
+
+    function createMaterializationParticleMaterial() {
+      return new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+          uTime: { value: 0 },
+          uProgress: { value: 0 },
+          uPixelRatio: { value: renderer.getPixelRatio() },
+          uColorA: { value: new THREE.Color(0x7af0dc) }, // Aqua bruma sutil
+          uColorB: { value: new THREE.Color(0xeef59b) }  // Dorado luciérnaga al solidificarse
+        },
+        vertexShader: /* glsl */`
+          attribute vec3 aScatter;
+          attribute vec4 aMeta;
+
+          uniform float uTime;
+          uniform float uProgress;
+          uniform float uPixelRatio;
+
+          varying float vAlpha;
+          varying float vHeat;
+          varying float vColorMix;
+
+          void main() {
+            float normY = aMeta.x;
+            float phase = aMeta.y;
+            float sizeScale = aMeta.z;
+            vColorMix = aMeta.w;
+
+            // El frente de materialización recorre la altura de la escultura (de 0 a 1)
+            float wavePos = uProgress * 1.24 - 0.10;
+            float dist = normY - wavePos;
+
+            // Estado 1: aún por materializar (dist > 0) -> las partículas convergen suavemente hacia la silueta
+            float approach = smoothstep(0.42, 0.0, dist);
+            // Estado 2: recién materializado (dist < 0) -> las partículas se disipan suavemente tras el borde sólido
+            float afterFade = smoothstep(-0.14, 0.02, dist);
+
+            // Fuerza de dispersión: lejos del frente están abiertas en remolino; al llegar al frente se fijan a la escultura
+            float scatterAmt = clamp(max(dist, 0.0) * 2.2, 0.0, 1.0);
+            float swirlAngle = uTime * 1.4 + phase + scatterAmt * 2.4;
+            vec3 swirlOffset = vec3(
+              cos(swirlAngle) * 0.24,
+              sin(uTime * 1.1 + phase) * 0.14,
+              sin(swirlAngle) * 0.24
+            ) * scatterAmt;
+
+            vec3 pos = position + aScatter * (scatterAmt * scatterAmt * 1.15) + swirlOffset;
+
+            // Destello de condensación justo en el borde donde aparece la piedra/escultura
+            float edgeBand = exp(-dist * dist * 135.0);
+            vHeat = clamp(edgeBand * 1.25, 0.0, 1.0);
+
+            float twinkle = 0.65 + 0.35 * sin(uTime * 6.5 + phase * 3.0);
+            float envelope = smoothstep(0.0, 0.06, uProgress) * (1.0 - smoothstep(0.92, 1.0, uProgress));
+            vAlpha = clamp((approach * afterFade * 0.72 + edgeBand * 0.95) * twinkle * envelope, 0.0, 1.0);
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+
+            float baseSize = (10.0 + 13.0 * vHeat) * sizeScale;
+            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.0, 26.0);
+          }
+        `,
+        fragmentShader: /* glsl */`
+          uniform vec3 uColorA;
+          uniform vec3 uColorB;
+
+          varying float vAlpha;
+          varying float vHeat;
+          varying float vColorMix;
+
+          void main() {
+            if (vAlpha < 0.015) discard;
+
+            vec2 uv = gl_PointCoord - vec2(0.5);
+            float d = length(uv);
+            if (d > 0.5) discard;
+
+            float core = smoothstep(0.18, 0.0, d);
+            float halo = exp(-d * 6.2);
+
+            vec3 baseCol = mix(uColorA, uColorB, clamp(vColorMix * 0.55 + vHeat * 0.65, 0.0, 1.0));
+            vec3 finalCol = mix(baseCol, vec3(1.0, 0.99, 0.92), core * (0.45 + vHeat * 0.45));
+
+            gl_FragColor = vec4(finalCol, clamp((core * 0.9 + halo * 0.65) * vAlpha, 0.0, 1.0));
+          }
+        `
+      });
+    }
+
+    function assignBoatClippingPlane(rootObject, plane, maxAniso, cloneMaterials) {
+      rootObject.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        const originalMats = Array.isArray(node.material) ? node.material : [node.material];
+        const nextMats = originalMats.map((mat) => {
+          const targetMat = cloneMaterials ? mat.clone() : mat;
+          targetMat.clippingPlanes = [plane];
+          if (targetMat.map) targetMat.map.anisotropy = maxAniso;
+          targetMat.needsUpdate = true;
+          return targetMat;
+        });
+        node.material = Array.isArray(node.material) ? nextMats : nextMats[0];
+      });
     }
 
     function setupQuestControllersAndHands() {
@@ -1028,30 +1299,43 @@
       }
     }
 
-    function setupMagicalReveal() {
-      clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-
-      const ringGeo = new THREE.RingGeometry(1.4, 2.0, 48).rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xfde047, transparent: true, opacity: 0.0,
-        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
-      });
-      magicWaveRing = new THREE.Mesh(ringGeo, ringMat);
-      magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
-      magicWaveRing.visible = false;
-      barcaAnchorGroup.add(magicWaveRing);
-
-      magicWaveLight = new THREE.PointLight(0xfde047, 0, 14);
-      magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
-      barcaAnchorGroup.add(magicWaveLight);
-    }
-
-    function spawnSurroundingBoats(baseTemplate) {
-      surroundingBoats.length = 0;
+    function buildFleetAndMaterializers(baseTemplate, maxAniso) {
+      boatControllers.length = 0;
       while (fleetGroup.children.length > 0) {
         fleetGroup.remove(fleetGroup.children[0]);
       }
 
+      // Muestrear puntos exactos sobre la superficie de la escultura (alta densidad para la principal, ligera para las 12 barcas)
+      const mainParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 1750);
+      const fleetParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 460);
+
+      // 1) Barca Principal
+      const mainPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
+      assignBoatClippingPlane(baseTemplate, mainPlane, maxAniso, false);
+      const mainParticleMat = createMaterializationParticleMaterial();
+      const mainParticles = new THREE.Points(mainParticleGeo, mainParticleMat);
+      mainParticles.frustumCulled = false;
+      mainParticles.renderOrder = 3;
+      mainParticles.visible = false;
+      sculpturePivot.add(mainParticles);
+
+      boatControllers.push({
+        isMain: true,
+        group: boatBobbingGroup,
+        baseX: SCULPTURE_CONFIG.positionX,
+        baseY: SCULPTURE_CONFIG.positionY,
+        baseZ: SCULPTURE_CONFIG.positionZ,
+        scaleMul: 1.0,
+        phase: 0.0,
+        clippingPlane: mainPlane,
+        particles: mainParticles,
+        particleMat: mainParticleMat,
+        delay: 0.0,
+        duration: 6.2,
+        done: false
+      });
+
+      // 2) 12 Barcas adicionales con materialización escalonada y progresiva
       SURROUNDING_BOATS_LAYOUT.forEach((cfg, idx) => {
         const rad = THREE.MathUtils.degToRad(cfg.angleDeg);
         const bx = SCULPTURE_CONFIG.positionX + Math.sin(rad) * cfg.radius;
@@ -1064,22 +1348,40 @@
         pivot.rotation.y = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg + cfg.yawOffsetDeg);
         pivot.scale.setScalar(cfg.scaleMul);
 
-        // Clon compartido en geometría y materiales para alto rendimiento en Meta Quest 3
         const clone = baseTemplate.clone(true);
-        clone.traverse((node) => {
-          node.frustumCulled = true;
-        });
+        const boatPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
+        assignBoatClippingPlane(clone, boatPlane, maxAniso, true);
+        clone.traverse((node) => { node.frustumCulled = true; });
+
+        const pMat = createMaterializationParticleMaterial();
+        const pPoints = new THREE.Points(fleetParticleGeo, pMat);
+        pPoints.frustumCulled = false;
+        pPoints.renderOrder = 3;
+        pPoints.visible = false;
 
         pivot.add(clone);
+        pivot.add(pPoints);
         bobGroup.add(pivot);
         fleetGroup.add(bobGroup);
 
-        surroundingBoats.push({
+        // Desfase suave desde las barcas más cercanas hacia las más lejanas
+        const radialNorm = THREE.MathUtils.clamp((cfg.radius - 8.5) / 11.0, 0, 1);
+        const staggerDelay = 1.15 + radialNorm * 3.8 + (idx % 3) * 0.45;
+
+        boatControllers.push({
+          isMain: false,
           group: bobGroup,
           baseX: bx,
           baseY: SCULPTURE_CONFIG.positionY,
           baseZ: bz,
-          phase: idx * 0.91 + (cfg.radius * 0.37)
+          scaleMul: cfg.scaleMul,
+          phase: idx * 0.91 + cfg.radius * 0.37,
+          clippingPlane: boatPlane,
+          particles: pPoints,
+          particleMat: pMat,
+          delay: staggerDelay,
+          duration: 5.4,
+          done: false
         });
       });
     }
@@ -1119,11 +1421,8 @@
         const orientedBox = new THREE.Box3().setFromObject(sculpturePivot);
         const orientedSize = orientedBox.getSize(new THREE.Vector3());
 
-        maxRevealHeight = Math.max(orientedSize.y + SCULPTURE_CONFIG.positionY + 0.6, 2.5);
-
         const maxFootprint = Math.max(orientedSize.x, orientedSize.z);
         spawnDistance = Math.max(3.8, maxFootprint * 1.15 + 1.6);
-        magicWaveRing.scale.setScalar(Math.max(1.0, maxFootprint * 0.32));
         resetViewerPosition(false);
 
         waterUniforms.uHullCenter.value.set(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ);
@@ -1131,20 +1430,10 @@
         waterUniforms.uHullRadiusZ.value = Math.max(1.0, orientedSize.z * 0.45);
 
         const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-        sculptureRoot.traverse((node) => {
-          node.frustumCulled = false;
-          if (node.isMesh && node.material) {
-            const mats = Array.isArray(node.material) ? node.material : [node.material];
-            mats.forEach((mat) => {
-              mat.clippingPlanes = [clippingPlane];
-              if (mat.map) mat.map.anisotropy = maxAniso;
-              mat.needsUpdate = true;
-            });
-          }
-        });
+        sculptureRoot.traverse((node) => { node.frustumCulled = false; });
 
-        // Crear las 12 barcas adicionales alrededor de la escena compartiendo geometría y materiales
-        spawnSurroundingBoats(sculptureRoot);
+        // Construir la barca principal + 12 barcas con sistemas de partículas de materialización
+        buildFleetAndMaterializers(sculptureRoot, maxAniso);
 
         dracoLoader.dispose();
 
@@ -1196,14 +1485,21 @@
     }
 
     function triggerMaterializationWave() {
+      if (boatControllers.length === 0) return;
       renderer.localClippingEnabled = true;
       isMaterializing = true;
-      materializationT = 0;
-      clippingPlane.constant = WATER_CONFIG.levelY + 0.05;
-      magicWaveRing.visible = true;
-      magicWaveRing.material.opacity = 0.78;
-      magicWaveLight.intensity = 3.6;
-      if (!renderer.xr.isPresenting) showToast('✨ Revelando La Barca de las Grullas...');
+      materializationElapsed = 0;
+
+      for (let i = 0; i < boatControllers.length; i++) {
+        const b = boatControllers[i];
+        b.done = false;
+        b.clippingPlane.constant = b.group.position.y + localBoundsMinY * b.scaleMul - 0.1;
+        b.particleMat.uniforms.uProgress.value = 0.0;
+        b.particles.visible = true;
+      }
+
+      magicWaveLight.intensity = 2.6;
+      if (!renderer.xr.isPresenting) showToast('✨ Materializando las barcas sobre el río...');
     }
 
     function setupUIAndDesktopControls() {
@@ -1370,7 +1666,7 @@
     }
 
     function applyWaterBobbingToGroup(group, bx, by, bz, timeSec, phaseOffset = 0) {
-      const sampleSpan = 0.85;
+      const sampleSpan = 0.95;
       const hCenter = sampleRiverHeightJS(bx, bz, timeSec);
       const hRight  = sampleRiverHeightJS(bx + sampleSpan, bz, timeSec);
       const hFront  = sampleRiverHeightJS(bx, bz + sampleSpan, timeSec);
@@ -1379,12 +1675,12 @@
       const slopeZ = (hFront - hCenter) / sampleSpan;
 
       group.position.set(
-        bx + Math.sin(timeSec * 0.42 + phaseOffset) * 0.035,
-        by + hCenter * 0.65 + Math.sin(timeSec * 0.78 + phaseOffset) * 0.018,
-        bz + Math.cos(timeSec * 0.36 + phaseOffset) * 0.035
+        bx + Math.sin(timeSec * 0.38 + phaseOffset) * 0.04,
+        by + hCenter * 0.72 + Math.sin(timeSec * 0.72 + phaseOffset) * 0.02,
+        bz + Math.cos(timeSec * 0.34 + phaseOffset) * 0.04
       );
-      group.rotation.z = THREE.MathUtils.clamp(-slopeX * 0.24, -0.055, 0.055);
-      group.rotation.x = THREE.MathUtils.clamp(slopeZ * 0.24, -0.055, 0.055);
+      group.rotation.z = THREE.MathUtils.clamp(-slopeX * 0.28, -0.075, 0.075);
+      group.rotation.x = THREE.MathUtils.clamp(slopeZ * 0.28, -0.075, 0.075);
     }
 
     function renderLoop(timestamp) {
@@ -1396,41 +1692,61 @@
       else updateDesktopMovement(dt);
 
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
-      if (glowMaterial) glowMaterial.uniforms.uTime.value = timeSec;
+      if (firefliesMaterial) firefliesMaterial.uniforms.uTime.value = timeSec;
 
-      // Oscilación suave sincronizada con el agua para la barca principal
-      if (sculptureRoot && !isMaterializing) {
-        applyWaterBobbingToGroup(
-          boatBobbingGroup,
-          SCULPTURE_CONFIG.positionX,
-          SCULPTURE_CONFIG.positionY,
-          SCULPTURE_CONFIG.positionZ,
-          timeSec,
-          0.0
-        );
-      }
-
-      // Oscilación ligera sincronizada con el agua para las 12 barcas alrededor de la escena
-      for (let i = 0; i < surroundingBoats.length; i++) {
-        const b = surroundingBoats[i];
+      // Movimiento oscilatorio sincronizado con la mayor ondulación del río para las 13 barcas
+      for (let i = 0; i < boatControllers.length; i++) {
+        const b = boatControllers[i];
         applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
       }
 
+      // Materialización progresiva y escalonada con partículas sobre todas las esculturas
       if (isMaterializing) {
-        materializationT = Math.min(1, materializationT + dt * 0.30);
-        const eased = 1 - Math.pow(1 - materializationT, 3);
-        const revealH = WATER_CONFIG.levelY + eased * maxRevealHeight;
-        clippingPlane.constant = revealH;
-        magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH, WATER_CONFIG.levelY + maxRevealHeight * 0.85), SCULPTURE_CONFIG.positionZ);
-        magicWaveRing.rotation.z = timeSec * 1.4;
-        magicWaveRing.material.opacity = (1.0 - materializationT) * 0.78;
-        magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH + 0.3, WATER_CONFIG.levelY + maxRevealHeight), SCULPTURE_CONFIG.positionZ);
-        magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 3.6;
-        if (materializationT >= 1) {
+        materializationElapsed += dt;
+        let allDone = true;
+
+        for (let i = 0; i < boatControllers.length; i++) {
+          const b = boatControllers[i];
+          if (b.done) continue;
+
+          const localT = (materializationElapsed - b.delay) / b.duration;
+          if (localT <= 0) {
+            allDone = false;
+            b.clippingPlane.constant = b.group.position.y + localBoundsMinY * b.scaleMul - 0.1;
+            b.particleMat.uniforms.uTime.value = timeSec;
+            b.particleMat.uniforms.uProgress.value = 0.0;
+            continue;
+          }
+
+          if (localT >= 1.0) {
+            b.done = true;
+            b.clippingPlane.constant = 1000;
+            b.particleMat.uniforms.uProgress.value = 1.0;
+            b.particles.visible = false;
+            if (b.isMain) magicWaveLight.intensity = 0;
+            continue;
+          }
+
+          allDone = false;
+          // Curva suave (smoothstep cúbico) para que emerja poco a poco
+          const eased = localT * localT * (3.0 - 2.0 * localT);
+          const worldMinY = b.group.position.y + localBoundsMinY * b.scaleMul;
+          const worldMaxY = b.group.position.y + (localBoundsMaxY + 0.18) * b.scaleMul;
+          const currentRevealY = THREE.MathUtils.lerp(worldMinY, worldMaxY, eased);
+
+          b.clippingPlane.constant = currentRevealY;
+          b.particleMat.uniforms.uTime.value = timeSec;
+          b.particleMat.uniforms.uProgress.value = eased;
+
+          if (b.isMain) {
+            magicWaveLight.position.set(b.group.position.x, currentRevealY, b.group.position.z);
+            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.6;
+          }
+        }
+
+        if (allDone) {
           isMaterializing = false;
           renderer.localClippingEnabled = false;
-          clippingPlane.constant = 1000;
-          magicWaveRing.visible = false;
           magicWaveLight.intensity = 0;
         }
       }

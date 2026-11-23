@@ -42,7 +42,6 @@
       background: #f0fdfa; opacity: 0; transition: opacity 0.22s ease-out;
     }
 
-    /* Interfaz orgánica y translúcida */
     #experience-hud {
       position: fixed; inset: 0; z-index: 20; pointer-events: none;
       display: none; flex-direction: column; justify-content: space-between;
@@ -74,13 +73,10 @@
     }
     .cta-luminous:active { transform: scale(0.95); }
 
-    /* Botón obturador táctil foto / video */
     #shutter-btn {
-      width: 72px; height: 72px; border-radius: 999px;
-      padding: 5px;
+      width: 72px; height: 72px; border-radius: 999px; padding: 5px;
       background: rgba(7, 29, 33, 0.42);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       border: 2.5px solid rgba(236, 254, 255, 0.92);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 22px rgba(45, 212, 191, 0.28);
       display: flex; align-items: center; justify-content: center;
@@ -113,18 +109,15 @@
 
     #toast-banner {
       position: fixed; top: max(68px, calc(env(safe-area-inset-top) + 54px)); left: 50%;
-      transform: translateX(-50%);
-      padding: 8px 18px;
+      transform: translateX(-50%); padding: 8px 18px;
       background: rgba(7, 29, 33, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(153, 246, 228, 0.35);
       border-radius: 999px; color: #e6fffb; font-size: 12px; font-weight: 500;
       letter-spacing: 0.02em; opacity: 0; transition: opacity 0.24s ease;
       pointer-events: none; text-align: center; max-width: 88vw; z-index: 42;
     }
 
-    /* Panel flotante desplegable de ajustes rápidos */
     #quick-tools-drawer {
       transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
@@ -132,11 +125,9 @@
       opacity: 0; pointer-events: none; transform: translateY(10px) scale(0.96);
     }
 
-    /* Modal de previsualización y guardado de foto/video */
     #capture-modal {
       background: rgba(4, 18, 21, 0.84);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     }
   </style>
 </head>
@@ -147,7 +138,7 @@
   <div id="shutter-flash"></div>
   <div id="toast-banner">Cargando travesía...</div>
 
-  <!-- PANTALLA DE BIENVENIDA MINIMALISTA -->
+  <!-- PANTALLA DE BIENVENIDA -->
   <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#061c20] px-6 text-center transition-opacity duration-500">
     <div class="w-14 h-14 mb-5 rounded-full bg-teal-400/10 border border-teal-300/35 flex items-center justify-center shadow-[0_0_36px_rgba(45,212,191,0.28)]">
       <div class="w-3 h-3 rounded-full bg-lime-200 animate-ping"></div>
@@ -183,15 +174,13 @@
     </div>
 
     <p class="mt-6 max-w-xs text-[11px] text-teal-200/55 leading-relaxed">
-      Las 9 barcas cruzarán frente a ti sobre el río. Captura fotos o graba video directo en tu galería.
+      Las 9 barcas navegarán de frente cruzando el río ante ti. Captura fotos o graba video directo en tu teléfono.
     </p>
   </div>
 
   <!-- INTERFAZ UNIFICADA ORGÁNICA (3D / AR CÁMARA / WEBXR AR) -->
   <div id="experience-hud">
-    <!-- BARRA SUPERIOR -->
     <header class="w-full flex items-center justify-between gap-2">
-      <!-- Indicador dinámico de estado / REC -->
       <div id="status-pill" class="organic-glass flex items-center gap-2 rounded-full px-3.5 py-2">
         <span id="status-dot" class="w-2 h-2 rounded-full bg-teal-300 animate-pulse"></span>
         <span id="status-label" class="text-[11px] font-medium text-teal-50 tracking-wide">
@@ -199,7 +188,6 @@
         </span>
       </div>
 
-      <!-- Iconos circulares minimalistas -->
       <div class="interactive flex items-center gap-2">
         <button id="btn-switch-cam" class="hidden organic-glass organic-btn w-10 h-10 rounded-full flex items-center justify-center text-teal-50" title="Cambiar cámara">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
@@ -218,9 +206,7 @@
       </div>
     </header>
 
-    <!-- DOCK INFERIOR ORGÁNICO -->
     <footer class="w-full flex flex-col items-center gap-3">
-
       <!-- Acción de despliegue en plano (solo visible al escanear suelo/pared en AR) -->
       <div id="ar-placement-bar" class="hidden interactive flex items-center justify-center gap-2.5 w-full max-w-xs">
         <button id="btn-ar-place" class="cta-luminous flex-1 py-3 px-5 rounded-full text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
@@ -231,7 +217,7 @@
         </button>
       </div>
 
-      <!-- Panel flotante compacto de ajustes (Distancia / Escala / Modo) -->
+      <!-- Panel flotante compacto de ajustes -->
       <div id="quick-tools-drawer" class="drawer-closed interactive organic-glass rounded-3xl px-3.5 py-2.5 flex flex-wrap items-center justify-center gap-2 max-w-sm">
         <button id="btn-move-back" class="organic-btn px-3 py-1.5 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-[11px] font-medium">↓ Alejar</button>
         <button id="btn-move-forward" class="organic-btn px-3 py-1.5 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-[11px] font-medium">Acercar ↑</button>
@@ -244,9 +230,8 @@
         <button id="btn-switch-vr" class="organic-btn px-3 py-1.5 rounded-full bg-teal-400/20 border border-teal-300/40 text-teal-50 text-[11px] font-semibold">VR</button>
       </div>
 
-      <!-- Barra de captura principal (ergonomía a una mano) -->
+      <!-- Barra de captura ergonómica (Foto / Video) -->
       <div id="capture-dock" class="interactive flex flex-col items-center gap-2.5 w-full max-w-sm">
-        <!-- Selector orgánico Foto / Video -->
         <div class="organic-glass rounded-full p-1 flex items-center gap-1">
           <button id="mode-photo" class="mode-pill-active px-4 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase border border-transparent transition-all">
             Foto
@@ -256,9 +241,7 @@
           </button>
         </div>
 
-        <!-- Fila de obturador + accesos directos -->
         <div class="w-full grid grid-cols-3 items-center px-2">
-          <!-- Izquierda: AR / Reubicar plano -->
           <div class="flex justify-start">
             <button id="btn-left-context" class="organic-glass organic-btn h-11 px-4 rounded-full text-teal-50 text-[11px] font-semibold tracking-wide flex items-center gap-1.5">
               <svg class="w-4 h-4 text-teal-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
@@ -266,14 +249,12 @@
             </button>
           </div>
 
-          <!-- Centro: Obturador táctil -->
           <div class="flex justify-center">
             <button id="shutter-btn" aria-label="Capturar foto o video">
               <span id="shutter-core"></span>
             </button>
           </div>
 
-          <!-- Derecha: Ajustes rápidos / última captura -->
           <div class="flex justify-end items-center gap-2">
             <button id="btn-last-capture" class="hidden organic-glass organic-btn w-11 h-11 rounded-full overflow-hidden p-0.5" title="Ver última captura">
               <img id="last-capture-thumb" class="w-full h-full object-cover rounded-full" alt="Última captura" />
@@ -312,7 +293,7 @@
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Guardar en Teléfono</span>
         </button>
-        <button id="btn-share-device" class="hidden organic-glass organic-btn py-3.5 px-4 rounded-full text-teal-50 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" title="Compartir o guardar en Fotos">
+        <button id="btn-share-device" class="hidden organic-glass organic-btn py-3.5 px-4 rounded-full text-teal-50 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" title="Guardar en Fotos">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span>Fotos</span>
         </button>
@@ -337,51 +318,51 @@
 
     const PERF = {
       maxDpr: IS_MOBILE ? 1.25 : 1.5,
-      waterSubdivisions: IS_MOBILE ? 80 : (IS_QUEST ? 108 : 124),
+      waterSubdivisions: IS_MOBILE ? 84 : (IS_QUEST ? 112 : 128),
       fireflyCount: IS_MOBILE ? 105 : 160,
       particlesPerBoat: IS_MOBILE ? 220 : 380,
       maxAniso: IS_MOBILE ? 2 : 4
     };
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: TRAVESÍA DE LAS 9 BARCAS, AGUA Y AUDIO
+    // 📍 ZONA EDITABLE: TRAVESÍA DE LAS 9 BARCAS, AGUA TURBULENTA Y AUDIO
     // =========================================================================
     const SCULPTURE_CONFIG = {
       baseScale: 3.4,          // Escala base de cada barca
-      submersionRatio: 0.14,   // Inmersión del casco en el agua
-      headingOffsetDeg: 0      // 0 = proa alineada al sentido de avance (cambia a 180 si deseas invertirla)
+      submersionRatio: 0.14,   // Inmersión natural del casco en el agua
+      modelProwOffsetDeg: 0    // La proa del GLB está en +X; 0 la alinea siempre al frente de su ruta
     };
 
     const CONVOY_CONFIG = {
-      spanHalfX: 23.0,         // Recorrido horizontal de -23m a +23m (46m totales)
-      approachDepthZ: 4.4,     // Cuánto se acercan hacia el espectador al cruzar el centro
-      direction: 1             // 1 = izquierda a derecha (-X -> +X), -1 = derecha a izquierda
+      spanHalfX: 23.5,         // Recorrido total de -23.5m a +23.5m cruzando el escenario
+      approachDepthZ: 4.2,     // Curva suave que acerca las barcas al espectador al pasar por el centro
+      direction: 1             // 1 = izquierda -> derecha (-X -> +X), -1 = derecha -> izquierda
     };
 
-    // 9 barcas en 3 carriles orgánicos que se acercan navegando y atraviesan el escenario
+    // 9 barcas en 3 carriles con velocidad unificada por carril (cero colisiones y encuadre continuo)
     const CONVOY_BOATS_LAYOUT = [
-      // Carril frontal (las más cercanas al espectador, encuadre ideal para foto/video)
-      { uStart: 0.34, speed: 0.043, laneZ:  0.45, scaleMul: 1.00, swayAmp: 0.55, swayPhase: 0.2 },
-      { uStart: 0.14, speed: 0.042, laneZ:  0.95, scaleMul: 0.94, swayAmp: 0.62, swayPhase: 2.1 },
-      { uStart: 0.72, speed: 0.041, laneZ:  0.20, scaleMul: 0.96, swayAmp: 0.50, swayPhase: 4.4 },
+      // Carril frontal (cercano al usuario, 3 barcas bien espaciadas)
+      { uStart: 0.12, speed: 0.037, laneZ:  0.65, scaleMul: 1.00, swayAmp: 0.42, swayPhase: 0.3 },
+      { uStart: 0.45, speed: 0.037, laneZ:  0.40, scaleMul: 0.96, swayAmp: 0.46, swayPhase: 2.3 },
+      { uStart: 0.78, speed: 0.037, laneZ:  0.80, scaleMul: 0.94, swayAmp: 0.40, swayPhase: 4.5 },
 
-      // Carril medio (coro navegando en diagonal)
-      { uStart: 0.48, speed: 0.038, laneZ: -2.40, scaleMul: 0.88, swayAmp: 0.70, swayPhase: 1.1 },
-      { uStart: 0.24, speed: 0.039, laneZ: -3.10, scaleMul: 0.84, swayAmp: 0.64, swayPhase: 3.3 },
-      { uStart: 0.84, speed: 0.037, laneZ: -2.70, scaleMul: 0.86, swayAmp: 0.68, swayPhase: 5.2 },
+      // Carril intermedio (paralaje suave)
+      { uStart: 0.27, speed: 0.032, laneZ: -2.60, scaleMul: 0.88, swayAmp: 0.52, swayPhase: 1.2 },
+      { uStart: 0.60, speed: 0.032, laneZ: -2.95, scaleMul: 0.85, swayAmp: 0.48, swayPhase: 3.4 },
+      { uStart: 0.93, speed: 0.032, laneZ: -2.45, scaleMul: 0.86, swayAmp: 0.50, swayPhase: 5.1 },
 
-      // Carril lejano (profundidad escénica y horizonte)
-      { uStart: 0.04, speed: 0.034, laneZ: -5.80, scaleMul: 0.76, swayAmp: 0.75, swayPhase: 0.7 },
-      { uStart: 0.58, speed: 0.035, laneZ: -6.40, scaleMul: 0.78, swayAmp: 0.72, swayPhase: 2.8 },
-      { uStart: 0.92, speed: 0.033, laneZ: -5.50, scaleMul: 0.74, swayAmp: 0.68, swayPhase: 4.9 }
+      // Carril lejano (profundidad escénica hacia el horizonte)
+      { uStart: 0.05, speed: 0.027, laneZ: -5.90, scaleMul: 0.77, swayAmp: 0.58, swayPhase: 0.8 },
+      { uStart: 0.38, speed: 0.027, laneZ: -6.35, scaleMul: 0.75, swayAmp: 0.55, swayPhase: 2.9 },
+      { uStart: 0.71, speed: 0.027, laneZ: -5.75, scaleMul: 0.78, swayAmp: 0.56, swayPhase: 4.8 }
     ];
 
     const WATER_CONFIG = {
       levelY: 0.28,
       subdivisions: PERF.waterSubdivisions,
-      waveAmplitude: 1.48,
-      flowSpeed: 0.34,
-      turbulence: 1.22
+      waveAmplitude: 1.56,     // Ondulación amplia y orgánica
+      flowSpeed: 0.36,         // Velocidad de corriente fluvial viva
+      turbulence: 1.72         // Mayor turbulencia orgánica en superficie y crestas
     };
 
     const MATERIALIZATION_CONFIG = {
@@ -415,8 +396,8 @@
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, convoyGroup, fleetInstancedGroup;
-    const convoyBoats = [];              // Las 9 barcas navegantes
-    const fleetInstancedPrimitives = []; // { instancedMesh, localMatrix }
+    const convoyBoats = [];
+    const fleetInstancedPrimitives = [];
     const baseMeshTemplates = [];
     let usingInstancedFleet = false;
     let canUseInstancing = false;
@@ -424,7 +405,6 @@
     let waterMesh, waterUniforms, skyDome;
     let firefliesMesh, firefliesMaterial;
 
-    // Estado de materialización ÚNICA
     let isMaterializing = false;
     let hasMaterializedOnce = false;
     let materializationElapsed = 0;
@@ -437,7 +417,7 @@
     let localBoundsMinY = -0.3;
     let localBoundsMaxY = 4.2;
 
-    // Audio + mezcla a grabación de video
+    // Audio
     let ambientAudioEl = null;
     let audioCtx = null;
     let audioGainNode = null;
@@ -446,8 +426,8 @@
     let audioStarted = false;
     let currentAppliedGain = 0.0;
 
-    // Captura de Foto y Video
-    let captureMode = 'photo'; // 'photo' | 'video'
+    // Captura Foto / Video
+    let captureMode = 'photo';
     let isRecordingVideo = false;
     let mediaRecorder = null;
     let recordedChunks = [];
@@ -455,9 +435,9 @@
     let recordTimerInterval = null;
     const captureCanvas = document.createElement('canvas');
     const captureCtx = captureCanvas.getContext('2d', { alpha: false });
-    let lastCapture = null; // { blob, url, filename, type: 'photo'|'video', mimeType }
+    let lastCapture = null;
 
-    // AR + Detector de Planos Horizontales y Verticales
+    // AR + Detector de Planos
     let isCameraARActive = false;
     let isARModeActive = false;
     let isARPlacementMode = false;
@@ -480,17 +460,17 @@
       position: new THREE.Vector3(), normal: new THREE.Vector3(0, 1, 0), quaternion: new THREE.Quaternion()
     };
 
-    // Controles táctiles / escritorio / Quest
+    // Controles
     let moveButtonDir = 0;
     const keysPressed = { w: false, s: false, a: false, d: false };
-    let isPointerDown = false, prevPointerX = 0, prevPointerY = 0;
+    let isPointerDown = false, pointerMovedDist = 0, prevPointerX = 0, prevPointerY = 0;
     let pinchStartDist = 0, pinchStartScale = 1.0;
     let yaw = 0, pitch = 0;
     let toolsDrawerOpen = false;
     let snapTurnReady = true;
     const prevButtons = { leftX: false, leftY: false, rightA: false, rightB: false };
 
-    // Vectores y matrices reutilizables (0 allocs en renderLoop)
+    // Vectores y matrices reutilizables (cero asignaciones por cuadro)
     const _xrForward = new THREE.Vector3();
     const _xrRight = new THREE.Vector3();
     const _upAxis = new THREE.Vector3(0, 1, 0);
@@ -520,7 +500,8 @@
     const _waveSample = { h: 0, sx: 0, sz: 0 };
     const _pathSampleA = { x: 0, z: 0 };
     const _pathSampleB = { x: 0, z: 0 };
-    const _boatWakeArray = Array.from({ length: 9 }, () => new THREE.Vector3(999, 999, 0));
+    // vec4(posX, posZ, dirX * vis, dirZ * vis) para estelas direccionales en V detrás de cada popa
+    const _boatWakeArray = Array.from({ length: 9 }, () => new THREE.Vector4(999, 999, 0, 0));
 
     // DOM
     const arCameraFeed = document.getElementById('ar-camera-feed');
@@ -584,7 +565,7 @@
     }
 
     // =========================================================================
-    // 🔊 AUDIO AMBIENTAL (bosque_noche.mp3) + MEZCLA PARA VIDEO
+    // 🔊 AUDIO AMBIENTAL (bosque_noche.mp3) + MEZCLA A VIDEO
     // =========================================================================
     function initAudioSystem() {
       if (ambientAudioEl) return;
@@ -656,7 +637,7 @@
     }
 
     // =========================================================================
-    // 📸 COMPOSITOR DE FOTO Y VIDEO (AR CÁMARA + 3D + AUDIO) + GUARDADO MÓVIL
+    // 📸 COMPOSITOR DE FOTO Y VIDEO (AR CÁMARA + 3D + AUDIO)
     // =========================================================================
     function syncCaptureCanvasSize() {
       const maxEdge = IS_MOBILE ? 1080 : 1440;
@@ -671,7 +652,6 @@
         cw = Math.round(cw * ratio);
         ch = Math.round(ch * ratio);
       }
-      // Dimensiones pares obligatorias para codificadores H.264/MP4
       cw = cw - (cw % 2);
       ch = ch - (ch % 2);
       if (captureCanvas.width !== cw || captureCanvas.height !== ch) {
@@ -684,10 +664,8 @@
       syncCaptureCanvasSize();
       const cw = captureCanvas.width;
       const ch = captureCanvas.height;
-
       captureCtx.clearRect(0, 0, cw, ch);
 
-      // 1) Capa de cámara en vivo en modo AR celular (con recorte object-fit: cover exacto)
       if (isCameraARActive && arCameraFeed.readyState >= 2 && arCameraFeed.videoWidth > 0) {
         const vw = arCameraFeed.videoWidth;
         const vh = arCameraFeed.videoHeight;
@@ -718,7 +696,6 @@
         captureCtx.fillRect(0, 0, cw, ch);
       }
 
-      // 2) Capa WebGL (las 9 barcas, río verde-aqua y luciérnagas)
       captureCtx.drawImage(renderer.domElement, 0, 0, cw, ch);
     }
 
@@ -739,7 +716,6 @@
       if (isRecordingVideo) return;
       flashShutterVisual();
 
-      // Render fresco justo antes de leer el búfer WebGL (sin costo de preserveDrawingBuffer)
       const prevReticleVis = surfaceReticle.visible;
       const prevPlanesVis = detectedPlanesGroup.visible;
       surfaceReticle.visible = false;
@@ -750,12 +726,8 @@
       detectedPlanesGroup.visible = prevPlanesVis;
 
       captureCanvas.toBlob((blob) => {
-        if (!blob) {
-          showToast('No se pudo generar la fotografía');
-          return;
-        }
-        const filename = `BarcaGrullas_${getTimestampStamp()}.jpg`;
-        openCapturePreview(blob, filename, 'photo', 'image/jpeg');
+        if (!blob) { showToast('No se pudo generar la fotografía'); return; }
+        openCapturePreview(blob, `BarcaGrullas_${getTimestampStamp()}.jpg`, 'photo', 'image/jpeg');
       }, 'image/jpeg', 0.93);
     }
 
@@ -796,28 +768,17 @@
         recordedChunks = [];
         mediaRecorder = new MediaRecorder(stream, options);
       } catch (err) {
-        try {
-          mediaRecorder = new MediaRecorder(stream);
-        } catch (err2) {
-          showToast('No se pudo iniciar la grabación de video');
-          return;
-        }
+        try { mediaRecorder = new MediaRecorder(stream); }
+        catch (err2) { showToast('No se pudo iniciar la grabación de video'); return; }
       }
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      };
-
+      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
       mediaRecorder.onstop = () => {
         const finalMime = (mediaRecorder && mediaRecorder.mimeType) || mimeType || 'video/webm';
-        const isMp4 = finalMime.includes('mp4');
-        const ext = isMp4 ? 'mp4' : 'webm';
+        const ext = finalMime.includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(recordedChunks, { type: finalMime });
-        const filename = `BarcaGrullas_${getTimestampStamp()}.${ext}`;
-        stream.getTracks().forEach((t) => {
-          if (t.kind === 'video') t.stop();
-        });
-        openCapturePreview(blob, filename, 'video', finalMime);
+        stream.getTracks().forEach((t) => { if (t.kind === 'video') t.stop(); });
+        openCapturePreview(blob, `BarcaGrullas_${getTimestampStamp()}.${ext}`, 'video', finalMime);
       };
 
       mediaRecorder.start(250);
@@ -834,9 +795,7 @@
       clearInterval(recordTimerInterval);
       shutterBtn.classList.remove('recording');
       restoreStatusLabel();
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     }
 
     function updateRecordingTimerUI() {
@@ -862,18 +821,15 @@
         previewVideo.pause();
         previewVideo.removeAttribute('src');
         lastCaptureThumb.src = url;
-        btnLastCapture.classList.remove('hidden');
       } else {
         previewVideo.src = url;
         previewVideo.classList.remove('hidden');
         previewPhoto.classList.add('hidden');
         previewVideo.play().catch(() => {});
-        // Miniatura del último fotograma
         lastCaptureThumb.src = captureCanvas.toDataURL('image/jpeg', 0.65);
-        btnLastCapture.classList.remove('hidden');
       }
+      btnLastCapture.classList.remove('hidden');
 
-      // Mostrar botón nativo de Compartir / Guardar en Fotos si el teléfono soporta Web Share con archivos
       let canNativeShare = false;
       try {
         const testFile = new File([blob], filename, { type: mimeType });
@@ -897,16 +853,10 @@
     }
 
     async function shareCaptureToGallery() {
-      if (!lastCapture || !navigator.share) {
-        saveCaptureToPhone();
-        return;
-      }
+      if (!lastCapture || !navigator.share) { saveCaptureToPhone(); return; }
       try {
         const file = new File([lastCapture.blob], lastCapture.filename, { type: lastCapture.mimeType });
-        await navigator.share({
-          title: 'La Barca de las Grullas · Museo Leonora Carrington',
-          files: [file]
-        });
+        await navigator.share({ title: 'La Barca de las Grullas · Museo Leonora Carrington', files: [file] });
       } catch (err) {
         if (err && err.name !== 'AbortError') saveCaptureToPhone();
       }
@@ -954,61 +904,68 @@
     }
 
     // =========================================================================
-    // 🌊 ONDULACIÓN ANALÍTICA + RUTA ORGÁNICA DE LAS 9 BARCAS NAVEGANDO
+    // 🌊 TURBULENCIA FLUVIAL ANALÍTICA EN CPU (SINCRONIZADA CON EL SHADER)
     // =========================================================================
     function sampleRiverHeightAndSlopeJS(px, pz, t, out) {
-      const flowT = t * (0.64 + WATER_CONFIG.flowSpeed * 1.25);
+      const flowT = t * (0.68 + WATER_CONFIG.flowSpeed * 1.30);
       const amp = WATER_CONFIG.waveAmplitude;
       const turb = WATER_CONFIG.turbulence;
 
-      const ph0 = px * 0.40 - flowT * 0.80 + pz * 0.16;
-      const ph1 = px * 0.74 - flowT * 1.08 + pz * 0.28;
-      const ph2 = pz * 0.64 + px * 0.90 - flowT * 1.30;
-      const ph3 = -pz * 0.78 + px * 1.10 - flowT * 1.44;
-      const ph4 = pz * 1.36 - px * 0.66 - flowT * 1.72;
-      const ph5 = pz * 1.10 + px * 1.74 - flowT * 1.98;
+      const ph0 = px * 0.40 - flowT * 0.82 + pz * 0.16;
+      const ph1 = px * 0.74 - flowT * 1.12 + pz * 0.28;
+      const ph2 = pz * 0.66 + px * 0.92 - flowT * 1.36;
+      const ph3 = -pz * 0.80 + px * 1.14 - flowT * 1.50;
+      const ph4 = pz * 1.42 - px * 0.72 - flowT * 1.88;
+      const ph5 = pz * 1.18 + px * 1.82 - flowT * 2.18;
+      const ph6 = pz * 2.15 - px * 1.92 - flowT * 2.55;
+      const ph7 = -pz * 2.45 - px * 1.65 + flowT * 2.40;
 
-      const c0 = Math.cos(ph0), c1 = Math.cos(ph1), c2 = Math.cos(ph2);
-      const c3 = Math.cos(ph3), c4 = Math.cos(ph4), s5 = Math.sin(ph5);
+      const c0 = Math.cos(ph0), c1 = Math.cos(ph1), c2 = Math.cos(ph2), c3 = Math.cos(ph3);
+      const c4 = Math.cos(ph4), s5 = Math.sin(ph5), c6 = Math.cos(ph6), c7 = Math.cos(ph7);
 
       out.h = (
         Math.sin(ph0) * 0.068 +
         Math.sin(ph1) * 0.048 +
-        Math.sin(ph2) * 0.038 +
-        Math.sin(ph3) * 0.032 +
-        Math.sin(ph4) * 0.018 * turb +
-        Math.cos(ph5) * 0.015 * turb
+        Math.sin(ph2) * 0.040 +
+        Math.sin(ph3) * 0.034 +
+        Math.sin(ph4) * 0.022 * turb +
+        Math.cos(ph5) * 0.019 * turb +
+        Math.sin(ph6) * 0.015 * turb +
+        Math.sin(ph7) * 0.012 * turb
       ) * amp;
 
       out.sx = (
-        c0 * 0.068 * 0.40 +
-        c1 * 0.048 * 0.74 +
-        c2 * 0.038 * 0.90 +
-        c3 * 0.032 * 1.10 +
-        c4 * 0.018 * turb * -0.66 -
-        s5 * 0.015 * turb * 1.74
+        c0 * 0.02720 +
+        c1 * 0.03552 +
+        c2 * 0.03680 +
+        c3 * 0.03876 -
+        c4 * 0.01584 * turb -
+        s5 * 0.03458 * turb -
+        c6 * 0.02880 * turb -
+        c7 * 0.01980 * turb
       ) * amp;
 
       out.sz = (
-        c0 * 0.068 * 0.16 +
-        c1 * 0.048 * 0.28 +
-        c2 * 0.038 * 0.64 +
-        c3 * 0.032 * -0.78 +
-        c4 * 0.018 * turb * 1.36 -
-        s5 * 0.015 * turb * 1.10
+        c0 * 0.01088 +
+        c1 * 0.01344 +
+        c2 * 0.02640 -
+        c3 * 0.02720 +
+        c4 * 0.03124 * turb -
+        s5 * 0.02242 * turb +
+        c6 * 0.03225 * turb -
+        c7 * 0.02940 * turb
       ) * amp;
     }
 
-    // Evalúa la curva de navegación: entra desde un lado, se acerca al centro del escenario y cruza hacia el otro lado
+    // Ruta curva natural: entra por un extremo, se acerca al centro y cruza navegando de frente
     function evaluateConvoyPosition(u, cfg, out) {
       const dir = CONVOY_CONFIG.direction;
       const halfX = CONVOY_CONFIG.spanHalfX;
       const x = THREE.MathUtils.lerp(-halfX, halfX, u) * dir;
 
-      // Arco de aproximación: en los extremos las barcas están más lejos y al acercarse al centro se aproximan al usuario
-      const centered = (u - 0.5) * 2.35;
+      const centered = (u - 0.5) * 2.25;
       const approachBell = Math.exp(-centered * centered);
-      const meander = Math.sin(u * Math.PI * 3.0 + cfg.swayPhase) * cfg.swayAmp;
+      const meander = Math.sin(u * Math.PI * 2.5 + cfg.swayPhase) * cfg.swayAmp;
 
       const z = cfg.laneZ - CONVOY_CONFIG.approachDepthZ * (1.0 - approachBell) + meander;
       out.x = x;
@@ -1146,7 +1103,7 @@
     }
 
     // =========================================================================
-    // 🎯 DETECTOR DE PLANOS HORIZONTALES Y VERTICALES (QUEST 3 Y CELULAR)
+    // 🎯 DETECTOR DE PLANOS HORIZONTALES Y VERTICALES
     // =========================================================================
     function setupSurfaceReticleAndPlaneGroup() {
       detectedPlanesGroup = new THREE.Group();
@@ -1287,7 +1244,7 @@
 
       const lookingDown = _camWorldDir.y < -0.25;
       if (lookingDown) {
-        const t = (_camWorldPos.y) / Math.max(0.25, -_camWorldDir.y);
+        const t = _camWorldPos.y / Math.max(0.25, -_camWorldDir.y);
         const dist = THREE.MathUtils.clamp(t, 2.5, 6.8);
         currentSurfaceHit.position.copy(_camWorldPos).addScaledVector(_camWorldDir, dist);
         currentSurfaceHit.position.y = 0.0;
@@ -1412,7 +1369,7 @@
     }
 
     // =========================================================================
-    // 💧 AGUA FLUVIAL OPTIMIZADA CON ESTELAS DINÁMICAS DE LAS 9 BARCAS
+    // 💧 AGUA FLUVIAL TURBULENTA + ESTELAS DIRECCIONALES EN V POR CADA BARCA
     // =========================================================================
     function createSeamlessUtilityTexture() {
       const size = 256;
@@ -1448,9 +1405,9 @@
 
       const fbmTile = (u, v, baseFreq, ox, oy) => {
         let sum = 0, amp = 0.52, freq = baseFreq;
-        for (let o = 0; o < 3; o++) {
+        for (let o = 0; o < 4; o++) {
           sum += tileNoise(u * freq + ox, v * freq + oy, freq) * amp;
-          freq *= 2; amp *= 0.5;
+          freq *= 2; amp *= 0.48;
         }
         return Math.min(1, Math.max(0, sum));
       };
@@ -1460,9 +1417,9 @@
         for (let x = 0; x < size; x++) {
           const u = x / size;
           const idx = (y * size + x) * 4;
-          data[idx]     = Math.floor(fbmTile(u, v, 4, 0, 0) * 255);
-          data[idx + 1] = Math.floor(fbmTile(u, v, 4, 17, 29) * 255);
-          data[idx + 2] = Math.floor(Math.pow(fbmTile(u, v, 8, 43, 11), 1.35) * 255);
+          data[idx]     = Math.floor(fbmTile(u, v, 5, 0, 0) * 255);
+          data[idx + 1] = Math.floor(fbmTile(u, v, 5, 17, 29) * 255);
+          data[idx + 2] = Math.floor(Math.pow(fbmTile(u, v, 9, 43, 11), 1.25) * 255);
           data[idx + 3] = 255;
         }
       }
@@ -1484,12 +1441,12 @@
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
           const u = (x / size) * Math.PI * 2, v = (y / size) * Math.PI * 2;
-          const dx = Math.cos(u * 3 + v * 2) * 0.34 + Math.cos(u * 5 - v * 4) * 0.26 + Math.sin(u * 2 + v * 6) * 0.22 + Math.cos(u * 9 + v * 7) * 0.14;
-          const dy = Math.sin(u * 2 + v * 4) * 0.34 + Math.cos(u * 4 + v * 5) * 0.26 + Math.sin(u * 6 - v * 3) * 0.22 + Math.sin(u * 8 - v * 9) * 0.14;
+          const dx = Math.cos(u * 3 + v * 2) * 0.36 + Math.cos(u * 6 - v * 4) * 0.30 + Math.sin(u * 2 + v * 7) * 0.24 + Math.cos(u * 10 + v * 8) * 0.16;
+          const dy = Math.sin(u * 2 + v * 4) * 0.36 + Math.cos(u * 4 + v * 6) * 0.30 + Math.sin(u * 7 - v * 3) * 0.24 + Math.sin(u * 9 - v * 10) * 0.16;
           const idx = (y * size + x) * 4;
-          data[idx] = Math.floor((dx * 0.44 + 0.5) * 255);
-          data[idx + 1] = Math.floor((dy * 0.44 + 0.5) * 255);
-          data[idx + 2] = 238; data[idx + 3] = 255;
+          data[idx] = Math.floor((dx * 0.45 + 0.5) * 255);
+          data[idx + 1] = Math.floor((dy * 0.45 + 0.5) * 255);
+          data[idx + 2] = 235; data[idx + 3] = 255;
         }
       }
       ctx.putImageData(imgData, 0, 0);
@@ -1498,7 +1455,7 @@
       return tex;
     }
 
-    function buildSobelNormalTextureFromImage(img, strength = 2.9) {
+    function buildSobelNormalTextureFromImage(img, strength = 3.2) {
       const size = IS_MOBILE ? 256 : 512;
       const srcCanvas = document.createElement('canvas');
       srcCanvas.width = size; srcCanvas.height = size;
@@ -1557,7 +1514,7 @@
         loadedTex.wrapS = THREE.RepeatWrapping; loadedTex.wrapT = THREE.RepeatWrapping;
         loadedTex.anisotropy = aniso; loadedTex.needsUpdate = true;
         try {
-          const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 2.9);
+          const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 3.2);
           if (analysis.isNormalMap) waterUniforms.uNormalMap.value = loadedTex;
           else { analysis.normalTex.anisotropy = aniso; waterUniforms.uNormalMap.value = analysis.normalTex; }
         } catch (err) {}
@@ -1579,14 +1536,14 @@
         uSunDirection:      { value: new THREE.Vector3(6, 13, 8).normalize() },
         uSkyZenithColor:    { value: new THREE.Color(0x11404a) },
         uSkyHorizonColor:   { value: new THREE.Color(0x32968e) },
-        uWaterDeepColor:    { value: new THREE.Color(0x0b4547) },
+        uWaterDeepColor:    { value: new THREE.Color(0x0a4245) },
         uWaterShallowColor: { value: new THREE.Color(0x188f84) },
-        uCrestGlowColor:    { value: new THREE.Color(0x33bfa9) },
+        uCrestGlowColor:    { value: new THREE.Color(0x36c4ad) },
         uAtmoAmbientColor:  { value: new THREE.Color(0x1d706b) },
-        uFoamColor:         { value: new THREE.Color(0xc4e3de) },
+        uFoamColor:         { value: new THREE.Color(0xcceae5) },
         uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
         uFogDensity:        { value: SCENE_FOG_DENSITY },
-        uWaterFlow:         { value: new THREE.Vector2(CONVOY_CONFIG.direction, 0.14).normalize() },
+        uWaterFlow:         { value: new THREE.Vector2(CONVOY_CONFIG.direction, 0.12).normalize() },
         uFlowSpeed:         { value: WATER_CONFIG.flowSpeed },
         uWaveAmp:           { value: WATER_CONFIG.waveAmplitude },
         uTurbulence:        { value: WATER_CONFIG.turbulence },
@@ -1609,35 +1566,40 @@
           void main() {
             vec3 pos = position;
             vec2 p = pos.xz;
-            float flowT = uTime * (0.64 + uFlowSpeed * 1.25);
+            float flowT = uTime * (0.68 + uFlowSpeed * 1.30);
 
-            float ph0 = p.x * 0.40 - flowT * 0.80 + p.y * 0.16;
-            float ph1 = p.x * 0.74 - flowT * 1.08 + p.y * 0.28;
-            float ph2 = p.y * 0.64 + p.x * 0.90 - flowT * 1.30;
-            float ph3 = -p.y * 0.78 + p.x * 1.10 - flowT * 1.44;
-            float ph4 = p.y * 1.36 - p.x * 0.66 - flowT * 1.72;
-            float ph5 = p.y * 1.10 + p.x * 1.74 - flowT * 1.98;
-            float ph6 = p.y * 2.10 - p.x * 1.85 - flowT * 2.30;
+            float ph0 = p.x * 0.40 - flowT * 0.82 + p.y * 0.16;
+            float ph1 = p.x * 0.74 - flowT * 1.12 + p.y * 0.28;
+            float ph2 = p.y * 0.66 + p.x * 0.92 - flowT * 1.36;
+            float ph3 = -p.y * 0.80 + p.x * 1.14 - flowT * 1.50;
+            float ph4 = p.y * 1.42 - p.x * 0.72 - flowT * 1.88;
+            float ph5 = p.y * 1.18 + p.x * 1.82 - flowT * 2.18;
+            float ph6 = p.y * 2.15 - p.x * 1.92 - flowT * 2.55;
+            float ph7 = -p.y * 2.45 - p.x * 1.65 + flowT * 2.40;
 
-            float c0 = cos(ph0), c1 = cos(ph1), c2 = cos(ph2), c3 = cos(ph3), c4 = cos(ph4), s5 = sin(ph5), c6 = cos(ph6);
+            float c0 = cos(ph0), c1 = cos(ph1), c2 = cos(ph2), c3 = cos(ph3);
+            float c4 = cos(ph4), s5 = sin(ph5), c6 = cos(ph6), c7 = cos(ph7);
 
             float h = (
-              sin(ph0) * 0.068 + sin(ph1) * 0.048 + sin(ph2) * 0.038 + sin(ph3) * 0.032 +
-              sin(ph4) * 0.018 * uTurbulence + cos(ph5) * 0.015 * uTurbulence + sin(ph6) * 0.011 * uTurbulence
+              sin(ph0) * 0.068 + sin(ph1) * 0.048 + sin(ph2) * 0.040 + sin(ph3) * 0.034 +
+              sin(ph4) * 0.022 * uTurbulence + cos(ph5) * 0.019 * uTurbulence +
+              sin(ph6) * 0.015 * uTurbulence + sin(ph7) * 0.012 * uTurbulence
             ) * uWaveAmp;
 
             float dhdx = (
-              c0 * 0.02720 + c1 * 0.03552 + c2 * 0.03420 + c3 * 0.03520 -
-              c4 * 0.01188 * uTurbulence - s5 * 0.02610 * uTurbulence - c6 * 0.02035 * uTurbulence
+              c0 * 0.02720 + c1 * 0.03552 + c2 * 0.03680 + c3 * 0.03876 -
+              c4 * 0.01584 * uTurbulence - s5 * 0.03458 * uTurbulence -
+              c6 * 0.02880 * uTurbulence - c7 * 0.01980 * uTurbulence
             ) * uWaveAmp;
 
             float dhdz = (
-              c0 * 0.01088 + c1 * 0.01344 + c2 * 0.02432 - c3 * 0.02496 +
-              c4 * 0.02448 * uTurbulence - s5 * 0.01650 * uTurbulence + c6 * 0.02310 * uTurbulence
+              c0 * 0.01088 + c1 * 0.01344 + c2 * 0.02640 - c3 * 0.02720 +
+              c4 * 0.03124 * uTurbulence - s5 * 0.02242 * uTurbulence +
+              c6 * 0.03225 * uTurbulence - c7 * 0.02940 * uTurbulence
             ) * uWaveAmp;
 
-            pos.x += (c0 * 0.024 + c1 * 0.016) * uWaveAmp;
-            pos.z += (c2 * 0.012 - c3 * 0.011) * uWaveAmp;
+            pos.x += (c0 * 0.026 + c1 * 0.018 - c6 * 0.008 * uTurbulence) * uWaveAmp;
+            pos.z += (c2 * 0.014 - c3 * 0.013 + c7 * 0.008 * uTurbulence) * uWaveAmp;
             pos.y += h;
 
             vHeight = h;
@@ -1660,7 +1622,7 @@
           uniform vec3 uSunDirection, uSkyZenithColor, uSkyHorizonColor, uWaterDeepColor, uWaterShallowColor;
           uniform vec3 uCrestGlowColor, uAtmoAmbientColor, uFoamColor, uFogColor;
           uniform vec2 uWaterFlow;
-          uniform vec3 uBoatWakes[9];
+          uniform vec4 uBoatWakes[9];
 
           varying vec3 vWorldPos, vWaveNormal;
           varying vec2 vLocalXZ;
@@ -1668,24 +1630,26 @@
 
           void main() {
             vec2 flow = uWaterFlow * uFlowSpeed;
-            float tFlow = uTime * uFlowSpeed;
 
-            vec3 utilA = texture2D(uUtilityMap, vLocalXZ * 0.075 - flow * uTime * 0.16).rgb;
-            vec3 utilB = texture2D(uUtilityMap, vLocalXZ * 0.165 - flow * uTime * 0.28 + vec2(0.31, 0.19)).rgb;
+            // Turbulencia en remolinos con 2 capas opuestas pre-horneadas (0 FBM en GPU)
+            vec2 crossFlow = vec2(-flow.y, flow.x);
+            vec3 utilA = texture2D(uUtilityMap, vLocalXZ * 0.085 - flow * uTime * 0.18).rgb;
+            vec3 utilB = texture2D(uUtilityMap, vLocalXZ * 0.195 - (flow * 0.30 + crossFlow * 0.11) * uTime + vec2(0.31, 0.19)).rgb;
 
-            vec2 warp = (utilA.rg - 0.5) * 0.78 * uTurbulence;
+            vec2 warp = ((utilA.rg - 0.5) * 0.70 + (utilB.rg - 0.5) * 0.45) * 0.92 * uTurbulence;
             vec2 turbPos = vLocalXZ + warp;
 
-            mat2 rotA = mat2(0.92, -0.39, 0.39, 0.92);
-            vec3 n1 = texture2D(uNormalMap, turbPos * 0.25 - flow * uTime * 0.80).xyz * 2.0 - 1.0;
-            vec3 n2 = texture2D(uNormalMap, (rotA * turbPos) * 0.54 - (rotA * flow) * uTime * 1.18 + vec2(0.37, 0.61)).xyz * 2.0 - 1.0;
-            vec3 detailN = normalize(n1 * 0.85 + n2 * 0.70);
+            // Normales rotadas con mayor relieve turbulento (sin líneas continuas)
+            mat2 rotA = mat2(0.88, -0.47, 0.47, 0.88);
+            vec3 n1 = texture2D(uNormalMap, turbPos * 0.28 - flow * uTime * 0.86).xyz * 2.0 - 1.0;
+            vec3 n2 = texture2D(uNormalMap, (rotA * turbPos) * 0.62 - (rotA * flow) * uTime * 1.32 + vec2(0.37, 0.61)).xyz * 2.0 - 1.0;
+            vec3 detailN = normalize(n1 * 0.88 + n2 * 0.78);
 
-            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.54, 0.0, detailN.z * 0.54));
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.70, 0.0, detailN.z * 0.70));
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
-            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.8);
+            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.7);
             vec3 R = reflect(-V, N);
             vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(clamp(R.y, 0.0001, 1.0), 0.62));
 
@@ -1694,31 +1658,51 @@
             vec3 H = normalize(L + V);
             float NdotH = max(dot(N, H), 0.0);
 
-            float softSparkle = pow(max(NdotH, 0.0001), 86.0) * 0.20;
+            float softSparkle = pow(max(NdotH, 0.0001), 84.0) * 0.21;
             float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.07;
 
-            float eddyTone = utilA.r * 0.55 + utilB.g * 0.45;
-            float depthT = clamp(smoothstep(-0.20, 0.22, vHeight) * 0.58 + eddyTone * 0.42, 0.0, 1.0);
+            float eddyTone = utilA.r * 0.52 + utilB.g * 0.48;
+            float depthT = clamp(smoothstep(-0.22, 0.24, vHeight) * 0.54 + eddyTone * 0.46, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
-            waterColor = waterColor * (0.88 + 0.20 * wrapDiffuse) + uAtmoAmbientColor * 0.16;
+            waterColor = waterColor * (0.87 + 0.22 * wrapDiffuse) + uAtmoAmbientColor * 0.16;
 
-            float sssMask = smoothstep(0.04, 0.24, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
-            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.30, 0.0, 0.32));
+            float sssMask = smoothstep(0.04, 0.26, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
+            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.34, 0.0, 0.36));
 
-            // Estela y sombra suave dinámica siguiendo a cada una de las 9 barcas en movimiento
+            // Estela en V y corte de proa orientados al sentido exacto de cada barca
             float wakeFoamAcc = 0.0;
             float hullShadowAcc = 0.0;
             for (int i = 0; i < 9; i++) {
-              vec3 bw = uBoatWakes[i];
-              if (bw.z > 0.05) {
+              vec4 bw = uBoatWakes[i];
+              float vis = length(bw.zw);
+              if (vis > 0.05) {
                 vec2 d = vLocalXZ - bw.xy;
                 float d2 = dot(d, d);
-                if (d2 < 14.0) {
-                  // Sombra muy sutil bajo el casco
-                  hullShadowAcc += exp(-d2 * 0.55) * 0.18 * bw.z;
-                  // Estela suave detrás de la barca (estirada sobre el eje de avance)
-                  vec2 trailD = vec2(d.x * 0.46 + 0.9 * uWaterFlow.x, d.y * 1.05);
-                  wakeFoamAcc += exp(-dot(trailD, trailD) * 0.58) * 0.34 * bw.z;
+                if (d2 < 24.0) {
+                  vec2 fwd = bw.zw / vis;
+                  vec2 side = vec2(-fwd.y, fwd.x);
+                  float along = dot(d, fwd);
+                  float across = abs(dot(d, side));
+
+                  // Sombra suave bajo el casco
+                  float hullEll = (along * along) / 3.4 + (across * across) / 0.85;
+                  hullShadowAcc += exp(-hullEll * 1.45) * 0.20 * vis;
+
+                  // Corte espumoso discreto en la proa
+                  float bowDx = along - 1.30;
+                  float bowFoam = exp(-(bowDx * bowDx * 2.0 + across * across * 2.6)) * 0.38;
+
+                  // Estela en V abriéndose detrás de la popa
+                  float behind = 0.85 - along;
+                  float vWake = 0.0;
+                  if (behind > 0.0 && behind < 4.8) {
+                    float armX = 0.26 + behind * 0.26;
+                    float armD = abs(across - armX);
+                    float armFoam = exp(-armD * armD * 4.2) * exp(-behind * 0.45) * 0.38;
+                    float sternChurn = exp(-across * across * 2.2) * exp(-max(behind - 1.1, 0.0) * 0.68) * smoothstep(0.55, 1.45, behind) * 0.24;
+                    vWake = armFoam + sternChurn;
+                  }
+                  wakeFoamAcc += (bowFoam + vWake) * vis;
                 }
               }
             }
@@ -1729,10 +1713,12 @@
             col += softSparkle * vec3(0.86, 0.95, 0.92);
             col += softSheen * vec3(0.56, 0.84, 0.80);
 
-            float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.22;
-            float organicBreakup = utilA.b * 0.50 + utilB.b * 0.50;
-            float rawFoam = clamp(wakeFoamAcc + chopFoam, 0.0, 0.82);
-            float finalFoam = smoothstep(0.22, 0.78, rawFoam * (0.40 + 1.05 * organicBreakup)) * 0.42;
+            // Espuma de turbulencia orgánica en las crestas más movidas + estelas de las barcas
+            float chopFoam = smoothstep(0.11, 0.27, vHeight) * smoothstep(0.035, 0.14, vSteepness) * 0.36;
+            float eddySwirl = smoothstep(0.68, 0.94, utilB.b * 0.65 + utilA.r * 0.35) * 0.18;
+            float organicBreakup = utilA.b * 0.48 + utilB.b * 0.52;
+            float rawFoam = clamp(wakeFoamAcc + chopFoam + eddySwirl, 0.0, 0.92);
+            float finalFoam = smoothstep(0.20, 0.76, rawFoam * (0.42 + 1.08 * organicBreakup)) * 0.46;
 
             col = mix(col, uFoamColor * (0.82 + 0.14 * wrapDiffuse), finalFoam);
 
@@ -1741,7 +1727,6 @@
               col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.90));
             }
 
-            // Desvanecimiento ovalado suave hacia los bordes
             float ovalDist = length(vec2(vLocalXZ.x / 27.0, vLocalXZ.y / 21.0));
             float edgeFade = smoothstep(1.0, 0.66, ovalDist);
 
@@ -1859,7 +1844,7 @@
     }
 
     // =========================================================================
-    // ✨ MATERIALIZACIÓN ÚNICA + BATCHING EN 1 INSTANCEDMESH PARA LAS 9 BARCAS
+    // ✨ MATERIALIZACIÓN ÚNICA + INSTANCEDMESH PARA LAS 9 BARCAS
     // =========================================================================
     function buildSurfaceParticleGeometry(sourceRoot, referenceParent, particleCount) {
       referenceParent.updateMatrixWorld(true);
@@ -2021,7 +2006,6 @@
     function finalizeAndOptimizeConvoy() {
       renderer.localClippingEnabled = false;
 
-      // Liberar geometría y materiales de partículas de materialización
       for (let i = 0; i < convoyBoats.length; i++) {
         const b = convoyBoats[i];
         if (b.particles) {
@@ -2032,7 +2016,6 @@
       }
       if (boatParticleGeoRef) { boatParticleGeoRef.dispose(); boatParticleGeoRef = null; }
 
-      // Consolidar las 9 barcas en 1 solo InstancedMesh por primitiva (de 9xN draw calls a 1xN)
       if (canUseInstancing && baseMeshTemplates.length > 0) {
         for (let p = 0; p < baseMeshTemplates.length; p++) {
           const tpl = baseMeshTemplates[p];
@@ -2061,7 +2044,6 @@
       convoyBoats.length = 0;
       baseMeshTemplates.length = 0;
 
-      // Extraer primitivas limpias para el InstancedMesh posterior
       canUseInstancing = true;
       referencePivot.updateMatrixWorld(true);
       const invPivot = new THREE.Matrix4().copy(referencePivot.matrixWorld).invert();
@@ -2163,7 +2145,7 @@
         document.getElementById('progress-bar').style.width = '100%';
         document.getElementById('progress-text').textContent = '100%';
         document.getElementById('progress-container').classList.add('hidden');
-        document.getElementById('loading-message').textContent = 'Las 9 barcas están listas para cruzar el río.';
+        document.getElementById('loading-message').textContent = 'Las 9 barcas están listas para iniciar la travesía.';
         launchControls.classList.remove('hidden');
         launchControls.classList.add('flex');
       } catch (e) {
@@ -2172,7 +2154,6 @@
       }
     }
 
-    // Materialización estrictamente única
     function triggerMaterializationOnce() {
       if (hasMaterializedOnce || isMaterializing || convoyBoats.length === 0) return;
 
@@ -2317,11 +2298,7 @@
         throw new Error('getUserMedia no disponible');
       }
       cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: facingMode },
-          width: { ideal: IS_MOBILE ? 1280 : 1280 },
-          height: { ideal: IS_MOBILE ? 720 : 720 }
-        },
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
       });
       arCameraFeed.srcObject = cameraStream;
@@ -2355,25 +2332,21 @@
 
         barcaAnchorGroup.visible = hasMaterializedOnce || hasPlacedInAR;
         setARPlacementMode(true);
-        showToast('Apunta al suelo o a una pared para desplegar');
+        showToast('Apunta al suelo o pared y toca para desplegar');
       } catch (err) {
-        console.warn('No se pudo abrir la cámara AR:', err);
         isCameraARActive = false;
         isARModeActive = false;
         applyTransparentARVisuals(false);
         setARPlacementMode(false);
         triggerMaterializationOnce();
-        showToast('Permite acceso a la cámara para usar AR · Vista 3D activa');
+        showToast('Permite acceso a la cámara para AR · Vista 3D activa');
       }
     }
 
     async function exitActiveARMode() {
       if (isRecordingVideo) stopVideoRecording();
       const xrSession = renderer.xr.getSession();
-      if (xrSession) {
-        await xrSession.end().catch(() => {});
-        return;
-      }
+      if (xrSession) { await xrSession.end().catch(() => {}); return; }
       if (isCameraARActive) {
         isCameraARActive = false;
         isARModeActive = false;
@@ -2417,13 +2390,10 @@
       }
 
       if (!navigator.xr) {
-        if (requestedMode === 'immersive-ar') {
-          await startMobileCameraARMode();
-          return;
-        }
+        if (requestedMode === 'immersive-ar') { await startMobileCameraARMode(); return; }
         setARPlacementMode(false);
         triggerMaterializationOnce();
-        showToast('WebXR VR requiere navegador Quest 3 · Vista 3D activa');
+        showToast('WebXR VR requiere Meta Quest 3 · Vista 3D activa');
         return;
       }
 
@@ -2625,22 +2595,31 @@
       window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = true; });
       window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = false; });
 
-      // Arrastre 1 dedo + Pellizco 2 dedos para escala natural
+      // Arrastre 1 dedo, toque rápido para colocar en AR y pellizco 2 dedos para escalar
       const viewport = document.getElementById('webgl-viewport');
       viewport.addEventListener('pointerdown', (e) => {
-        isPointerDown = true; prevPointerX = e.clientX; prevPointerY = e.clientY;
+        isPointerDown = true;
+        pointerMovedDist = 0;
+        prevPointerX = e.clientX;
+        prevPointerY = e.clientY;
         if (!audioStarted && !isAudioMuted) unlockAndPlayAudio();
         if (toolsDrawerOpen) toggleToolsDrawer(false);
       });
       window.addEventListener('pointermove', (e) => {
         if (!isPointerDown || renderer.xr.isPresenting) return;
         const dx = e.clientX - prevPointerX, dy = e.clientY - prevPointerY;
+        pointerMovedDist += Math.hypot(dx, dy);
         prevPointerX = e.clientX; prevPointerY = e.clientY;
         yaw -= dx * 0.0045;
         pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -0.95, 0.95);
         if (!gyroEnabled) camera.rotation.set(pitch, yaw, 0, 'YXZ');
       });
-      window.addEventListener('pointerup', () => { isPointerDown = false; });
+      window.addEventListener('pointerup', () => {
+        if (isPointerDown && pointerMovedDist < 8 && isARModeActive && isARPlacementMode) {
+          placeSceneAtDetectedSurface();
+        }
+        isPointerDown = false;
+      });
 
       viewport.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
@@ -2731,9 +2710,9 @@
     }
 
     // =========================================================================
-    // 🚣 ACTUALIZACIÓN DE TRAVESÍA DE LAS 9 BARCAS (CERO ALLOCS POR FRAME)
+    // 🚣 NAVEGACIÓN PROA AL FRENTE DE LAS 9 BARCAS (COHERENCIA FÍSICA REAL)
     // =========================================================================
-    const headingOffsetRad = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.headingOffsetDeg);
+    const prowOffsetRad = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.modelProwOffsetDeg);
 
     function updateConvoyNavigation(dt, timeSec) {
       if (convoyBoats.length === 0) return;
@@ -2745,7 +2724,6 @@
         const b = convoyBoats[i];
         const cfg = b.cfg;
 
-        // Progreso cíclico suave de un extremo al otro del escenario
         const u = (cfg.uStart + convoyElapsedTime * cfg.speed) % 1.0;
         const uNext = Math.min(0.9995, u + 0.003);
 
@@ -2754,28 +2732,35 @@
 
         const dx = _pathSampleB.x - _pathSampleA.x;
         const dz = _pathSampleB.z - _pathSampleA.z;
-        const heading = Math.atan2(dx, dz) + headingOffsetRad;
+        const segLen = Math.hypot(dx, dz) || 1.0;
+        const dirX = dx / segLen;
+        const dirZ = dz / segLen;
 
-        // Aparición y desaparición suave en los bordes lejanos del río
+        // La proa del GLB está sobre +X local: R_y(θ) * (1,0,0) = (cos θ, 0, -sin θ)
+        // Por tanto θ = atan2(-dirZ, dirX) alinea SIEMPRE la proa al frente de su trayectoria
+        const heading = Math.atan2(-dirZ, dirX) + prowOffsetRad;
+
         const edgeFade = smoothstepJS(0.0, 0.08, u) * smoothstepJS(1.0, 0.92, u);
         const finalScale = Math.max(0.0001, cfg.scaleMul * edgeFade);
 
-        // Oscilación hidrodinámica sincronizada con el agua
+        // Inclinación físicamente coherente con las pendientes turbulentas del agua:
+        // +dh/dx levanta +X (+rotZ) y +dh/dz levanta +Z (-rotX)
         sampleRiverHeightAndSlopeJS(_pathSampleA.x, _pathSampleA.z, timeSec, _waveSample);
-        const by = _waveSample.h * 0.72 + Math.sin(timeSec * 0.85 + b.phase) * 0.022;
-        const roll = THREE.MathUtils.clamp(-_waveSample.sx * 0.26, -0.07, 0.07);
-        const pitchBoat = THREE.MathUtils.clamp(_waveSample.sz * 0.26, -0.07, 0.07);
+        const by = _waveSample.h * 0.72 + Math.sin(timeSec * 0.92 + b.phase) * 0.024;
+        const rotZ = THREE.MathUtils.clamp( _waveSample.sx * 0.28, -0.085, 0.085);
+        const rotX = THREE.MathUtils.clamp(-_waveSample.sz * 0.28, -0.085, 0.085);
 
         b.curX = _pathSampleA.x;
         b.curY = by;
         b.curZ = _pathSampleA.z;
         b.curYaw = heading;
-        b.curPitch = pitchBoat;
-        b.curRoll = roll;
+        b.curPitch = rotX;
+        b.curRoll = rotZ;
         b.curScale = finalScale;
 
-        // Pasar posición y visibilidad al shader del agua para estelas dinámicas
-        _boatWakeArray[i].set(b.curX, b.curZ, edgeFade * (hasMaterializedOnce ? 1.0 : b.progress));
+        // Posición + vector de avance escalado por visibilidad para estela direccional en V
+        const wakeVis = edgeFade * (hasMaterializedOnce ? 1.0 : b.progress);
+        _boatWakeArray[i].set(b.curX, b.curZ, dirX * wakeVis, dirZ * wakeVis);
 
         if (usingInstancedFleet && primCount > 0) {
           _dummyObj.position.set(b.curX, b.curY, b.curZ);
@@ -2829,7 +2814,6 @@
 
       updateConvoyNavigation(dt, timeSec);
 
-      // Materialización única mientras las 9 barcas ya navegan
       if (isMaterializing) {
         materializationElapsed += dt;
         let allDone = true;
@@ -2887,7 +2871,6 @@
         currentRevealAudioFactor = 1.0;
       }
 
-      // Envolvente de audio sincronizada con las barcas
       if (ambientAudioEl) {
         const targetGain = isAudioMuted
           ? 0.0
@@ -2904,7 +2887,6 @@
 
       renderer.render(scene, camera);
 
-      // Si está grabando video, componer cada cuadro (cámara real + WebGL) justo después del render
       if (isRecordingVideo) {
         compositeCurrentFrameToCaptureCanvas();
       }

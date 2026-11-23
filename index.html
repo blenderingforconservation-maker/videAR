@@ -123,23 +123,40 @@
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: POSICIÓN DE LA ESCULTURA Y CORRIENTE DEL RÍO
+    // 📍 ZONA EDITABLE: POSICIÓN DE LA ESCULTURA, AGUA Y FLOTA DE BARCAS
     // =========================================================================
     const SCULPTURE_CONFIG = {
       positionX: 0.0,        // Izquierda (-) / Derecha (+) en metros
       positionY: 0.0,        // Ajuste vertical de la escultura (+ sube / - baja)
       positionZ: 0.0,        // Fondo (-) / Frente (+) en metros
-      rotationYDeg: 90,      // Giro horizontal en grados (90 o -90 para que el río pegue de frente)
-      scale: 4.2,            // Escala general de la escultura
+      rotationYDeg: 90,      // Giro horizontal en grados
+      scale: 4.2,            // Escala general de la escultura principal
       submersionRatio: 0.14  // Inmersión base del casco antes del nivel del agua
     };
 
     const WATER_CONFIG = {
-      levelY: 0.28,          // Altura del agua en metros (sube este número para cubrir más el casco)
-      waveAmplitude: 0.72,   // Rizos de río (menor oleaje vertical que el mar, más definido)
-      flowSpeed: 0.82,       // Velocidad de la corriente del río (-Z -> +Z)
-      currentStrength: 1.05  // Visibilidad de las vetas y filamentos de corriente (0.7 suave - 1.4 muy marcada)
+      levelY: 0.28,          // Altura del agua en metros
+      subdivisions: 224,     // Alta subdivisión de la malla de agua (224x224)
+      waveAmplitude: 0.92,   // Amplitud de turbulencia fluvial leve
+      flowSpeed: 0.24,       // Velocidad pausada de la corriente (-Z -> +Z)
+      turbulence: 1.18       // Nivel de turbulencia orgánica en superficie
     };
+
+    // 12 barcas adicionales alrededor de la escena (ángulo en grados respecto a +Z, radio en m, escala relativa, giro extra)
+    const SURROUNDING_BOATS_LAYOUT = [
+      { angleDeg: -52,  radius: 8.8,  scaleMul: 0.84, yawOffsetDeg: -10 },
+      { angleDeg:  54,  radius: 9.2,  scaleMul: 0.80, yawOffsetDeg:  12 },
+      { angleDeg: -108, radius: 10.4, scaleMul: 0.88, yawOffsetDeg:   6 },
+      { angleDeg:  112, radius: 10.8, scaleMul: 0.82, yawOffsetDeg:  -9 },
+      { angleDeg: -154, radius: 9.8,  scaleMul: 0.90, yawOffsetDeg:  14 },
+      { angleDeg:  158, radius: 11.4, scaleMul: 0.85, yawOffsetDeg: -11 },
+      { angleDeg: -26,  radius: 14.8, scaleMul: 0.78, yawOffsetDeg:   8 },
+      { angleDeg:  30,  radius: 15.6, scaleMul: 0.76, yawOffsetDeg: -13 },
+      { angleDeg: -78,  radius: 16.5, scaleMul: 0.92, yawOffsetDeg:  -6 },
+      { angleDeg:  84,  radius: 17.2, scaleMul: 0.86, yawOffsetDeg:  10 },
+      { angleDeg: -136, radius: 18.0, scaleMul: 0.95, yawOffsetDeg:  -8 },
+      { angleDeg:  142, radius: 18.8, scaleMul: 0.88, yawOffsetDeg:   7 }
+    ];
     // =========================================================================
 
     // Rutas verificadas del repo blenderingforconservation-maker/videAR
@@ -149,14 +166,16 @@
       waterTexture: `${REPO_RAW_BASE}image_c713d6.png`
     };
 
-    const SCENE_BG_HEX = 0x072427;
-    const SCENE_FOG_HEX = 0x0a3235;
+    const SCENE_BG_HEX = 0x061f22;
+    const SCENE_FOG_HEX = 0x092c2f;
     const SCENE_FOG_DENSITY = 0.017;
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
+    let fleetGroup;
+    const surroundingBoats = [];
     let waterMesh, waterUniforms, skyDome;
-    let clippingPlane, leafParticles, leafMaterial, magicWaveRing, magicWaveLight;
+    let clippingPlane, magicWaveRing, magicWaveLight;
     let glowParticles, glowMaterial;
 
     let isMaterializing = false;
@@ -201,6 +220,21 @@
       showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3000);
     }
 
+    // Misma función de altura de río en CPU para sincronizar el vaivén de las 13 barcas con el agua
+    function sampleRiverHeightJS(px, pz, t) {
+      const flowT = t * (0.55 + WATER_CONFIG.flowSpeed * 1.15);
+      const amp = WATER_CONFIG.waveAmplitude;
+      const turb = WATER_CONFIG.turbulence;
+
+      const w1 = Math.sin(pz * 0.72 - flowT * 1.10 + px * 0.24) * 0.044;
+      const w2 = Math.sin(px * 0.68 + pz * 0.96 - flowT * 1.38) * 0.032;
+      const w3 = Math.sin(-px * 0.82 + pz * 1.18 - flowT * 1.52) * 0.026;
+      const w4 = Math.sin(px * 1.45 - pz * 0.62 - flowT * 1.85) * 0.017 * turb;
+      const w5 = Math.cos(px * 1.15 + pz * 1.85 - flowT * 2.15) * 0.014 * turb;
+
+      return (w1 + w2 + w3 + w4 + w5) * amp;
+    }
+
     init();
 
     async function init() {
@@ -227,7 +261,7 @@
       renderer.localClippingEnabled = false;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.38;
+      renderer.toneMappingExposure = 1.35;
       container.appendChild(renderer.domElement);
 
       setupLighting();
@@ -245,9 +279,12 @@
       sculpturePivot.rotation.y = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg);
       boatBobbingGroup.add(sculpturePivot);
 
+      fleetGroup = new THREE.Group();
+      barcaAnchorGroup.add(fleetGroup);
+
       setupWaterSurface();
       loadRepoWaterTexture();
-      setupMagicalLeafMaterialization();
+      setupMagicalReveal();
       setupAmbientGlowParticles();
       await loadBarcaModel();
 
@@ -267,26 +304,26 @@
     }
 
     function setupLighting() {
-      scene.add(new THREE.AmbientLight(0xe6fffb, 1.15));
+      scene.add(new THREE.AmbientLight(0xe4faf7, 1.12));
 
-      const hemi = new THREE.HemisphereLight(0xf0fffc, 0x13857d, 2.0);
+      const hemi = new THREE.HemisphereLight(0xebfffb, 0x106e67, 1.9);
       hemi.position.set(0, 16, 0);
       scene.add(hemi);
 
-      const keyDir = new THREE.DirectionalLight(0xfff6e3, 2.85);
+      const keyDir = new THREE.DirectionalLight(0xfff6e3, 2.75);
       keyDir.position.set(6, 12, 7);
       scene.add(keyDir);
 
-      const fillDir = new THREE.DirectionalLight(0xb2f5ea, 1.65);
+      const fillDir = new THREE.DirectionalLight(0xa7ede3, 1.55);
       fillDir.position.set(-7, 7, 5);
       scene.add(fillDir);
 
-      const rimDir = new THREE.DirectionalLight(0x5eead4, 1.65);
+      const rimDir = new THREE.DirectionalLight(0x4fd1c5, 1.45);
       rimDir.position.set(-4, 8, -9);
       scene.add(rimDir);
 
-      const waterBounce = new THREE.PointLight(0x2dd4bf, 2.5, 16);
-      waterBounce.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.7, SCULPTURE_CONFIG.positionZ);
+      const waterBounce = new THREE.PointLight(0x26b5a5, 1.35, 14);
+      waterBounce.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.65, SCULPTURE_CONFIG.positionZ);
       scene.add(waterBounce);
     }
 
@@ -297,9 +334,9 @@
         depthWrite: false,
         fog: false,
         uniforms: {
-          uTopColor: { value: new THREE.Color(0x051c24) },
-          uHorizonColor: { value: new THREE.Color(0x165b5c) },
-          uBottomColor: { value: new THREE.Color(0x052829) }
+          uTopColor: { value: new THREE.Color(0x04171d) },
+          uHorizonColor: { value: new THREE.Color(0x124d4e) },
+          uBottomColor: { value: new THREE.Color(0x042224) }
         },
         vertexShader: `
           varying vec3 vWorldPos;
@@ -338,13 +375,12 @@
         for (let x = 0; x < size; x++) {
           const u = (x / size) * Math.PI * 2;
           const v = (y / size) * Math.PI * 2;
-          // Normales con mayor frecuencia transversal (X) para favorecer filamentos de río
-          const dx = Math.cos(u * 5 + v * 2) * 0.40 + Math.cos(u * 8 - v * 2) * 0.30 + Math.sin(u * 3 + v * 5) * 0.22 + Math.cos(u * 12 + v * 4) * 0.14;
-          const dy = Math.sin(u * 2 + v * 3) * 0.32 + Math.cos(u * 4 + v * 4) * 0.24 + Math.sin(u * 6 - v * 2) * 0.20 + Math.sin(u * 9 - v * 6) * 0.12;
+          const dx = Math.cos(u * 3 + v * 2) * 0.36 + Math.cos(u * 5 - v * 4) * 0.28 + Math.sin(u * 2 + v * 6) * 0.24 + Math.cos(u * 9 + v * 7) * 0.16;
+          const dy = Math.sin(u * 2 + v * 4) * 0.36 + Math.cos(u * 4 + v * 5) * 0.28 + Math.sin(u * 6 - v * 3) * 0.24 + Math.sin(u * 8 - v * 9) * 0.16;
           const idx = (y * size + x) * 4;
           data[idx]     = Math.floor((dx * 0.45 + 0.5) * 255);
           data[idx + 1] = Math.floor((dy * 0.45 + 0.5) * 255);
-          data[idx + 2] = 238;
+          data[idx + 2] = 236;
           data[idx + 3] = 255;
         }
       }
@@ -362,28 +398,24 @@
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, size, size);
-      for (let i = 0; i < 185; i++) {
+      // Motas orgánicas isotrópicas para espuma y micro-turbulencia sin rayas estiradas
+      for (let i = 0; i < 220; i++) {
         const x = Math.random() * size;
         const y = Math.random() * size;
-        const rx = 2.0 + Math.random() * 8.5;
-        const ry = rx * (1.8 + Math.random() * 2.2); // Estirado en el eje de flujo para hebras de corriente
-        const intensity = 0.42 + Math.random() * 0.52;
+        const r = 2.0 + Math.random() * 11.0;
+        const intensity = 0.38 + Math.random() * 0.52;
         for (let ox = -1; ox <= 1; ox++) {
           for (let oy = -1; oy <= 1; oy++) {
             const cx = x + ox * size;
             const cy = y + oy * size;
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.scale(1, ry / rx);
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
             grad.addColorStop(0, `rgba(255,255,255,${intensity})`);
-            grad.addColorStop(0.55, `rgba(210,210,210,${intensity * 0.45})`);
+            grad.addColorStop(0.55, `rgba(195,195,195,${intensity * 0.42})`);
             grad.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(0, 0, rx, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.fill();
-            ctx.restore();
           }
         }
       }
@@ -393,8 +425,7 @@
       return tex;
     }
 
-    // Convierte automáticamente image_c713d6.png en un Normal Map Sobel si la imagen es textura de agua/altura
-    function buildSobelNormalTextureFromImage(img, strength = 2.8) {
+    function buildSobelNormalTextureFromImage(img, strength = 3.2) {
       const size = 512;
       const srcCanvas = document.createElement('canvas');
       srcCanvas.width = size; srcCanvas.height = size;
@@ -487,24 +518,22 @@
           loadedTex.needsUpdate = true;
 
           try {
-            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 3.1);
+            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 3.3);
             if (analysis.isNormalMap) {
               waterUniforms.uNormalMap.value = loadedTex;
               waterUniforms.uWaterTex.value = loadedTex;
               waterUniforms.uUseDetailTex.value = 0.0;
-              waterUniforms.uIsNormalDetail.value = 1.0;
             } else {
               analysis.normalTex.anisotropy = maxAniso;
               loadedTex.colorSpace = THREE.SRGBColorSpace;
               waterUniforms.uNormalMap.value = analysis.normalTex;
               waterUniforms.uWaterTex.value = loadedTex;
-              waterUniforms.uUseDetailTex.value = 0.34;
-              waterUniforms.uIsNormalDetail.value = 0.0;
+              waterUniforms.uUseDetailTex.value = 0.24;
             }
           } catch (err) {
             loadedTex.colorSpace = THREE.SRGBColorSpace;
             waterUniforms.uWaterTex.value = loadedTex;
-            waterUniforms.uUseDetailTex.value = 0.28;
+            waterUniforms.uUseDetailTex.value = 0.20;
           }
         },
         undefined,
@@ -518,35 +547,34 @@
       const normalTex = createFallbackWaterNormalTexture();
       const foamNoiseTex = createFoamNoiseTexture();
 
-      // Malla 128x128 optimizada para Meta Quest 3 con rizos fluviales y estela 3D
-      const waterGeo = new THREE.PlaneGeometry(52, 52, 128, 128);
+      // Mayor subdivisión (224x224) para captar turbulencia fluvial orgánica y suave
+      const segs = WATER_CONFIG.subdivisions;
+      const waterGeo = new THREE.PlaneGeometry(58, 58, segs, segs);
       waterGeo.rotateX(-Math.PI / 2);
 
       waterUniforms = {
-        uTime:               { value: 0 },
-        uNormalMap:          { value: normalTex },
-        uWaterTex:           { value: foamNoiseTex },
-        uFoamNoise:          { value: foamNoiseTex },
-        uUseDetailTex:       { value: 0.0 },
-        uIsNormalDetail:     { value: 1.0 },
-        uSunDirection:       { value: new THREE.Vector3(6, 12, 7).normalize() },
-        uSkyZenithColor:     { value: new THREE.Color(0x093a42) },
-        uSkyHorizonColor:    { value: new THREE.Color(0x4ed9c7) },
-        uWaterDeepColor:     { value: new THREE.Color(0x043536) }, // Verde petróleo / aqua profundo de río
-        uWaterShallowColor:  { value: new THREE.Color(0x11a391) }, // Verde aqua fluvial luminoso
-        uCrestGlowColor:     { value: new THREE.Color(0x45edd0) }, // Luz subsuperficial aqua-menta
-        uCurrentRibbonColor: { value: new THREE.Color(0x88faea) }, // Brillo de vetas de corriente
-        uFoamColor:          { value: new THREE.Color(0xebfffb) }, // Espuma fluvial ligeramente aqua-blanca
-        uFogColor:           { value: new THREE.Color(SCENE_FOG_HEX) },
-        uFogDensity:         { value: SCENE_FOG_DENSITY },
-        uHullCenter:         { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
-        uHullRadiusX:        { value: 1.5 },
-        uHullRadiusZ:        { value: 3.4 },
-        uWaterFlow:          { value: new THREE.Vector2(0.0, 1.0) },
-        uFlowSpeed:          { value: WATER_CONFIG.flowSpeed },
-        uWaveAmp:            { value: WATER_CONFIG.waveAmplitude },
-        uCurrentStrength:    { value: WATER_CONFIG.currentStrength },
-        uOpacity:            { value: 1.0 }
+        uTime:              { value: 0 },
+        uNormalMap:         { value: normalTex },
+        uWaterTex:          { value: foamNoiseTex },
+        uFoamNoise:         { value: foamNoiseTex },
+        uUseDetailTex:      { value: 0.0 },
+        uSunDirection:      { value: new THREE.Vector3(6, 12, 7).normalize() },
+        uSkyZenithColor:    { value: new THREE.Color(0x072c33) },
+        uSkyHorizonColor:   { value: new THREE.Color(0x3ba89c) },
+        uWaterDeepColor:    { value: new THREE.Color(0x032a2c) }, // Verde aqua profundo de río
+        uWaterShallowColor: { value: new THREE.Color(0x0c7f75) }, // Verde aqua natural equilibrado
+        uCrestGlowColor:    { value: new THREE.Color(0x28bda8) }, // Luz subsuperficial suave en crestas
+        uFoamColor:         { value: new THREE.Color(0xcceae5) }, // Espuma suave natural (sin brillo excesivo)
+        uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
+        uFogDensity:        { value: SCENE_FOG_DENSITY },
+        uHullCenter:        { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
+        uHullRadiusX:       { value: 1.5 },
+        uHullRadiusZ:       { value: 3.4 },
+        uWaterFlow:         { value: new THREE.Vector2(0.0, 1.0) },
+        uFlowSpeed:         { value: WATER_CONFIG.flowSpeed },
+        uWaveAmp:           { value: WATER_CONFIG.waveAmplitude },
+        uTurbulence:        { value: WATER_CONFIG.turbulence },
+        uOpacity:           { value: 1.0 }
       };
 
       const waterMat = new THREE.ShaderMaterial({
@@ -559,6 +587,7 @@
           uniform float uTime;
           uniform float uWaveAmp;
           uniform float uFlowSpeed;
+          uniform float uTurbulence;
           uniform vec2 uHullCenter;
           uniform float uHullRadiusX;
           uniform float uHullRadiusZ;
@@ -569,58 +598,71 @@
           varying float vSteepness;
           varying float vFogDepth;
 
-          // Relieve direccional de río: menos marejada oceánica, más rápidos suaves, crestas alargadas y remolinos alrededor del casco
+          float hash21(vec2 p) {
+            p = fract(p * vec2(123.34, 456.21));
+            p += dot(p, p + 45.32);
+            return fract(p.x * p.y);
+          }
+
+          float valueNoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            float a = hash21(i);
+            float b = hash21(i + vec2(1.0, 0.0));
+            float c = hash21(i + vec2(0.0, 1.0));
+            float d = hash21(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+          }
+
+          // Superficie de río más subdividida, pausada y levemente turbulenta (multi-direccional)
           vec3 sampleRiverSurface(vec2 p, float t) {
             vec3 disp = vec3(0.0);
-            float flowT = t * (1.55 + uFlowSpeed * 1.45);
+            float flowT = t * (0.55 + uFlowSpeed * 1.15);
 
-            // Sutil serpenteo lateral de la corriente fluvial
-            float meander = sin(p.y * 0.14 - t * 0.35) * 0.45;
-            float rx = p.x + meander;
+            // Ondas cruzadas orgánicas (coinciden con el muestreo en JS de las barcas)
+            float ph1 = p.y * 0.72 - flowT * 1.10 + p.x * 0.24;
+            float ph2 = p.x * 0.68 + p.y * 0.96 - flowT * 1.38;
+            float ph3 = -p.x * 0.82 + p.y * 1.18 - flowT * 1.52;
+            float ph4 = p.x * 1.45 - p.y * 0.62 - flowT * 1.85;
+            float ph5 = p.x * 1.15 + p.y * 1.85 - flowT * 2.15;
 
-            // Vetas longitudinales de corriente (canales rápidos paralelos al flujo)
-            float lane1 = sin(rx * 1.35 + sin(p.y * 0.32 - flowT * 0.55) * 0.9) * cos(p.y * 0.48 - flowT * 0.85);
-            disp.y += lane1 * 0.030;
+            disp.y += sin(ph1) * 0.044;
+            disp.z += cos(ph1) * 0.015;
 
-            // Rizos rápidos direccionales (riffles de río)
-            float riffle1 = sin(p.y * 1.55 - flowT * 1.45 + rx * 0.45);
-            disp.y += riffle1 * 0.024;
-            disp.z += cos(p.y * 1.55 - flowT * 1.45 + rx * 0.45) * 0.012;
+            disp.y += sin(ph2) * 0.032;
+            disp.x += cos(ph2) * 0.010;
 
-            // Rizos diagonales cruzados cortos (turbulencia laminar)
-            float riffle2 = sin((rx * 0.95 + p.y * 1.95) - flowT * 1.85);
-            float riffle3 = sin((-rx * 0.88 + p.y * 2.25) - flowT * 2.05);
-            disp.y += (riffle2 * 0.016 + riffle3 * 0.014);
+            disp.y += sin(ph3) * 0.026;
+            disp.x -= cos(ph3) * 0.009;
 
-            // Micro-ondulación rápida de corriente viva
-            float chop = sin(rx * 2.6 + p.y * 3.1 - flowT * 2.7);
-            disp.y += chop * 0.009;
+            disp.y += sin(ph4) * 0.017 * uTurbulence;
+            disp.y += cos(ph5) * 0.014 * uTurbulence;
+
+            // Turbulencia celular/remolinos cortos aprovechando la malla 224x224
+            vec2 eddyUV1 = vec2(p.x * 0.58, p.y * 0.58 - flowT * 0.42);
+            vec2 eddyUV2 = vec2(p.x * 1.18 + 4.3, p.y * 1.18 - flowT * 0.68);
+            float n1 = valueNoise(eddyUV1) - 0.5;
+            float n2 = valueNoise(eddyUV2) - 0.5;
+            disp.y += (n1 * 0.055 + n2 * 0.026) * uTurbulence;
 
             disp *= uWaveAmp;
 
-            // === INTERACCIÓN HIDRÁULICA CON EL CASCO DE LA BARCA ===
+            // Interacción sutil y suave con el casco central (sin elevaciones abruptas)
             vec2 rel = p - uHullCenter;
+            float bowZ = -uHullRadiusZ * 1.04;
+            float bowPulse = 0.92 + 0.08 * sin(t * 2.4 + rel.x * 1.5);
+            float bowRipple = exp(-pow(rel.y - bowZ, 2.0) * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.065 * bowPulse;
+            disp.y += bowRipple;
 
-            // Cojín de agua elevándose al golpear la proa (-Z local)
-            float bowZ = -uHullRadiusZ * 1.06;
-            float bowPulse = 0.90 + 0.14 * sin(t * 5.2 + rel.x * 2.0);
-            float bowCushion = exp(-pow(rel.y - bowZ, 2.0) * 0.65) * exp(-rel.x * rel.x * 0.78) * 0.14 * bowPulse;
-            disp.y += bowCushion;
-
-            // Estela en V nítida y alargada arrastrada corriente abajo (+Z)
             float distFromBow = rel.y - bowZ;
             if (distFromBow > 0.0) {
-              float armX = uHullRadiusX * 0.28 + distFromBow * 0.35;
+              float armX = uHullRadiusX * 0.36 + distFromBow * 0.34;
               float armDist = abs(abs(rel.x) - armX);
-              float wakeFade = exp(-distFromBow * 0.14);
-              float wakeCrest = exp(-armDist * armDist * 3.8) * wakeFade * 0.075;
-              disp.y += wakeCrest * (0.86 + 0.14 * sin(distFromBow * 3.6 - flowT * 2.2));
+              float wakeFade = exp(-distFromBow * 0.22);
+              float wakeCrest = exp(-armDist * armDist * 2.8) * wakeFade * 0.036;
+              disp.y += wakeCrest * (0.88 + 0.12 * sin(distFromBow * 2.6 - flowT * 1.8));
             }
-
-            // Remolino y depresión justo detrás de la popa (+Z)
-            float sternZ = uHullRadiusZ * 1.06;
-            float sternEddy = exp(-pow(rel.y - sternZ, 2.0) * 0.55) * exp(-rel.x * rel.x * 0.85);
-            disp.y -= sternEddy * (0.048 + 0.015 * sin(t * 4.5 + rel.x * 3.2));
 
             return disp;
           }
@@ -631,7 +673,7 @@
             pos += disp;
             vHeight = disp.y;
 
-            float eps = 0.14;
+            float eps = 0.12;
             float hL = sampleRiverSurface(position.xz + vec2(-eps, 0.0), uTime).y;
             float hR = sampleRiverSurface(position.xz + vec2( eps, 0.0), uTime).y;
             float hD = sampleRiverSurface(position.xz + vec2(0.0, -eps), uTime).y;
@@ -654,7 +696,6 @@
           uniform sampler2D uWaterTex;
           uniform sampler2D uFoamNoise;
           uniform float uUseDetailTex;
-          uniform float uIsNormalDetail;
           uniform float uTime;
           uniform vec3 uSunDirection;
           uniform vec3 uSkyZenithColor;
@@ -662,7 +703,6 @@
           uniform vec3 uWaterDeepColor;
           uniform vec3 uWaterShallowColor;
           uniform vec3 uCrestGlowColor;
-          uniform vec3 uCurrentRibbonColor;
           uniform vec3 uFoamColor;
           uniform vec3 uFogColor;
           uniform float uFogDensity;
@@ -671,7 +711,7 @@
           uniform float uHullRadiusZ;
           uniform vec2 uWaterFlow;
           uniform float uFlowSpeed;
-          uniform float uCurrentStrength;
+          uniform float uTurbulence;
           uniform float uOpacity;
 
           varying vec3 vWorldPos;
@@ -680,168 +720,161 @@
           varying float vSteepness;
           varying float vFogDepth;
 
+          float hash21(vec2 p) {
+            p = fract(p * vec2(127.1, 311.7));
+            p += dot(p, p + 34.5);
+            return fract(p.x * p.y);
+          }
+
+          float valueNoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(
+              mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
+              mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
+              u.y
+            );
+          }
+
+          float fbmTurbulence(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
+            for (int i = 0; i < 3; i++) {
+              v += a * valueNoise(p);
+              p = rot * p * 2.05 + vec2(13.7, 29.3);
+              a *= 0.5;
+            }
+            return v;
+          }
+
           void main() {
             vec2 relXZ = vWorldPos.xz - uHullCenter;
-
-            // Deflexión hidrodinámica suave alrededor del casco (las líneas de corriente rodean la barca)
             float ellDist = length(vec2(relXZ.x / max(uHullRadiusX, 0.1), relXZ.y / max(uHullRadiusZ, 0.1)));
-            float deflect = exp(-max(ellDist - 0.80, 0.0) * 1.25);
-            float hullSideSign = relXZ.x >= 0.0 ? 1.0 : -1.0;
 
-            // Sutil curva natural del cauce para evitar líneas totalmente rígidas
-            float riverSway = sin(vWorldPos.z * 0.13 + sin(vWorldPos.x * 0.25) * 0.8) * 0.35;
-            vec2 streamCoord = vec2(
-              vWorldPos.x + riverSway - hullSideSign * deflect * 0.72,
-              vWorldPos.z
-            );
+            // Deflexión continua y suave sin saltos en relXZ.x == 0
+            float deflect = exp(-max(ellDist - 0.85, 0.0) * 1.45);
+            float smoothSide = relXZ.x / (abs(relXZ.x) + 0.75);
+            vec2 basePos = vWorldPos.xz - vec2(smoothSide * deflect * 0.35, 0.0);
 
-            // Aceleración lateral al estrecharse el flujo junto al casco (efecto Venturi sutil)
-            float localSpeed = uFlowSpeed * (1.0 + deflect * 0.32);
-            vec2 flow = uWaterFlow * localSpeed;
+            vec2 flow = uWaterFlow * uFlowSpeed;
+            float tFlow = uTime * uFlowSpeed;
 
-            // === 3 CAPAS DE NORMALES ANISOTRÓPICAS (estiradas en Z para lectura de río) ===
-            vec2 uv1 = vec2(streamCoord.x * 0.30, streamCoord.y * 0.11) - vec2(0.0, flow.y * uTime * 0.78);
-            vec2 uv2 = vec2(streamCoord.x * 0.62, streamCoord.y * 0.23) - vec2(0.0, flow.y * uTime * 1.28) + vec2(0.37, 0.61);
-            vec2 uv3 = vec2(streamCoord.x * 1.25, streamCoord.y * 0.48) - vec2(sin(uTime * 0.25) * 0.02, flow.y * uTime * 1.85) + vec2(0.71, 0.19);
+            // Distorsión turbulenta leve (domain warping) para romper cualquier patrón lineal
+            vec2 warp = vec2(
+              fbmTurbulence(basePos * 0.34 - vec2(0.0, tFlow * 0.65)) - 0.5,
+              fbmTurbulence(basePos * 0.34 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.58)) - 0.5
+            ) * 0.68 * uTurbulence;
+            vec2 turbPos = basePos + warp;
+
+            // === 3 CAPAS DE NORMALES ROTADAS (sin líneas continuas estiradas) ===
+            mat2 rotA = mat2( 0.94, -0.34,  0.34,  0.94); // +20°
+            mat2 rotB = mat2( 0.92,  0.39, -0.39,  0.92); // -23°
+
+            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.82;
+            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.15 + vec2(0.37, 0.61);
+            vec2 uv3 = (rotB * turbPos) * 0.92 - (rotB * flow) * uTime * 1.52 + vec2(0.71, 0.19);
 
             vec3 n1 = texture2D(uNormalMap, uv1).xyz * 2.0 - 1.0;
             vec3 n2 = texture2D(uNormalMap, uv2).xyz * 2.0 - 1.0;
             vec3 n3 = texture2D(uNormalMap, uv3).xyz * 2.0 - 1.0;
-            vec3 detailN = normalize(n1 * 0.92 + n2 * 0.78 + n3 * 0.52);
+            vec3 detailN = normalize(n1 * 0.88 + n2 * 0.76 + n3 * 0.58);
 
-            // Perturbación más marcada en X que en Z para resaltar las vetas longitudinales del flujo
-            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.74, 0.0, detailN.z * 0.50));
+            // Micro-turbulencia extra en normales
+            vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.68, 0.0, detailN.z * 0.68));
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
             // === FRESNEL DE SCHLICK ===
-            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.4);
+            float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.5);
 
-            // Reflejo celeste verdoso-aqua
             vec3 R = reflect(-V, N);
             float reflElev = clamp(R.y, 0.0, 1.0);
             vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.58));
 
-            // === ESPECULAR FLUVIAL (destellos alargados sobre los rizos de corriente) ===
+            // === ESPECULAR EQUILIBRADO ===
             vec3 L = normalize(uSunDirection);
             vec3 H = normalize(L + V);
             float NdotH = max(dot(N, H), 0.0);
-            float sunSparkle = pow(max(NdotH, 0.0001), 210.0) * 1.85;
-            float wetSheen   = pow(max(NdotH, 0.0001), 24.0) * 0.36;
-            float rimGlint   = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 38.0) * 0.28;
+            float sunSparkle = pow(max(NdotH, 0.0001), 195.0) * 1.45;
+            float wetSheen   = pow(max(NdotH, 0.0001), 26.0) * 0.28;
+            float rimGlint   = pow(max(dot(N, normalize(vec3(-0.4, 0.7, -0.8) + V)), 0.0001), 40.0) * 0.22;
 
-            // === PALETA DE AGUA DE RÍO VERDE AQUA ===
-            // Variación de profundidad entre canales centrales (más aqua) y bordes (más profundos)
-            float channelMask = exp(-abs(vWorldPos.x - uHullCenter.x) * 0.065);
-            float depthT = clamp(smoothstep(-0.08, 0.11, vHeight) * 0.78 + channelMask * 0.24, 0.0, 1.0);
+            // === COLOR VERDE AQUA CON TURBULENCIA ORGÁNICA ===
+            float eddyTone = fbmTurbulence(turbPos * 0.52 - vec2(0.0, tFlow * 0.95));
+            float depthT = clamp(smoothstep(-0.09, 0.11, vHeight) * 0.68 + eddyTone * 0.34, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
 
-            // Detalle y cáusticas fluyendo con la corriente desde image_c713d6.png
             float repoPattern = 0.5;
             if (uUseDetailTex > 0.01) {
-              vec3 tA = texture2D(uWaterTex, vec2(streamCoord.x * 0.34, streamCoord.y * 0.15) - vec2(0.0, flow.y * uTime * 0.75)).rgb;
-              vec3 tB = texture2D(uWaterTex, vec2(streamCoord.x * 0.68, streamCoord.y * 0.30) - vec2(0.0, flow.y * uTime * 1.18) + vec2(0.41, 0.27)).rgb;
+              vec3 tA = texture2D(uWaterTex, turbPos * 0.26 - flow * uTime * 0.72).rgb;
+              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.52 - (rotA * flow) * uTime * 1.05 + vec2(0.41, 0.27)).rgb;
               vec3 texBlend = mix(tA, tB, 0.5);
               repoPattern = dot(texBlend, vec3(0.299, 0.587, 0.114));
-              // Teñir textura hacia verde-aqua fluvial
-              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.58, 1.18, 1.02), 0.62);
+              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.55, 1.12, 0.98), 0.55);
               waterColor = mix(waterColor, tintedDetail, uUseDetailTex);
-              float caustics = smoothstep(0.55, 0.90, repoPattern) * 0.26;
+              float caustics = smoothstep(0.60, 0.92, repoPattern) * 0.14;
               waterColor += uCrestGlowColor * caustics;
             } else {
               repoPattern = clamp(0.5 + (n1.x + n2.y) * 0.45, 0.0, 1.0);
-              waterColor += uCrestGlowColor * smoothstep(0.64, 0.96, repoPattern) * 0.18;
+              waterColor += uCrestGlowColor * smoothstep(0.68, 0.96, repoPattern) * 0.10;
             }
 
-            // === CORRIENTES FLUVIALES MARCADAS (VETAS Y FILAMENTOS EN FLUJO) ===
-            // Dos capas de ruido estirado que viajan a distintas velocidades por el cauce
-            float cNoiseA = texture2D(uFoamNoise, vec2(streamCoord.x * 0.44, streamCoord.y * 0.11) - vec2(0.0, flow.y * uTime * 0.92)).r;
-            float cNoiseB = texture2D(uFoamNoise, vec2(streamCoord.x * 0.92, streamCoord.y * 0.22) - vec2(0.0, flow.y * uTime * 1.48) + vec2(0.31, 0.17)).r;
+            // Dispersión subsuperficial (SSS) discreta en crestas turbulentas
+            float sssMask = smoothstep(0.025, 0.14, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
+            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.38, 0.0, 0.40));
 
-            // Ondas de cizallamiento laminar (crean líneas fluidas continuas a lo largo del río)
-            float laneWave1 = 0.5 + 0.5 * sin(streamCoord.x * 2.85 + sin(streamCoord.y * 0.36 - uTime * flow.y * 1.9) * 1.35);
-            float laneWave2 = 0.5 + 0.5 * sin(streamCoord.x * 5.40 - sin(streamCoord.y * 0.52 - uTime * flow.y * 2.6) * 1.10);
-            float currentRibbons = smoothstep(0.54, 0.94, (laneWave1 * 0.58 + laneWave2 * 0.42) * (0.48 + 0.78 * cNoiseA));
-
-            // Filamentos finos de corriente viva (micro-líneas de espuma/aire en el cauce)
-            float fineCurrentFilaments = smoothstep(0.62, 0.95, cNoiseA * 0.52 + cNoiseB * 0.68)
-              * smoothstep(0.35, 0.90, laneWave1 * 0.5 + laneWave2 * 0.5)
-              * (0.36 + 0.32 * channelMask) * uCurrentStrength;
-
-            // Iluminar las vetas de corriente con tono verde-aqua claro
-            waterColor = mix(waterColor, uCurrentRibbonColor, clamp(currentRibbons * 0.30 * uCurrentStrength, 0.0, 0.38));
-
-            // Dispersión subsuperficial (SSS) verde-aqua en crestas y rápidos
-            float sssMask = smoothstep(0.01, 0.13, vHeight) * (0.45 + 0.55 * pow(max(dot(V, -L), 0.0001), 2.0));
-            waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.56, 0.0, 0.58));
-
-            // Oclusión oscura bajo el casco para anclar físicamente la barca al río
-            float underHullDarken = smoothstep(1.25, 0.72, ellDist) * 0.50;
+            // Sombra sutil bajo el casco para anclar la barca sin contraste duro
+            float underHullDarken = smoothstep(1.20, 0.70, ellDist) * 0.46;
             waterColor *= (1.0 - underHullDarken);
 
-            // Composición óptica base
-            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.76, 0.08, 0.82));
-            col += sunSparkle * vec3(0.98, 1.0, 0.95);
-            col += wetSheen * vec3(0.74, 0.99, 0.94);
-            col += rimGlint * vec3(0.40, 0.98, 0.88);
-            // Brillo extra a lo largo de las corrientes rápidas
-            col += uCurrentRibbonColor * currentRibbons * 0.10 * uCurrentStrength;
+            vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.74, 0.08, 0.80));
+            col += sunSparkle * vec3(0.95, 1.0, 0.95);
+            col += wetSheen * vec3(0.70, 0.96, 0.92);
+            col += rimGlint * vec3(0.38, 0.92, 0.85);
 
             // ============================================================
-            // ESPUMA FLUVIAL DE IMPACTO Y ARRASTRE (proa -Z -> popa +Z)
+            // ESPUMA SUTIL Y ROTA (sin silueta brillante alrededor del casco)
             // ============================================================
-            vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.03);
+            vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
 
-            // 1) Corte de corriente efervescente en la proa
+            // 1) Ligera rotura en la proa
             float bowD = length(relXZ - bowPos);
-            float bowCrash = exp(-bowD * bowD * 2.8) * (0.86 + 0.14 * sin(uTime * 6.0)) * 1.12;
+            float bowSplash = exp(-bowD * bowD * 3.4) * 0.46;
 
-            // 2) Estela en V alargada de río (más estrecha y prolongada corriente abajo)
+            // 2) Estela en V discreta
             float distFromBow = relXZ.y - bowPos.y;
             float bowArm = 0.0;
             if (distFromBow > 0.0) {
-              float fade = exp(-distFromBow * 0.13);
-              float armX = uHullRadiusX * 0.28 + distFromBow * 0.35;
+              float fade = exp(-distFromBow * 0.24);
+              float armX = uHullRadiusX * 0.34 + distFromBow * 0.34;
               float armDist = abs(abs(relXZ.x) - armX);
-              float armCore = exp(-armDist * armDist * 3.4);
-              float armOuter = exp(-armDist * armDist * 0.95) * 0.36;
-              bowArm = (armCore + armOuter) * fade * 0.94;
+              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.34;
             }
 
-            // 3) Línea de flotación pegada al casco
-            float hullContact = exp(-pow((ellDist - 1.0) * 5.8, 2.0)) * 0.76;
+            // 3) Contacto muy tenue y roto en el borde del casco (evita halo brillante)
+            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.30;
 
-            // 4) Hebras rápidas de espuma deslizándose por los costados del casco
-            float sideDist = abs(abs(relXZ.x) - uHullRadiusX * 0.96);
-            float sideProx = exp(-sideDist * sideDist * 4.8);
-            float zWindow = smoothstep(-uHullRadiusZ * 1.25, -uHullRadiusZ * 0.50, relXZ.y) * smoothstep(uHullRadiusZ * 2.6, uHullRadiusZ * 0.55, relXZ.y);
-            float streak1 = smoothstep(0.62, 0.97, fract((relXZ.y - uTime * (2.2 + uFlowSpeed * 1.8)) * 0.52));
-            float streak2 = smoothstep(0.70, 0.96, fract((relXZ.y - uTime * (3.0 + uFlowSpeed * 2.1)) * 0.32 + 0.45));
-            float streak = (streak1 * 0.56 + streak2 * 0.38) * sideProx * zWindow;
-
-            // 5) Estela espumosa y remolino alargado tras la popa
-            float dZ = relXZ.y - uHullRadiusZ * 0.84;
+            // 4) Remolino suave tras la popa
+            float dZ = relXZ.y - uHullRadiusZ * 0.88;
             float sternChurn = 0.0;
             if (dZ > 0.0) {
-              float eddyWobble = sin(dZ * 1.6 - uTime * 3.5) * 0.18;
-              sternChurn = exp(-pow(relXZ.x + eddyWobble, 2.0) * 1.65) * exp(-dZ * 0.28) * 0.82;
+              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.48) * 0.30;
             }
 
-            // 6) Rizos blancos sutiles en rápidos empinados
-            float riffleCaps = smoothstep(0.06, 0.15, vHeight) * smoothstep(0.025, 0.10, vSteepness) * 0.42;
+            // 5) Micro-espuma dispersa en las crestas más turbulentas del río
+            float chopFoam = smoothstep(0.075, 0.16, vHeight) * smoothstep(0.03, 0.12, vSteepness) * 0.28;
 
-            // Erosión orgánica en filamentos alargados siguiendo el cauce
-            float fNoise1 = texture2D(uFoamNoise, vec2(streamCoord.x * 0.72, streamCoord.y * 0.26) - vec2(0.0, flow.y * uTime * 1.15)).r;
-            float fNoise2 = texture2D(uFoamNoise, vec2(streamCoord.x * 1.55, streamCoord.y * 0.55) - vec2(0.0, flow.y * uTime * 1.72) + vec2(0.29, 0.63)).r;
-            float laceMask = mix(fNoise1 * 0.60 + fNoise2 * 0.40, repoPattern, 0.25);
+            // Erosión orgánica multi-escala (rompe cualquier contorno sólido)
+            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.55 - flow * uTime * 0.90).r;
+            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.35 - (rotB * flow) * uTime * 1.35 + vec2(0.29, 0.63)).r;
+            float organicBreakup = fNoise1 * 0.52 + fNoise2 * 0.48;
 
-            float rawFoam = clamp(bowCrash + bowArm + hullContact + streak + sternChurn + riffleCaps + fineCurrentFilaments, 0.0, 1.45);
-            float erodedFoam = smoothstep(0.16, 0.76, rawFoam * (0.50 + 0.84 * laceMask));
-            float denseCore = clamp((bowCrash * 0.74 + hullContact * 0.46) * (0.65 + 0.35 * fNoise2), 0.0, 1.0);
-            float finalFoam = clamp(max(erodedFoam, denseCore), 0.0, 1.0);
+            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.95);
+            float finalFoam = smoothstep(0.24, 0.80, rawFoam * (0.35 + 1.05 * organicBreakup)) * 0.58;
 
-            // Volumen luminoso de la espuma
-            float foamLit = 0.85 + 0.20 * max(dot(N, L), 0.0);
+            float foamLit = 0.78 + 0.18 * max(dot(N, L), 0.0);
             col = mix(col, uFoamColor * foamLit, finalFoam);
 
             // Neblina sincronizada con la escena
@@ -850,12 +883,11 @@
               col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.88));
             }
 
-            // Desvanecimiento suave en bordes lejanos
             float centerDist = length(vWorldPos.xz);
-            float edgeFade = smoothstep(25.0, 18.0, centerDist);
+            float edgeFade = smoothstep(28.0, 20.5, centerDist);
 
-            float alpha = mix(0.84, 0.97, fresnel);
-            alpha = mix(alpha, 1.0, finalFoam);
+            float alpha = mix(0.86, 0.97, fresnel);
+            alpha = mix(alpha, 0.98, finalFoam);
             alpha *= edgeFade * uOpacity;
 
             gl_FragColor = vec4(col, alpha);
@@ -886,7 +918,7 @@
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 1.2 + Math.pow(Math.random(), 0.75) * 14.5;
+        const radius = 1.2 + Math.pow(Math.random(), 0.75) * 18.0;
         positions[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
         positions[i * 3 + 1] = WATER_CONFIG.levelY + 0.25 + Math.random() * 6.8;
         positions[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
@@ -996,130 +1028,8 @@
       }
     }
 
-    function createRadiantLeafTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 128; canvas.height = 128;
-      const ctx = canvas.getContext('2d');
-      ctx.save(); ctx.translate(64, 64);
-      const aura = ctx.createRadialGradient(0, 0, 4, 0, 0, 60);
-      aura.addColorStop(0, 'rgba(255, 255, 220, 0.55)');
-      aura.addColorStop(0.5, 'rgba(94, 234, 212, 0.24)');
-      aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = aura;
-      ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(0, -48);
-      ctx.bezierCurveTo(35, -30, 42, 14, 0, 46);
-      ctx.bezierCurveTo(-42, 14, -35, -30, 0, -48);
-      ctx.closePath();
-      const leafGrad = ctx.createLinearGradient(0, -48, 0, 46);
-      leafGrad.addColorStop(0, '#ffffff');
-      leafGrad.addColorStop(0.5, '#ecfeff');
-      leafGrad.addColorStop(1, '#99f6e4');
-      ctx.fillStyle = leafGrad; ctx.fill();
-      ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(0, -42); ctx.lineTo(0, 50); ctx.stroke();
-      ctx.restore();
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    function setupMagicalLeafMaterialization() {
+    function setupMagicalReveal() {
       clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-      const leafTexture = createRadiantLeafTexture();
-      const palette = ['#2dd4bf','#5eead4','#34d399','#67e8f9','#a3e635','#bef264','#eab308','#facc15','#fde047','#fef08a'].map(c => new THREE.Color(c));
-
-      const leafCount = 700;
-      const geo = new THREE.BufferGeometry();
-      const positions = new Float32Array(leafCount * 3);
-      const colors = new Float32Array(leafCount * 3);
-      const seeds = new Float32Array(leafCount * 4);
-
-      for (let i = 0; i < leafCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 0.4 + Math.random() * 3.6;
-        positions[i*3] = Math.cos(angle) * radius;
-        positions[i*3+1] = Math.random() * 6.5;
-        positions[i*3+2] = Math.sin(angle) * radius;
-        const c = palette[Math.floor(Math.random() * palette.length)];
-        colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
-        seeds[i*4] = Math.random() * Math.PI * 2;
-        seeds[i*4+1] = 0.5 + Math.random() * 0.9;
-        seeds[i*4+2] = (Math.random() - 0.5) * 4.0;
-        seeds[i*4+3] = Math.random() < 0.35 ? 1.0 : 0.0;
-      }
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
-      geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
-
-      leafMaterial = new THREE.ShaderMaterial({
-        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-        uniforms: {
-          uMap: { value: leafTexture }, uTime: { value: 0 }, uProgress: { value: 1.0 },
-          uMaxHeight: { value: maxRevealHeight }, uOpacity: { value: 0.65 },
-          uPixelRatio: { value: renderer.getPixelRatio() }
-        },
-        vertexShader: `
-          attribute vec3 aColor; attribute vec4 aSeed;
-          varying vec3 vColor; varying float vAngle; varying float vAlpha;
-          varying float vSparkle; varying float vWaveGlow;
-          uniform float uTime, uProgress, uMaxHeight, uPixelRatio;
-          void main() {
-            vColor = aColor;
-            float phase = aSeed.x, leafScale = aSeed.y, rotSpeed = aSeed.z;
-            vSparkle = aSeed.w;
-            vec3 pos = position;
-            float bandY = uProgress * uMaxHeight;
-            float vortexAngle = uTime * 1.8 + phase + pos.y * 0.5;
-            float swirlRadius = 0.2 + 0.14 * sin(uTime * 1.5 + phase);
-            pos.x += cos(vortexAngle) * swirlRadius;
-            pos.z += sin(vortexAngle) * swirlRadius;
-            float activeCeiling = max(0.5, bandY + 0.8);
-            pos.y = mod(pos.y + uTime * (0.9 + leafScale * 0.35), activeCeiling);
-            float distToWave = abs(pos.y - bandY);
-            float waveBoost = smoothstep(1.8, 0.0, distToWave);
-            vWaveGlow = waveBoost;
-            float twinkle = 0.6 + 0.4 * sin(uTime * 6.0 + phase * 3.0);
-            vAngle = phase + uTime * rotSpeed;
-            vAlpha = clamp((0.35 + waveBoost * 0.65) * twinkle, 0.0, 1.0);
-            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_Position = projectionMatrix * mvPosition;
-            float baseSize = (vSparkle > 0.5 ? 42.0 : 54.0) * leafScale * (1.0 + waveBoost * 0.45);
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 50.0);
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D uMap; uniform float uOpacity;
-          varying vec3 vColor; varying float vAngle; varying float vAlpha;
-          varying float vSparkle; varying float vWaveGlow;
-          void main() {
-            vec2 centered = gl_PointCoord - vec2(0.5);
-            float dist = length(centered);
-            if (vSparkle > 0.5) {
-              float crossStar = max(0.0, 1.0 - abs(centered.x * centered.y) * 90.0);
-              float radial = smoothstep(0.5, 0.0, dist);
-              float intensity = radial * (0.6 + 0.8 * crossStar);
-              if (intensity < 0.05) discard;
-              vec3 sparkCol = mix(vColor, vec3(1.0, 0.99, 0.85), 0.5);
-              gl_FragColor = vec4(sparkCol * 1.4, intensity * vAlpha * uOpacity);
-              return;
-            }
-            float c = cos(vAngle), s = sin(vAngle);
-            vec2 rotatedUV = vec2(centered.x*c - centered.y*s, centered.x*s + centered.y*c) + vec2(0.5);
-            if (rotatedUV.x < 0.0 || rotatedUV.x > 1.0 || rotatedUV.y < 0.0 || rotatedUV.y > 1.0) discard;
-            vec4 texColor = texture2D(uMap, rotatedUV);
-            if (texColor.a < 0.08) discard;
-            vec3 radiantColor = mix(vColor * texColor.rgb, vec3(1.0, 0.98, 0.78), vWaveGlow * 0.45);
-            gl_FragColor = vec4(radiantColor * 1.3, texColor.a * vAlpha * uOpacity);
-          }
-        `
-      });
-
-      leafParticles = new THREE.Points(geo, leafMaterial);
-      leafParticles.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
-      leafParticles.frustumCulled = false;
-      barcaAnchorGroup.add(leafParticles);
 
       const ringGeo = new THREE.RingGeometry(1.4, 2.0, 48).rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({
@@ -1134,6 +1044,44 @@
       magicWaveLight = new THREE.PointLight(0xfde047, 0, 14);
       magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY, SCULPTURE_CONFIG.positionZ);
       barcaAnchorGroup.add(magicWaveLight);
+    }
+
+    function spawnSurroundingBoats(baseTemplate) {
+      surroundingBoats.length = 0;
+      while (fleetGroup.children.length > 0) {
+        fleetGroup.remove(fleetGroup.children[0]);
+      }
+
+      SURROUNDING_BOATS_LAYOUT.forEach((cfg, idx) => {
+        const rad = THREE.MathUtils.degToRad(cfg.angleDeg);
+        const bx = SCULPTURE_CONFIG.positionX + Math.sin(rad) * cfg.radius;
+        const bz = SCULPTURE_CONFIG.positionZ + Math.cos(rad) * cfg.radius;
+
+        const bobGroup = new THREE.Group();
+        bobGroup.position.set(bx, SCULPTURE_CONFIG.positionY, bz);
+
+        const pivot = new THREE.Group();
+        pivot.rotation.y = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg + cfg.yawOffsetDeg);
+        pivot.scale.setScalar(cfg.scaleMul);
+
+        // Clon compartido en geometría y materiales para alto rendimiento en Meta Quest 3
+        const clone = baseTemplate.clone(true);
+        clone.traverse((node) => {
+          node.frustumCulled = true;
+        });
+
+        pivot.add(clone);
+        bobGroup.add(pivot);
+        fleetGroup.add(bobGroup);
+
+        surroundingBoats.push({
+          group: bobGroup,
+          baseX: bx,
+          baseY: SCULPTURE_CONFIG.positionY,
+          baseZ: bz,
+          phase: idx * 0.91 + (cfg.radius * 0.37)
+        });
+      });
     }
 
     async function loadBarcaModel() {
@@ -1172,7 +1120,6 @@
         const orientedSize = orientedBox.getSize(new THREE.Vector3());
 
         maxRevealHeight = Math.max(orientedSize.y + SCULPTURE_CONFIG.positionY + 0.6, 2.5);
-        leafMaterial.uniforms.uMaxHeight.value = maxRevealHeight;
 
         const maxFootprint = Math.max(orientedSize.x, orientedSize.z);
         spawnDistance = Math.max(3.8, maxFootprint * 1.15 + 1.6);
@@ -1195,6 +1142,9 @@
             });
           }
         });
+
+        // Crear las 12 barcas adicionales alrededor de la escena compartiendo geometría y materiales
+        spawnSurroundingBoats(sculptureRoot);
 
         dracoLoader.dispose();
 
@@ -1250,12 +1200,9 @@
       isMaterializing = true;
       materializationT = 0;
       clippingPlane.constant = WATER_CONFIG.levelY + 0.05;
-      leafParticles.visible = true;
-      leafMaterial.uniforms.uProgress.value = 0;
-      leafMaterial.uniforms.uOpacity.value = 1.0;
       magicWaveRing.visible = true;
-      magicWaveRing.material.opacity = 0.85;
-      magicWaveLight.intensity = 4.0;
+      magicWaveRing.material.opacity = 0.78;
+      magicWaveLight.intensity = 3.6;
       if (!renderer.xr.isPresenting) showToast('✨ Revelando La Barca de las Grullas...');
     }
 
@@ -1401,8 +1348,8 @@
       }
 
       const dist = Math.hypot(cameraRig.position.x, cameraRig.position.z);
-      if (dist > 17) {
-        const ratio = 17 / dist;
+      if (dist > 20) {
+        const ratio = 20 / dist;
         cameraRig.position.x *= ratio;
         cameraRig.position.z *= ratio;
       }
@@ -1422,6 +1369,24 @@
       if (keysPressed.a) cameraRig.position.addScaledVector(_xrRight, -speed * dt);
     }
 
+    function applyWaterBobbingToGroup(group, bx, by, bz, timeSec, phaseOffset = 0) {
+      const sampleSpan = 0.85;
+      const hCenter = sampleRiverHeightJS(bx, bz, timeSec);
+      const hRight  = sampleRiverHeightJS(bx + sampleSpan, bz, timeSec);
+      const hFront  = sampleRiverHeightJS(bx, bz + sampleSpan, timeSec);
+
+      const slopeX = (hRight - hCenter) / sampleSpan;
+      const slopeZ = (hFront - hCenter) / sampleSpan;
+
+      group.position.set(
+        bx + Math.sin(timeSec * 0.42 + phaseOffset) * 0.035,
+        by + hCenter * 0.65 + Math.sin(timeSec * 0.78 + phaseOffset) * 0.018,
+        bz + Math.cos(timeSec * 0.36 + phaseOffset) * 0.035
+      );
+      group.rotation.z = THREE.MathUtils.clamp(-slopeX * 0.24, -0.055, 0.055);
+      group.rotation.x = THREE.MathUtils.clamp(slopeZ * 0.24, -0.055, 0.055);
+    }
+
     function renderLoop(timestamp) {
       const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000 || 0.016);
       lastFrameTime = timestamp;
@@ -1433,17 +1398,22 @@
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
       if (glowMaterial) glowMaterial.uniforms.uTime.value = timeSec;
 
-      // Flotación suave en corriente de río (menos vaivén oceánico, ligera vibración frente al cauce)
+      // Oscilación suave sincronizada con el agua para la barca principal
       if (sculptureRoot && !isMaterializing) {
-        boatBobbingGroup.position.set(
+        applyWaterBobbingToGroup(
+          boatBobbingGroup,
           SCULPTURE_CONFIG.positionX,
-          SCULPTURE_CONFIG.positionY
-            + Math.sin(timeSec * 1.15) * 0.036
-            + Math.sin(timeSec * 2.35 + 1.1) * 0.014,
-          SCULPTURE_CONFIG.positionZ
+          SCULPTURE_CONFIG.positionY,
+          SCULPTURE_CONFIG.positionZ,
+          timeSec,
+          0.0
         );
-        boatBobbingGroup.rotation.z = Math.sin(timeSec * 0.85 + 0.4) * 0.011;
-        boatBobbingGroup.rotation.x = Math.sin(timeSec * 1.25 + 0.9) * 0.010 + 0.012;
+      }
+
+      // Oscilación ligera sincronizada con el agua para las 12 barcas alrededor de la escena
+      for (let i = 0; i < surroundingBoats.length; i++) {
+        const b = surroundingBoats[i];
+        applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
       }
 
       if (isMaterializing) {
@@ -1451,14 +1421,11 @@
         const eased = 1 - Math.pow(1 - materializationT, 3);
         const revealH = WATER_CONFIG.levelY + eased * maxRevealHeight;
         clippingPlane.constant = revealH;
-        leafMaterial.uniforms.uTime.value = timeSec;
-        leafMaterial.uniforms.uProgress.value = eased;
-        leafMaterial.uniforms.uOpacity.value = 1.0;
         magicWaveRing.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH, WATER_CONFIG.levelY + maxRevealHeight * 0.85), SCULPTURE_CONFIG.positionZ);
-        magicWaveRing.rotation.z = timeSec * 1.8;
-        magicWaveRing.material.opacity = (1.0 - materializationT) * 0.85;
+        magicWaveRing.rotation.z = timeSec * 1.4;
+        magicWaveRing.material.opacity = (1.0 - materializationT) * 0.78;
         magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, Math.min(revealH + 0.3, WATER_CONFIG.levelY + maxRevealHeight), SCULPTURE_CONFIG.positionZ);
-        magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 4.0;
+        magicWaveLight.intensity = (1.0 - materializationT * 0.7) * 3.6;
         if (materializationT >= 1) {
           isMaterializing = false;
           renderer.localClippingEnabled = false;
@@ -1466,9 +1433,6 @@
           magicWaveRing.visible = false;
           magicWaveLight.intensity = 0;
         }
-      } else if (leafParticles && leafParticles.visible) {
-        leafMaterial.uniforms.uTime.value = timeSec * 0.55;
-        leafMaterial.uniforms.uOpacity.value = Math.max(0.32, leafMaterial.uniforms.uOpacity.value - dt * 0.18);
       }
 
       renderer.render(scene, camera);

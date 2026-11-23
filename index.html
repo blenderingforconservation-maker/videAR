@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>La Barca de las Grullas · VR & AR · Museo Leonora Carrington</title>
+  <title>La Barca de las Grullas · VR & AR Optimizado · Museo Leonora Carrington</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -120,7 +120,7 @@
       La Barca de las Grullas
     </h1>
     <p id="loading-message" class="text-xs text-slate-300 max-w-xs mb-6 leading-relaxed">
-      Sincronizando esculturas, audio nocturno y entorno WebXR...
+      Optimizando geometría, agua fluvial y detección de planos...
     </p>
     <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
       <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -133,7 +133,7 @@
         <span>Entrar en VR (Quest 3)</span>
       </button>
       <button id="btn-launch-ar-direct" class="magic-btn w-full py-3.5 px-6 rounded-full text-teal-100 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-        <span>Modo AR (Quest 3 / Celular)</span>
+        <span>Modo AR (Paredes y Suelo)</span>
       </button>
       <button id="btn-start-preview" class="glass-pill w-full py-3 px-6 rounded-full text-slate-200 font-semibold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform">
         <span>Vista Previa 3D</span>
@@ -141,8 +141,8 @@
     </div>
     <div class="mt-5 max-w-xs text-[11px] text-slate-300/90 bg-slate-900/75 border border-teal-400/20 rounded-2xl px-4 py-3 text-left space-y-1">
       <p class="text-teal-300 font-semibold uppercase tracking-wider text-[10px] mb-1">Controles Quest 3 y Celular</p>
-      <p>• <strong class="text-slate-100">Quest 3:</strong> Stick Izq caminar · Stick Der giro/zoom · Gatillo/A materializar</p>
-      <p>• <strong class="text-slate-100">Celular AR:</strong> Mueve tu cámara, arrastra para girar o usa los botones</p>
+      <p>• <strong class="text-slate-100">AR Planos:</strong> Detecta suelo (turquesa) y paredes (dorado) para desplegar</p>
+      <p>• <strong class="text-slate-100">Quest 3:</strong> Stick Izq caminar · Stick Der giro/zoom · Gatillo colocar en AR</p>
     </div>
   </div>
 
@@ -156,9 +156,6 @@
         </span>
       </div>
       <div class="interactive flex items-center gap-2">
-        <button id="btn-replay-magic" class="glass-pill px-3.5 py-2 rounded-full border-yellow-300/40 text-yellow-200 text-[11px] font-medium active:scale-95 transition-transform">
-          ✨ Revelar
-        </button>
         <button id="btn-toggle-audio" class="glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform" title="Activar o silenciar audio">
           🔊 Audio
         </button>
@@ -197,13 +194,13 @@
     </footer>
   </div>
 
-  <!-- INTERFAZ AR DEDICADA (DOM-OVERLAY EN QUEST 3 / ANDROID ARCORE Y MODO CÁMARA EN CELULAR) -->
+  <!-- INTERFAZ AR DEDICADA (DETECTOR DE PLANOS HORIZONTALES Y VERTICALES) -->
   <div id="ar-hud-overlay">
     <header class="w-full flex flex-wrap items-center justify-between gap-2">
       <div class="glass-pill flex items-center gap-2 rounded-full px-3.5 py-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="ar-plane-dot" class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
         <span id="ar-mode-label" class="text-[11px] font-semibold text-teal-50 tracking-wide">
-          AR Cámara Activo
+          Escaneando suelo y paredes...
         </span>
       </div>
       <div class="interactive flex items-center gap-2">
@@ -224,11 +221,11 @@
 
     <footer class="w-full flex flex-col items-center gap-2.5">
       <div class="interactive flex items-center justify-center gap-2 w-full max-w-sm">
-        <button id="btn-ar-replay" class="magic-cta flex-1 py-3 px-4 rounded-full text-slate-950 font-extrabold text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5">
-          <span>✨ Revelar Barcas</span>
+        <button id="btn-ar-place" class="magic-cta flex-1 py-3 px-4 rounded-full text-slate-950 font-extrabold text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5">
+          <span>📍 Colocar en Plano</span>
         </button>
-        <button id="btn-ar-center" class="glass-pill px-4 py-3 rounded-full border-yellow-300/45 text-yellow-200 font-semibold text-[11px] uppercase tracking-wider active:scale-95 transition-transform">
-          Centrar
+        <button id="btn-ar-toggle-scan" class="glass-pill px-4 py-3 rounded-full border-yellow-300/45 text-yellow-200 font-semibold text-[11px] uppercase tracking-wider active:scale-95 transition-transform">
+          🎯 Reubicar
         </button>
       </div>
       <div class="interactive flex items-center justify-center gap-2.5 w-full max-w-sm">
@@ -257,7 +254,23 @@
     import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: ESCULTURAS, AGUA, MATERIALIZACIÓN, AUDIO Y LUCIÉRNAGAS
+    // ⚡ PERFIL ADAPTATIVO DE RENDIMIENTO (QUEST 3 / ANDROID / iOS / DESKTOP)
+    // =========================================================================
+    const UA = navigator.userAgent || '';
+    const IS_QUEST = /OculusBrowser|Quest/i.test(UA);
+    const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(UA) && !IS_QUEST;
+
+    const PERF = {
+      maxDpr: IS_MOBILE ? 1.25 : 1.5,
+      waterSubdivisions: IS_MOBILE ? 84 : (IS_QUEST ? 112 : 128),
+      fireflyCount: IS_MOBILE ? 115 : 175,
+      mainParticles: IS_MOBILE ? 850 : 1350,
+      fleetParticles: IS_MOBILE ? 170 : 300,
+      maxAniso: IS_MOBILE ? 2 : 4
+    };
+
+    // =========================================================================
+    // 📍 ZONA EDITABLE: ESCULTURAS, AGUA, MATERIALIZACIÓN Y AUDIO
     // =========================================================================
     const SCULPTURE_CONFIG = {
       positionX: 0.0,
@@ -270,31 +283,31 @@
 
     const WATER_CONFIG = {
       levelY: 0.28,
-      subdivisions: 224,
+      subdivisions: PERF.waterSubdivisions,
       waveAmplitude: 1.52,
       flowSpeed: 0.34,
       turbulence: 1.22
     };
 
     const MATERIALIZATION_CONFIG = {
-      mainDuration: 2.5,
-      fleetDuration: 2.2,
-      fleetMaxDelay: 1.75
+      mainDuration: 2.4,
+      fleetDuration: 2.0,
+      fleetMaxDelay: 1.55
     };
 
     const AUDIO_CONFIG = {
-      baseVolume: 0.06,      // Volumen inicial suave al arrancar la materialización
-      maxVolume: 0.88        // Volumen completo cuando aparecen las barcas
+      baseVolume: 0.06,
+      maxVolume: 0.88
     };
 
     const FIREFLY_CONFIG = {
-      count: 210,
+      count: PERF.fireflyCount,
       minHeight: 0.36,
       maxHeight: 4.8,
       spreadRadius: 20.5
     };
 
-    // 12 barcas adicionales alrededor de la escena
+    // 12 barcas adicionales (batching automático en InstancedMesh tras materializarse)
     const SURROUNDING_BOATS_LAYOUT = [
       { angleDeg: -52,  radius: 8.8,  scaleMul: 0.84, yawOffsetDeg: -10 },
       { angleDeg:  54,  radius: 9.2,  scaleMul: 0.80, yawOffsetDeg:  12 },
@@ -311,7 +324,6 @@
     ];
     // =========================================================================
 
-    // Rutas verificadas del repo blenderingforconservation-maker/videAR
     const REPO_RAW_BASE = 'https://blenderingforconservation-maker.github.io/videAR/';
     const ASSETS = {
       sculpture: `${REPO_RAW_BASE}models/barcagrullas.glb`,
@@ -325,24 +337,33 @@
 
     let scene, camera, cameraRig, renderer, gltfLoader;
     let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
-    let fleetGroup;
+    let fleetGroup, fleetInstancedGroup;
     const boatControllers = [];
+    const fleetInstancedPrimitives = []; // { instancedMesh, localMatrix }
+    const fleetData = [];                // Datos ligeros para actualizar InstancedMesh cada frame
+    let usingInstancedFleet = false;
+    let canUseInstancing = false;
+    const baseMeshTemplates = [];        // { geometry, material, localMatrix }
+
     let waterMesh, waterUniforms, skyDome;
     let magicWaveLight;
     let firefliesMesh, firefliesMaterial;
 
-    // Estado de materialización
+    // Estado de materialización ÚNICA (una vez completada jamás se reinicia)
     let isMaterializing = false;
+    let hasMaterializedOnce = false;
     let materializationElapsed = 0;
     let currentRevealAudioFactor = 0.0;
+    let mainParticleGeoRef = null;
+    let fleetParticleGeoRef = null;
+
     let spawnDistance = 4.6;
     let lastFrameTime = performance.now();
-
     let boatSubmersion = 0;
     let localBoundsMinY = -0.3;
     let localBoundsMaxY = 4.5;
 
-    // Estado de Audio (bosque_noche.mp3 sincronizado con aparición de barcas)
+    // Audio
     let ambientAudioEl = null;
     let audioCtx = null;
     let audioGainNode = null;
@@ -350,8 +371,11 @@
     let audioStarted = false;
     let currentAppliedGain = 0.0;
 
-    // Estado de AR Cámara en celular + Giroscopio
+    // Estado AR + Detector de Planos Horizontales y Verticales
     let isCameraARActive = false;
+    let isARModeActive = false;
+    let isARPlacementMode = false;
+    let hasPlacedInAR = false;
     let cameraStream = null;
     let currentFacingMode = 'environment';
     let gyroEnabled = false;
@@ -359,7 +383,23 @@
     let latestDeviceOrientation = null;
     let arAnchorScale = 1.0;
 
-    // Controles de movimiento y cámara
+    // WebXR Hit-Test & Plane Detection
+    let xrHitTestSource = null;
+    let xrHitTestRequested = false;
+    let xrRefSpace = null;
+    let xrNoHitElapsed = 0;
+    const detectedPlaneMeshes = new Map(); // XRPlane -> Mesh
+    let detectedPlanesGroup;
+    let surfaceReticle, reticleRingMat, reticleInnerMat, reticleWallBrackets;
+    const currentSurfaceHit = {
+      valid: false,
+      isVertical: false,
+      position: new THREE.Vector3(),
+      normal: new THREE.Vector3(0, 1, 0),
+      quaternion: new THREE.Quaternion()
+    };
+
+    // Controles
     let moveButtonDir = 0;
     const keysPressed = { w: false, s: false, a: false, d: false };
     let isPointerDown = false, prevPointerX = 0, prevPointerY = 0;
@@ -367,6 +407,8 @@
 
     let snapTurnReady = true;
     const prevButtons = { leftX: false, leftY: false, rightA: false, rightB: false };
+
+    // Vectores y matrices reutilizables (cero allocs por frame para evitar GC pauses)
     const _xrForward = new THREE.Vector3();
     const _xrRight = new THREE.Vector3();
     const _upAxis = new THREE.Vector3(0, 1, 0);
@@ -380,12 +422,25 @@
     const _touchQuat = new THREE.Quaternion();
     const _yawOffsetQuat = new THREE.Quaternion();
     const _tempEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const _dummyObj = new THREE.Object3D();
+    const _boatMat = new THREE.Matrix4();
+    const _pivotMat = new THREE.Matrix4();
+    const _instanceMat = new THREE.Matrix4();
+    const _hitMat = new THREE.Matrix4();
+    const _hitPos = new THREE.Vector3();
+    const _hitQuat = new THREE.Quaternion();
+    const _hitScale = new THREE.Vector3();
+    const _hitNormal = new THREE.Vector3();
+    const _camWorldPos = new THREE.Vector3();
+    const _camWorldDir = new THREE.Vector3();
+    const _wallFwd = new THREE.Vector3();
 
     // Referencias DOM
     const arCameraFeed = document.getElementById('ar-camera-feed');
     const hudOverlay = document.getElementById('hud-overlay');
     const arHudOverlay = document.getElementById('ar-hud-overlay');
     const arModeLabel = document.getElementById('ar-mode-label');
+    const arPlaneDot = document.getElementById('ar-plane-dot');
     const loadingModal = document.getElementById('loading-modal');
     const launchControls = document.getElementById('launch-controls');
 
@@ -394,7 +449,6 @@
     const btnStartPreview = document.getElementById('btn-start-preview');
     const btnEnterVR = document.getElementById('btn-enter-vr');
     const btnEnterAR = document.getElementById('btn-enter-ar');
-    const btnReplayMagic = document.getElementById('btn-replay-magic');
     const btnToggleAudio = document.getElementById('btn-toggle-audio');
     const btnFullscreen = document.getElementById('btn-fullscreen');
     const btnStepForward = document.getElementById('btn-step-forward');
@@ -405,8 +459,8 @@
     const btnArAudio = document.getElementById('btn-ar-audio');
     const btnArFullscreen = document.getElementById('btn-ar-fullscreen');
     const btnExitAr = document.getElementById('btn-exit-ar');
-    const btnArReplay = document.getElementById('btn-ar-replay');
-    const btnArCenter = document.getElementById('btn-ar-center');
+    const btnArPlace = document.getElementById('btn-ar-place');
+    const btnArToggleScan = document.getElementById('btn-ar-toggle-scan');
     const btnArBack = document.getElementById('btn-ar-back');
     const btnArForward = document.getElementById('btn-ar-forward');
     const btnArScaleDown = document.getElementById('btn-ar-scale-down');
@@ -419,11 +473,11 @@
       toastBanner.textContent = msg;
       toastBanner.style.opacity = '1';
       clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 3000);
+      showToast._t = setTimeout(() => { toastBanner.style.opacity = '0'; }, 2800);
     }
 
     // =========================================================================
-    // 🔊 AUDIO NOCTURNO SINCRONIZADO CON LA APARICIÓN DE LAS BARCAS
+    // 🔊 AUDIO NOCTURNO (bosque_noche.mp3)
     // =========================================================================
     function initAudioSystem() {
       if (ambientAudioEl) return;
@@ -447,24 +501,18 @@
           ambientAudioEl.volume = 0.0;
         }
       } catch (err) {
-        console.warn('Web Audio API fallback a HTMLAudioElement:', err);
         audioGainNode = null;
         ambientAudioEl.volume = 0.0;
       }
     }
 
-    function unlockAndPlayAudio(restartIfNotPlaying = false) {
+    function unlockAndPlayAudio() {
       initAudioSystem();
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume().catch(() => {});
       }
-      if (!isAudioMuted && ambientAudioEl) {
-        if (restartIfNotPlaying && ambientAudioEl.paused) {
-          ambientAudioEl.currentTime = 0;
-        }
-        ambientAudioEl.play().then(() => {
-          audioStarted = true;
-        }).catch(() => {});
+      if (!isAudioMuted && ambientAudioEl && ambientAudioEl.paused) {
+        ambientAudioEl.play().then(() => { audioStarted = true; }).catch(() => {});
       }
       updateAudioButtonsUI();
     }
@@ -488,7 +536,7 @@
       initAudioSystem();
       isAudioMuted = !isAudioMuted;
       if (!isAudioMuted) {
-        unlockAndPlayAudio(false);
+        unlockAndPlayAudio();
         showToast('🔊 Audio ambiental activado');
       } else {
         setAudioGainImmediate(0.0);
@@ -529,22 +577,56 @@
     }
 
     // =========================================================================
-    // 🌊 ONDULACIÓN SINCRONIZADA DE RÍO EN CPU PARA LAS 13 BARCAS
+    // 🌊 ONDULACIÓN ANALÍTICA EN CPU (SINCRONIZADA CON EL VERTEX SHADER)
     // =========================================================================
-    function sampleRiverHeightJS(px, pz, t) {
+    function sampleRiverHeightAndSlopeJS(px, pz, t, out) {
       const flowT = t * (0.64 + WATER_CONFIG.flowSpeed * 1.25);
       const amp = WATER_CONFIG.waveAmplitude;
       const turb = WATER_CONFIG.turbulence;
 
-      const swell = Math.sin(pz * 0.42 - flowT * 0.78 + px * 0.16) * 0.068;
-      const w1 = Math.sin(pz * 0.76 - flowT * 1.05 + px * 0.28) * 0.048;
-      const w2 = Math.sin(px * 0.64 + pz * 0.92 - flowT * 1.28) * 0.038;
-      const w3 = Math.sin(-px * 0.78 + pz * 1.12 - flowT * 1.42) * 0.032;
-      const w4 = Math.sin(px * 1.38 - pz * 0.68 - flowT * 1.72) * 0.018 * turb;
-      const w5 = Math.cos(px * 1.12 + pz * 1.78 - flowT * 1.98) * 0.015 * turb;
+      const ph0 = pz * 0.42 - flowT * 0.78 + px * 0.16;
+      const ph1 = pz * 0.76 - flowT * 1.05 + px * 0.28;
+      const ph2 = px * 0.64 + pz * 0.92 - flowT * 1.28;
+      const ph3 = -px * 0.78 + pz * 1.12 - flowT * 1.42;
+      const ph4 = px * 1.38 - pz * 0.68 - flowT * 1.72;
+      const ph5 = px * 1.12 + pz * 1.78 - flowT * 1.98;
 
-      return (swell + w1 + w2 + w3 + w4 + w5) * amp;
+      const c0 = Math.cos(ph0), c1 = Math.cos(ph1), c2 = Math.cos(ph2);
+      const c3 = Math.cos(ph3), c4 = Math.cos(ph4), s5 = Math.sin(ph5);
+
+      const h = (
+        Math.sin(ph0) * 0.068 +
+        Math.sin(ph1) * 0.048 +
+        Math.sin(ph2) * 0.038 +
+        Math.sin(ph3) * 0.032 +
+        Math.sin(ph4) * 0.018 * turb +
+        Math.cos(ph5) * 0.015 * turb
+      ) * amp;
+
+      const dhdx = (
+        c0 * 0.068 * 0.16 +
+        c1 * 0.048 * 0.28 +
+        c2 * 0.038 * 0.64 +
+        c3 * 0.032 * -0.78 +
+        c4 * 0.018 * turb * 1.38 -
+        s5 * 0.015 * turb * 1.12
+      ) * amp;
+
+      const dhdz = (
+        c0 * 0.068 * 0.42 +
+        c1 * 0.048 * 0.76 +
+        c2 * 0.038 * 0.92 +
+        c3 * 0.032 * 1.12 +
+        c4 * 0.018 * turb * -0.68 -
+        s5 * 0.015 * turb * 1.78
+      ) * amp;
+
+      out.h = h;
+      out.sx = dhdx;
+      out.sz = dhdz;
     }
+
+    const _waveSample = { h: 0, sx: 0, sz: 0 };
 
     init();
 
@@ -563,8 +645,12 @@
       camera.rotation.order = 'YXZ';
       cameraRig.add(camera);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer = new THREE.WebGLRenderer({
+        antialias: !IS_MOBILE, // En móviles evita MSAA costoso manteniendo nitidez con DPR adaptativo
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PERF.maxDpr));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setClearColor(SCENE_BG_HEX, 1);
       renderer.xr.enabled = true;
@@ -572,12 +658,13 @@
       renderer.localClippingEnabled = false;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.28;
+      renderer.toneMappingExposure = 1.26;
       container.appendChild(renderer.domElement);
 
-      setupLighting();
+      setupOptimizedLighting();
       setupAtmosphereDome();
       setupQuestControllersAndHands();
+      setupSurfaceReticleAndPlaneGroup();
 
       barcaAnchorGroup = new THREE.Group();
       scene.add(barcaAnchorGroup);
@@ -593,7 +680,10 @@
       fleetGroup = new THREE.Group();
       barcaAnchorGroup.add(fleetGroup);
 
-      magicWaveLight = new THREE.PointLight(0xeef7a3, 0, 16);
+      fleetInstancedGroup = new THREE.Group();
+      barcaAnchorGroup.add(fleetInstancedGroup);
+
+      magicWaveLight = new THREE.PointLight(0xeef7a3, 0, 14);
       magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.5, SCULPTURE_CONFIG.positionZ);
       barcaAnchorGroup.add(magicWaveLight);
 
@@ -620,36 +710,23 @@
       renderer.setAnimationLoop(renderLoop);
     }
 
-    function setupLighting() {
-      scene.add(new THREE.AmbientLight(0xd9f7f2, 1.65));
-
-      const hemi = new THREE.HemisphereLight(0xeefcf9, 0x1b857b, 2.45);
+    // Rig optimizado de solo 3 luces (ahorra ~50% de costo PBR en las 13 barcas)
+    function setupOptimizedLighting() {
+      const hemi = new THREE.HemisphereLight(0xf0fffc, 0x1d8a80, 2.85);
       hemi.position.set(0, 18, 0);
       scene.add(hemi);
 
-      const keyDir = new THREE.DirectionalLight(0xfff5e0, 2.55);
+      const keyDir = new THREE.DirectionalLight(0xfff4df, 2.45);
       keyDir.position.set(6, 13, 8);
       scene.add(keyDir);
 
-      const fillDir = new THREE.DirectionalLight(0xaef2e8, 1.85);
-      fillDir.position.set(-9, 9, 6);
-      scene.add(fillDir);
-
-      const rimDir = new THREE.DirectionalLight(0x6ee7d8, 1.65);
-      rimDir.position.set(-3, 9, -11);
-      scene.add(rimDir);
-
-      const atmoGlow = new THREE.PointLight(0x4fd1c5, 2.1, 34, 1.3);
-      atmoGlow.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 5.8, SCULPTURE_CONFIG.positionZ + 2.5);
-      scene.add(atmoGlow);
-
-      const warmMistLight = new THREE.PointLight(0xf6f0b2, 1.25, 28, 1.4);
-      warmMistLight.position.set(SCULPTURE_CONFIG.positionX - 5.5, WATER_CONFIG.levelY + 4.2, SCULPTURE_CONFIG.positionZ - 6.0);
-      scene.add(warmMistLight);
+      const fillRimDir = new THREE.DirectionalLight(0x8beee0, 1.75);
+      fillRimDir.position.set(-8, 9, -7);
+      scene.add(fillRimDir);
     }
 
     function setupAtmosphereDome() {
-      const domeGeo = new THREE.SphereGeometry(68, 28, 18);
+      const domeGeo = new THREE.SphereGeometry(68, 22, 14);
       const domeMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
@@ -682,28 +759,394 @@
           void main() {
             vec3 dir = normalize(vWorldPos);
             float h = dir.y;
-
-            vec3 col;
-            if (h >= 0.0) {
-              vec3 lower = mix(uHorizonColor, uMidSkyColor, smoothstep(0.0, 0.30, h));
-              col = mix(lower, uTopColor, smoothstep(0.22, 0.85, h));
-            } else {
-              col = mix(uHorizonColor, uBottomColor, pow(max(-h, 0.0001), 0.55));
-            }
-
-            float horizonBand = exp(-abs(h) * 7.5);
-            col += uMistGlowColor * horizonBand * 0.22;
-
+            vec3 col = h >= 0.0
+              ? mix(mix(uHorizonColor, uMidSkyColor, smoothstep(0.0, 0.30, h)), uTopColor, smoothstep(0.22, 0.85, h))
+              : mix(uHorizonColor, uBottomColor, pow(max(-h, 0.0001), 0.55));
+            col += uMistGlowColor * exp(-abs(h) * 7.5) * 0.22;
             float moonAlign = max(dot(dir, uMoonDir), 0.0);
-            float moonHalo = pow(max(moonAlign, 0.0001), 7.0) * 0.26 + pow(max(moonAlign, 0.0001), 36.0) * 0.24;
-            col += vec3(0.76, 0.96, 0.90) * moonHalo;
-
+            col += vec3(0.76, 0.96, 0.90) * (pow(max(moonAlign, 0.0001), 7.0) * 0.26 + pow(max(moonAlign, 0.0001), 36.0) * 0.24);
             gl_FragColor = vec4(col, 1.0);
           }
         `
       });
       skyDome = new THREE.Mesh(domeGeo, domeMat);
       scene.add(skyDome);
+    }
+
+    // =========================================================================
+    // 🎯 RETÍCULA DUAL (PLANOS HORIZONTALES Y VERTICALES) + PLANOS DETECTADOS
+    // =========================================================================
+    function setupSurfaceReticleAndPlaneGroup() {
+      detectedPlanesGroup = new THREE.Group();
+      scene.add(detectedPlanesGroup);
+
+      surfaceReticle = new THREE.Group();
+      surfaceReticle.matrixAutoUpdate = false;
+      surfaceReticle.visible = false;
+
+      // Anillo exterior (en el plano XZ de la retícula, normal = +Y)
+      const ringGeo = new THREE.RingGeometry(0.18, 0.23, 36).rotateX(-Math.PI / 2);
+      reticleRingMat = new THREE.MeshBasicMaterial({
+        color: 0x2dd4bf,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.92,
+        depthTest: false
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, reticleRingMat);
+      surfaceReticle.add(ringMesh);
+
+      // Punto central
+      const dotGeo = new THREE.CircleGeometry(0.035, 18).rotateX(-Math.PI / 2);
+      reticleInnerMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: false
+      });
+      surfaceReticle.add(new THREE.Mesh(dotGeo, reticleInnerMat));
+
+      // Indicador adicional de plano vertical (marco cuadrado sutil alrededor del anillo)
+      const bracketPts = [
+        -0.28, 0, -0.28, -0.16, 0, -0.28,  -0.28, 0, -0.28, -0.28, 0, -0.16,
+         0.28, 0, -0.28,  0.16, 0, -0.28,   0.28, 0, -0.28,  0.28, 0, -0.16,
+        -0.28, 0,  0.28, -0.16, 0,  0.28,  -0.28, 0,  0.28, -0.28, 0,  0.16,
+         0.28, 0,  0.28,  0.16, 0,  0.28,   0.28, 0,  0.28,  0.28, 0,  0.16
+      ];
+      const bracketGeo = new THREE.BufferGeometry();
+      bracketGeo.setAttribute('position', new THREE.Float32BufferAttribute(bracketPts, 3));
+      const bracketMat = new THREE.LineBasicMaterial({
+        color: 0xfde047,
+        transparent: true,
+        opacity: 0.92,
+        depthTest: false
+      });
+      reticleWallBrackets = new THREE.LineSegments(bracketGeo, bracketMat);
+      reticleWallBrackets.visible = false;
+      surfaceReticle.add(reticleWallBrackets);
+
+      surfaceReticle.renderOrder = 20;
+      scene.add(surfaceReticle);
+    }
+
+    function updateReticleVisualState(isVertical, sourceLabel) {
+      if (isVertical) {
+        reticleRingMat.color.setHex(0xfde047);
+        reticleWallBrackets.visible = true;
+        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-yellow-300 animate-pulse';
+        arModeLabel.textContent = sourceLabel || 'Plano Vertical (Pared)';
+        btnArPlace.innerHTML = '<span>📍 Colocar en Pared</span>';
+      } else {
+        reticleRingMat.color.setHex(0x2dd4bf);
+        reticleWallBrackets.visible = false;
+        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+        arModeLabel.textContent = sourceLabel || 'Plano Horizontal (Suelo)';
+        btnArPlace.innerHTML = '<span>📍 Colocar en Suelo</span>';
+      }
+    }
+
+    function clearDetectedPlaneMeshes() {
+      detectedPlaneMeshes.forEach((mesh) => {
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) mesh.material.dispose();
+        detectedPlanesGroup.remove(mesh);
+      });
+      detectedPlaneMeshes.clear();
+    }
+
+    // Actualiza polígonos detectados por WebXR Plane Detection (Quest 3 / ARCore) tanto horizontales como verticales
+    function updateWebXRDetectedPlanes(frame) {
+      if (!isARPlacementMode || !frame.detectedPlanes || !xrRefSpace) {
+        detectedPlanesGroup.visible = false;
+        return;
+      }
+      detectedPlanesGroup.visible = true;
+
+      const activePlanes = frame.detectedPlanes;
+      // Limpiar planos que ya no existen
+      for (const [xrPlane, mesh] of detectedPlaneMeshes.entries()) {
+        if (!activePlanes.has(xrPlane)) {
+          if (mesh.geometry) mesh.geometry.dispose();
+          if (mesh.material) mesh.material.dispose();
+          detectedPlanesGroup.remove(mesh);
+          detectedPlaneMeshes.delete(xrPlane);
+        }
+      }
+
+      activePlanes.forEach((xrPlane) => {
+        const pose = frame.getPose(xrPlane.planeSpace, xrRefSpace);
+        if (!pose) return;
+
+        let mesh = detectedPlaneMeshes.get(xrPlane);
+        const lastChanged = xrPlane.lastChangedTime || 0;
+
+        if (!mesh || mesh.userData.lastChanged !== lastChanged) {
+          if (mesh) {
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) mesh.material.dispose();
+            detectedPlanesGroup.remove(mesh);
+          }
+
+          const poly = xrPlane.polygon;
+          if (!poly || poly.length < 3) return;
+
+          const shape = new THREE.Shape();
+          shape.moveTo(poly[0].x, -poly[0].z);
+          for (let i = 1; i < poly.length; i++) {
+            shape.lineTo(poly[i].x, -poly[i].z);
+          }
+          shape.closePath();
+
+          const geo = new THREE.ShapeGeometry(shape);
+          geo.rotateX(-Math.PI / 2);
+
+          const isVert = xrPlane.orientation === 'vertical';
+          const mat = new THREE.MeshBasicMaterial({
+            color: isVert ? 0xfde047 : 0x2dd4bf,
+            transparent: true,
+            opacity: isVert ? 0.14 : 0.11,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+
+          mesh = new THREE.Mesh(geo, mat);
+          mesh.matrixAutoUpdate = false;
+          mesh.userData.lastChanged = lastChanged;
+          detectedPlanesGroup.add(mesh);
+          detectedPlaneMeshes.set(xrPlane, mesh);
+        }
+
+        mesh.matrix.fromArray(pose.transform.matrix);
+      });
+    }
+
+    // Estima un plano horizontal o vertical de respaldo si la cámara apunta a una pared lisa sin textura
+    function updateFallbackSurfaceEstimate(isWebXR) {
+      const activeCam = isWebXR ? renderer.xr.getCamera() : camera;
+      activeCam.getWorldPosition(_camWorldPos);
+      activeCam.getWorldDirection(_camWorldDir);
+
+      // Si mira hacia abajo (>15°), proyectar en plano horizontal; si mira al frente/paredes, plano vertical
+      const lookingDown = _camWorldDir.y < -0.26;
+
+      if (lookingDown) {
+        const floorY = isWebXR ? 0.0 : 0.0;
+        const t = (_camWorldPos.y - floorY) / Math.max(0.26, -_camWorldDir.y);
+        const dist = THREE.MathUtils.clamp(t, 2.2, 6.2);
+        currentSurfaceHit.position.copy(_camWorldPos).addScaledVector(_camWorldDir, dist);
+        currentSurfaceHit.position.y = floorY;
+        currentSurfaceHit.normal.set(0, 1, 0);
+        currentSurfaceHit.quaternion.identity();
+        currentSurfaceHit.isVertical = false;
+        currentSurfaceHit.valid = true;
+
+        surfaceReticle.visible = true;
+        surfaceReticle.matrix.compose(currentSurfaceHit.position, currentSurfaceHit.quaternion, _hitScale.set(1, 1, 1));
+        updateReticleVisualState(false, isWebXR ? 'Plano Horizontal (Estimado)' : 'Plano Horizontal (Suelo)');
+      } else {
+        const dist = 3.6;
+        currentSurfaceHit.position.copy(_camWorldPos).addScaledVector(_camWorldDir, dist);
+        // Normal de pared apuntando horizontalmente hacia el usuario
+        _wallFwd.set(-_camWorldDir.x, 0, -_camWorldDir.z);
+        if (_wallFwd.lengthSq() < 0.0001) _wallFwd.set(0, 0, 1);
+        _wallFwd.normalize();
+
+        currentSurfaceHit.normal.copy(_wallFwd);
+        currentSurfaceHit.quaternion.setFromUnitVectors(_upAxis, _wallFwd);
+        currentSurfaceHit.isVertical = true;
+        currentSurfaceHit.valid = true;
+
+        surfaceReticle.visible = true;
+        surfaceReticle.matrix.compose(currentSurfaceHit.position, currentSurfaceHit.quaternion, _hitScale.set(1, 1, 1));
+        updateReticleVisualState(true, isWebXR ? 'Plano Vertical (Pared)' : 'Plano Vertical (Pared)');
+      }
+    }
+
+    function updateWebXRHitTest(frame, dt) {
+      if (!isARPlacementMode) {
+        surfaceReticle.visible = false;
+        detectedPlanesGroup.visible = false;
+        return;
+      }
+
+      updateWebXRDetectedPlanes(frame);
+
+      let foundRealHit = false;
+      if (xrHitTestSource && xrRefSpace) {
+        const results = frame.getHitTestResults(xrHitTestSource);
+        if (results.length > 0) {
+          const pose = results[0].getPose(xrRefSpace);
+          if (pose) {
+            _hitMat.fromArray(pose.transform.matrix);
+            _hitMat.decompose(_hitPos, _hitQuat, _hitScale);
+            _hitNormal.set(0, 1, 0).applyQuaternion(_hitQuat).normalize();
+
+            const isVert = Math.abs(_hitNormal.y) < 0.65;
+
+            currentSurfaceHit.valid = true;
+            currentSurfaceHit.isVertical = isVert;
+            currentSurfaceHit.position.copy(_hitPos);
+            currentSurfaceHit.normal.copy(_hitNormal);
+            currentSurfaceHit.quaternion.copy(_hitQuat);
+
+            surfaceReticle.visible = true;
+            surfaceReticle.matrix.copy(_hitMat);
+            updateReticleVisualState(isVert, isVert ? 'Pared Vertical Detectada' : 'Suelo Horizontal Detectado');
+
+            xrNoHitElapsed = 0;
+            foundRealHit = true;
+          }
+        }
+      }
+
+      if (!foundRealHit) {
+        xrNoHitElapsed += dt;
+        // Tras 0.45s sin hit real (ej. muro blanco liso), activa respaldo automático para no perder la escena
+        if (xrNoHitElapsed > 0.45) {
+          updateFallbackSurfaceEstimate(true);
+        }
+      }
+    }
+
+    function placeSceneAtDetectedSurface() {
+      if (!currentSurfaceHit.valid) {
+        showToast('Apunta al suelo o a una pared para detectar un plano');
+        return;
+      }
+
+      const activeCam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+      activeCam.getWorldPosition(_camWorldPos);
+
+      if (currentSurfaceHit.isVertical) {
+        // Despliegue sobre plano vertical: separar ligeramente de la pared para que no corte las barcas y orientar hacia el espectador
+        _wallFwd.set(currentSurfaceHit.normal.x, 0, currentSurfaceHit.normal.z);
+        if (_wallFwd.lengthSq() < 0.001) {
+          _wallFwd.subVectors(_camWorldPos, currentSurfaceHit.position);
+          _wallFwd.y = 0;
+        }
+        _wallFwd.normalize();
+
+        // Asegurar que la normal apunte hacia la cámara
+        const toCamX = _camWorldPos.x - currentSurfaceHit.position.x;
+        const toCamZ = _camWorldPos.z - currentSurfaceHit.position.z;
+        if (_wallFwd.x * toCamX + _wallFwd.z * toCamZ < 0) _wallFwd.negate();
+
+        const wallClearance = 1.15 * arAnchorScale;
+        barcaAnchorGroup.position.set(
+          currentSurfaceHit.position.x + _wallFwd.x * wallClearance,
+          currentSurfaceHit.position.y - 0.50 * arAnchorScale,
+          currentSurfaceHit.position.z + _wallFwd.z * wallClearance
+        );
+        barcaAnchorGroup.rotation.set(0, Math.atan2(_wallFwd.x, _wallFwd.z), 0);
+        showToast('✓ Desplegado frente a pared vertical');
+      } else {
+        // Despliegue sobre plano horizontal (suelo o mesa)
+        const dx = _camWorldPos.x - currentSurfaceHit.position.x;
+        const dz = _camWorldPos.z - currentSurfaceHit.position.z;
+        barcaAnchorGroup.position.copy(currentSurfaceHit.position);
+        barcaAnchorGroup.rotation.set(0, Math.atan2(dx, dz), 0);
+        showToast('✓ Desplegado sobre plano horizontal');
+      }
+
+      barcaAnchorGroup.visible = true;
+      hasPlacedInAR = true;
+      setARPlacementMode(false);
+
+      // Materializar SOLO si nunca se ha materializado; si ya ocurrió, las barcas permanecen visibles
+      triggerMaterializationOnce();
+    }
+
+    function setARPlacementMode(enable) {
+      isARPlacementMode = enable;
+      surfaceReticle.visible = enable;
+      if (!enable) {
+        detectedPlanesGroup.visible = false;
+        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+        arModeLabel.textContent = 'Escena Anclada en AR';
+        btnArPlace.classList.add('hidden');
+        btnArToggleScan.textContent = '🎯 Reubicar';
+      } else {
+        btnArPlace.classList.remove('hidden');
+        btnArToggleScan.textContent = 'Cancelar';
+        arModeLabel.textContent = 'Apunta a suelo o pared...';
+      }
+    }
+
+    // =========================================================================
+    // 💧 TEXTURAS PRE-HORNEADAS PARA AGUA ULTRA-RÁPIDA (CERO FBM EN GPU)
+    // =========================================================================
+    function createSeamlessUtilityTexture() {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(size, size);
+      const data = imgData.data;
+
+      // Ruido periódico multi-octava precalculado (R: FBM turbulencia A, G: FBM turbulencia B, B: espuma orgánica)
+      const perm = new Uint8Array(512);
+      let seed = 1337;
+      const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+      const p = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const tmp = p[i]; p[i] = p[j]; p[j] = tmp;
+      }
+      for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+
+      const tileNoise = (x, y, period) => {
+        const xi = Math.floor(x);
+        const yi = Math.floor(y);
+        const xf = x - xi;
+        const yf = y - yi;
+        const u = xf * xf * (3 - 2 * xf);
+        const v = yf * yf * (3 - 2 * yf);
+        const x0 = ((xi % period) + period) % period;
+        const y0 = ((yi % period) + period) % period;
+        const x1 = (x0 + 1) % period;
+        const y1 = (y0 + 1) % period;
+
+        const aa = perm[(perm[x0 & 255] + y0) & 255] / 255;
+        const ba = perm[(perm[x1 & 255] + y0) & 255] / 255;
+        const ab = perm[(perm[x0 & 255] + y1) & 255] / 255;
+        const bb = perm[(perm[x1 & 255] + y1) & 255] / 255;
+
+        return (aa * (1 - u) + ba * u) * (1 - v) + (ab * (1 - u) + bb * u) * v;
+      };
+
+      const fbmTile = (u, v, baseFreq, ox, oy) => {
+        let sum = 0, amp = 0.52, freq = baseFreq;
+        for (let o = 0; o < 3; o++) {
+          sum += tileNoise(u * freq + ox, v * freq + oy, freq) * amp;
+          freq *= 2;
+          amp *= 0.5;
+        }
+        return Math.min(1, Math.max(0, sum));
+      };
+
+      for (let y = 0; y < size; y++) {
+        const v = y / size;
+        for (let x = 0; x < size; x++) {
+          const u = x / size;
+          const r = fbmTile(u, v, 4, 0, 0);
+          const g = fbmTile(u, v, 4, 17, 29);
+          const b = fbmTile(u, v, 8, 43, 11);
+          const idx = (y * size + x) * 4;
+          data[idx]     = Math.floor(r * 255);
+          data[idx + 1] = Math.floor(g * 255);
+          data[idx + 2] = Math.floor(Math.pow(b, 1.35) * 255);
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+      return tex;
     }
 
     function createFallbackWaterNormalTexture() {
@@ -733,41 +1176,8 @@
       return tex;
     }
 
-    function createFoamNoiseTexture() {
-      const size = 256;
-      const canvas = document.createElement('canvas');
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, size, size);
-      for (let i = 0; i < 220; i++) {
-        const x = Math.random() * size;
-        const y = Math.random() * size;
-        const r = 2.0 + Math.random() * 11.0;
-        const intensity = 0.36 + Math.random() * 0.48;
-        for (let ox = -1; ox <= 1; ox++) {
-          for (let oy = -1; oy <= 1; oy++) {
-            const cx = x + ox * size;
-            const cy = y + oy * size;
-            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            grad.addColorStop(0, `rgba(255,255,255,${intensity})`);
-            grad.addColorStop(0.55, `rgba(195,195,195,${intensity * 0.42})`);
-            grad.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      }
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      return tex;
-    }
-
     function buildSobelNormalTextureFromImage(img, strength = 2.9) {
-      const size = 512;
+      const size = IS_MOBILE ? 256 : 512;
       const srcCanvas = document.createElement('canvas');
       srcCanvas.width = size; srcCanvas.height = size;
       const srcCtx = srcCanvas.getContext('2d');
@@ -795,9 +1205,9 @@
       const avgR = sumR / samples;
       const avgG = sumG / samples;
       const avgB = sumB / samples;
-      const isAlreadyNormalMap = (avgB > 0.72) && (Math.abs(avgR - 0.5) < 0.16) && (Math.abs(avgG - 0.5) < 0.16);
-
-      if (isAlreadyNormalMap) return { isNormalMap: true, normalTex: null };
+      if ((avgB > 0.72) && (Math.abs(avgR - 0.5) < 0.16) && (Math.abs(avgG - 0.5) < 0.16)) {
+        return { isNormalMap: true, normalTex: null };
+      }
 
       const outCanvas = document.createElement('canvas');
       outCanvas.width = size; outCanvas.height = size;
@@ -805,11 +1215,7 @@
       const outImg = outCtx.createImageData(size, size);
       const out = outImg.data;
 
-      const sampleLum = (x, y) => {
-        const wx = (x + size) % size;
-        const wy = (y + size) % size;
-        return lum[wy * size + wx];
-      };
+      const sampleLum = (x, y) => lum[(((y + size) % size) * size) + ((x + size) % size)];
 
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
@@ -824,13 +1230,12 @@
 
           const dx = (tr + 2 * r + br - tl - 2 * l - bl) * strength;
           const dy = (bl + 2 * b + br - tl - 2 * t - tr) * strength;
-          const dz = 1.0;
-          const invLen = 1.0 / Math.hypot(dx, dy, dz);
+          const invLen = 1.0 / Math.hypot(dx, dy, 1.0);
 
           const idx = (y * size + x) * 4;
           out[idx]     = Math.floor((-dx * invLen * 0.5 + 0.5) * 255);
           out[idx + 1] = Math.floor((-dy * invLen * 0.5 + 0.5) * 255);
-          out[idx + 2] = Math.floor(( dz * invLen * 0.5 + 0.5) * 255);
+          out[idx + 2] = Math.floor((invLen * 0.5 + 0.5) * 255);
           out[idx + 3] = 255;
         }
       }
@@ -846,45 +1251,35 @@
     function loadRepoWaterTexture() {
       const texLoader = new THREE.TextureLoader();
       texLoader.setCrossOrigin('anonymous');
-
       texLoader.load(
         ASSETS.waterTexture,
         (loadedTex) => {
-          const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          const aniso = Math.min(PERF.maxAniso, renderer.capabilities.getMaxAnisotropy());
           loadedTex.wrapS = THREE.RepeatWrapping;
           loadedTex.wrapT = THREE.RepeatWrapping;
-          loadedTex.anisotropy = maxAniso;
+          loadedTex.anisotropy = aniso;
           loadedTex.needsUpdate = true;
-
           try {
             const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 2.9);
             if (analysis.isNormalMap) {
               waterUniforms.uNormalMap.value = loadedTex;
-              waterUniforms.uWaterTex.value = loadedTex;
-              waterUniforms.uUseDetailTex.value = 0.0;
             } else {
-              analysis.normalTex.anisotropy = maxAniso;
-              loadedTex.colorSpace = THREE.SRGBColorSpace;
+              analysis.normalTex.anisotropy = aniso;
               waterUniforms.uNormalMap.value = analysis.normalTex;
-              waterUniforms.uWaterTex.value = loadedTex;
-              waterUniforms.uUseDetailTex.value = 0.22;
             }
           } catch (err) {
-            loadedTex.colorSpace = THREE.SRGBColorSpace;
-            waterUniforms.uWaterTex.value = loadedTex;
-            waterUniforms.uUseDetailTex.value = 0.18;
+            // Mantiene el normal map procedural si hay restricción CORS
           }
         },
         undefined,
-        (err) => {
-          console.warn('No se pudo cargar image_c713d6.png, usando normales procedurales:', err);
-        }
+        () => {}
       );
     }
 
+    // Shader de agua altamente optimizado: normales analíticas (1 pase/vértice) + textura de turbulencia pre-horneada (4 lecturas/píxel)
     function setupWaterSurface() {
       const normalTex = createFallbackWaterNormalTexture();
-      const foamNoiseTex = createFoamNoiseTexture();
+      const utilityTex = createSeamlessUtilityTexture();
 
       const segs = WATER_CONFIG.subdivisions;
       const waterGeo = new THREE.PlaneGeometry(58, 58, segs, segs);
@@ -893,9 +1288,7 @@
       waterUniforms = {
         uTime:              { value: 0 },
         uNormalMap:         { value: normalTex },
-        uWaterTex:          { value: foamNoiseTex },
-        uFoamNoise:         { value: foamNoiseTex },
-        uUseDetailTex:      { value: 0.0 },
+        uUtilityMap:        { value: utilityTex },
         uSunDirection:      { value: new THREE.Vector3(6, 13, 8).normalize() },
         uSkyZenithColor:    { value: new THREE.Color(0x11404a) },
         uSkyHorizonColor:   { value: new THREE.Color(0x32968e) },
@@ -932,94 +1325,76 @@
           uniform float uHullRadiusZ;
 
           varying vec3 vWorldPos;
+          varying vec2 vLocalXZ;
           varying vec3 vWaveNormal;
           varying float vHeight;
           varying float vSteepness;
           varying float vFogDepth;
 
-          float hash21(vec2 p) {
-            p = fract(p * vec2(123.34, 456.21));
-            p += dot(p, p + 45.32);
-            return fract(p.x * p.y);
-          }
-
-          float valueNoise(vec2 p) {
-            vec2 i = floor(p);
-            vec2 f = fract(p);
-            vec2 u = f * f * (3.0 - 2.0 * f);
-            float a = hash21(i);
-            float b = hash21(i + vec2(1.0, 0.0));
-            float c = hash21(i + vec2(0.0, 1.0));
-            float d = hash21(i + vec2(1.0, 1.0));
-            return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-          }
-
-          vec3 sampleRiverSurface(vec2 p, float t) {
-            vec3 disp = vec3(0.0);
-            float flowT = t * (0.64 + uFlowSpeed * 1.25);
+          // 1 solo pase por vértice con derivadas analíticas exactas (sin finite differences x5)
+          void main() {
+            vec3 pos = position;
+            vec2 p = pos.xz;
+            float flowT = uTime * (0.64 + uFlowSpeed * 1.25);
 
             float ph0 = p.y * 0.42 - flowT * 0.78 + p.x * 0.16;
-            disp.y += sin(ph0) * 0.068;
-            disp.z += cos(ph0) * 0.026;
-
             float ph1 = p.y * 0.76 - flowT * 1.05 + p.x * 0.28;
             float ph2 = p.x * 0.64 + p.y * 0.92 - flowT * 1.28;
             float ph3 = -p.x * 0.78 + p.y * 1.12 - flowT * 1.42;
             float ph4 = p.x * 1.38 - p.y * 0.68 - flowT * 1.72;
             float ph5 = p.x * 1.12 + p.y * 1.78 - flowT * 1.98;
+            float ph6 = p.x * 2.15 - p.y * 1.90 - flowT * 2.35;
 
-            disp.y += sin(ph1) * 0.048;
-            disp.z += cos(ph1) * 0.018;
+            float c0 = cos(ph0), c1 = cos(ph1), c2 = cos(ph2), c3 = cos(ph3), c4 = cos(ph4), s5 = sin(ph5), c6 = cos(ph6);
 
-            disp.y += sin(ph2) * 0.038;
-            disp.x += cos(ph2) * 0.013;
+            float h = (
+              sin(ph0) * 0.068 +
+              sin(ph1) * 0.048 +
+              sin(ph2) * 0.038 +
+              sin(ph3) * 0.032 +
+              sin(ph4) * 0.018 * uTurbulence +
+              cos(ph5) * 0.015 * uTurbulence +
+              sin(ph6) * 0.011 * uTurbulence
+            ) * uWaveAmp;
 
-            disp.y += sin(ph3) * 0.032;
-            disp.x -= cos(ph3) * 0.012;
+            float dhdx = (
+              c0 * 0.01088 +
+              c1 * 0.01344 +
+              c2 * 0.02432 -
+              c3 * 0.02496 +
+              c4 * 0.02484 * uTurbulence -
+              s5 * 0.01680 * uTurbulence +
+              c6 * 0.02365 * uTurbulence
+            ) * uWaveAmp;
 
-            disp.y += sin(ph4) * 0.018 * uTurbulence;
-            disp.y += cos(ph5) * 0.015 * uTurbulence;
+            float dhdz = (
+              c0 * 0.02856 +
+              c1 * 0.03648 +
+              c2 * 0.03496 +
+              c3 * 0.03584 -
+              c4 * 0.01224 * uTurbulence -
+              s5 * 0.02670 * uTurbulence -
+              c6 * 0.02090 * uTurbulence
+            ) * uWaveAmp;
 
-            vec2 eddyUV1 = vec2(p.x * 0.54, p.y * 0.54 - flowT * 0.44);
-            vec2 eddyUV2 = vec2(p.x * 1.16 + 4.3, p.y * 1.16 - flowT * 0.70);
-            float n1 = valueNoise(eddyUV1) - 0.5;
-            float n2 = valueNoise(eddyUV2) - 0.5;
-            disp.y += (n1 * 0.064 + n2 * 0.028) * uTurbulence;
-
-            disp *= uWaveAmp;
+            // Desplazamiento horizontal suave + interacción en proa
+            pos.x += (c2 * 0.012 - c3 * 0.011) * uWaveAmp;
+            pos.z += (c0 * 0.024 + c1 * 0.016) * uWaveAmp;
 
             vec2 rel = p - uHullCenter;
             float bowZ = -uHullRadiusZ * 1.04;
-            float bowPulse = 0.92 + 0.08 * sin(t * 2.5 + rel.x * 1.4);
-            float bowRipple = exp(-pow(rel.y - bowZ, 2.0) * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.055 * bowPulse;
-            disp.y += bowRipple;
+            float dBowZ = rel.y - bowZ;
+            float bowRipple = exp(-dBowZ * dBowZ * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.052 * (0.92 + 0.08 * sin(uTime * 2.5));
+            h += bowRipple;
+            dhdx += bowRipple * (-1.50 * rel.x);
+            dhdz += bowRipple * (-1.44 * dBowZ);
 
-            float distFromBow = rel.y - bowZ;
-            if (distFromBow > 0.0) {
-              float armX = uHullRadiusX * 0.36 + distFromBow * 0.34;
-              float armDist = abs(abs(rel.x) - armX);
-              float wakeFade = exp(-distFromBow * 0.24);
-              float wakeCrest = exp(-armDist * armDist * 2.8) * wakeFade * 0.032;
-              disp.y += wakeCrest * (0.88 + 0.12 * sin(distFromBow * 2.4 - flowT * 1.6));
-            }
+            pos.y += h;
+            vHeight = h;
+            vLocalXZ = pos.xz;
 
-            return disp;
-          }
-
-          void main() {
-            vec3 pos = position;
-            vec3 disp = sampleRiverSurface(pos.xz, uTime);
-            pos += disp;
-            vHeight = disp.y;
-
-            float eps = 0.13;
-            float hL = sampleRiverSurface(position.xz + vec2(-eps, 0.0), uTime).y;
-            float hR = sampleRiverSurface(position.xz + vec2( eps, 0.0), uTime).y;
-            float hD = sampleRiverSurface(position.xz + vec2(0.0, -eps), uTime).y;
-            float hU = sampleRiverSurface(position.xz + vec2(0.0,  eps), uTime).y;
-
-            vec3 n = normalize(vec3(hL - hR, 2.0 * eps, hD - hU));
-            vWaveNormal = n;
+            vec3 n = normalize(vec3(-dhdx, 1.0, -dhdz));
+            vWaveNormal = normalize(mat3(modelMatrix) * n);
             vSteepness = clamp(1.0 - n.y, 0.0, 1.0);
 
             vec4 wp = modelMatrix * vec4(pos, 1.0);
@@ -1032,9 +1407,7 @@
 
         fragmentShader: /* glsl */`
           uniform sampler2D uNormalMap;
-          uniform sampler2D uWaterTex;
-          uniform sampler2D uFoamNoise;
-          uniform float uUseDetailTex;
+          uniform sampler2D uUtilityMap;
           uniform float uTime;
           uniform vec3 uSunDirection;
           uniform vec3 uSkyZenithColor;
@@ -1055,100 +1428,59 @@
           uniform float uOpacity;
 
           varying vec3 vWorldPos;
+          varying vec2 vLocalXZ;
           varying vec3 vWaveNormal;
           varying float vHeight;
           varying float vSteepness;
           varying float vFogDepth;
 
-          float hash21(vec2 p) {
-            p = fract(p * vec2(127.1, 311.7));
-            p += dot(p, p + 34.5);
-            return fract(p.x * p.y);
-          }
-
-          float valueNoise(vec2 p) {
-            vec2 i = floor(p);
-            vec2 f = fract(p);
-            vec2 u = f * f * (3.0 - 2.0 * f);
-            return mix(
-              mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
-              mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
-              u.y
-            );
-          }
-
-          float fbmTurbulence(vec2 p) {
-            float v = 0.0;
-            float a = 0.5;
-            mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-            for (int i = 0; i < 3; i++) {
-              v += a * valueNoise(p);
-              p = rot * p * 2.05 + vec2(13.7, 29.3);
-              a *= 0.5;
-            }
-            return v;
-          }
-
           void main() {
-            vec2 relXZ = vWorldPos.xz - uHullCenter;
+            // Coordenadas locales a barcaAnchorGroup para que el agua funcione igual al moverla en AR
+            vec2 relXZ = vLocalXZ - uHullCenter;
             float ellDist = length(vec2(relXZ.x / max(uHullRadiusX, 0.1), relXZ.y / max(uHullRadiusZ, 0.1)));
 
             float deflect = exp(-max(ellDist - 0.85, 0.0) * 1.45);
             float smoothSide = relXZ.x / (abs(relXZ.x) + 0.75);
-            vec2 basePos = vWorldPos.xz - vec2(smoothSide * deflect * 0.35, 0.0);
+            vec2 basePos = vLocalXZ - vec2(smoothSide * deflect * 0.35, 0.0);
 
             vec2 flow = uWaterFlow * uFlowSpeed;
             float tFlow = uTime * uFlowSpeed;
 
-            vec2 warp = vec2(
-              fbmTurbulence(basePos * 0.32 - vec2(0.0, tFlow * 0.65)) - 0.5,
-              fbmTurbulence(basePos * 0.32 + vec2(7.4, 3.1) - vec2(0.0, tFlow * 0.58)) - 0.5
-            ) * 0.72 * uTurbulence;
+            // Solo 2 lecturas pre-horneadas de turbulencia/espuma (sustituye 9 ruidos FBM en GPU)
+            vec3 utilA = texture2D(uUtilityMap, basePos * 0.075 - vec2(0.0, tFlow * 0.14)).rgb;
+            vec3 utilB = texture2D(uUtilityMap, basePos * 0.165 - vec2(0.0, tFlow * 0.24) + vec2(0.31, 0.19)).rgb;
+
+            vec2 warp = (utilA.rg - 0.5) * 0.78 * uTurbulence;
             vec2 turbPos = basePos + warp;
 
-            mat2 rotA = mat2( 0.94, -0.34,  0.34,  0.94);
-            mat2 rotB = mat2( 0.92,  0.39, -0.39,  0.92);
-
-            vec2 uv1 = turbPos * 0.24 - flow * uTime * 0.82;
-            vec2 uv2 = (rotA * turbPos) * 0.46 - (rotA * flow) * uTime * 1.14 + vec2(0.37, 0.61);
-            vec2 uv3 = (rotB * turbPos) * 0.90 - (rotB * flow) * uTime * 1.48 + vec2(0.71, 0.19);
-
-            vec3 n1 = texture2D(uNormalMap, uv1).xyz * 2.0 - 1.0;
-            vec3 n2 = texture2D(uNormalMap, uv2).xyz * 2.0 - 1.0;
-            vec3 n3 = texture2D(uNormalMap, uv3).xyz * 2.0 - 1.0;
-            vec3 detailN = normalize(n1 * 0.85 + n2 * 0.72 + n3 * 0.52);
+            // 2 capas de normales rotadas (sin patrones lineales, mitad de costo)
+            mat2 rotA = mat2(0.92, -0.39, 0.39, 0.92);
+            vec3 n1 = texture2D(uNormalMap, turbPos * 0.25 - flow * uTime * 0.80).xyz * 2.0 - 1.0;
+            vec3 n2 = texture2D(uNormalMap, (rotA * turbPos) * 0.54 - (rotA * flow) * uTime * 1.18 + vec2(0.37, 0.61)).xyz * 2.0 - 1.0;
+            vec3 detailN = normalize(n1 * 0.85 + n2 * 0.70);
 
             vec3 N = normalize(vWaveNormal + vec3(detailN.x * 0.54, 0.0, detailN.z * 0.54));
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
+            // Fresnel suave no metálico
             float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.8);
-
             vec3 R = reflect(-V, N);
-            float reflElev = clamp(R.y, 0.0, 1.0);
-            vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(max(reflElev, 0.0001), 0.62));
+            vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(clamp(R.y, 0.0001, 1.0), 0.62));
 
             vec3 L = normalize(uSunDirection);
             float wrapDiffuse = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
             vec3 H = normalize(L + V);
             float NdotH = max(dot(N, H), 0.0);
 
-            float softSparkle = pow(max(NdotH, 0.0001), 90.0) * 0.22;
+            float softSparkle = pow(max(NdotH, 0.0001), 86.0) * 0.20;
             float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.07;
 
-            float eddyTone = fbmTurbulence(turbPos * 0.50 - vec2(0.0, tFlow * 0.92));
-            float depthT = clamp(smoothstep(-0.20, 0.22, vHeight) * 0.60 + eddyTone * 0.40, 0.0, 1.0);
+            // Color verde aqua luminoso con relleno atmosférico suave
+            float eddyTone = utilA.r * 0.55 + utilB.g * 0.45;
+            float depthT = clamp(smoothstep(-0.20, 0.22, vHeight) * 0.58 + eddyTone * 0.42, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
-
             waterColor = waterColor * (0.88 + 0.20 * wrapDiffuse) + uAtmoAmbientColor * 0.16;
-
-            if (uUseDetailTex > 0.01) {
-              vec3 tA = texture2D(uWaterTex, turbPos * 0.25 - flow * uTime * 0.74).rgb;
-              vec3 tB = texture2D(uWaterTex, (rotA * turbPos) * 0.50 - (rotA * flow) * uTime * 1.06 + vec2(0.41, 0.27)).rgb;
-              vec3 texBlend = mix(tA, tB, 0.5);
-              vec3 tintedDetail = mix(uWaterShallowColor, texBlend * vec3(0.55, 1.02, 0.94), 0.46);
-              waterColor = mix(waterColor, tintedDetail, uUseDetailTex);
-            }
 
             float sssMask = smoothstep(0.04, 0.24, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
             waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.30, 0.0, 0.32));
@@ -1160,6 +1492,7 @@
             col += softSparkle * vec3(0.86, 0.95, 0.92);
             col += softSheen * vec3(0.56, 0.84, 0.80);
 
+            // Espuma discreta orgánica
             vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
             float bowD = length(relXZ - bowPos);
             float bowSplash = exp(-bowD * bowD * 3.6) * 0.34;
@@ -1167,38 +1500,28 @@
             float distFromBow = relXZ.y - bowPos.y;
             float bowArm = 0.0;
             if (distFromBow > 0.0) {
-              float fade = exp(-distFromBow * 0.26);
               float armX = uHullRadiusX * 0.34 + distFromBow * 0.34;
               float armDist = abs(abs(relXZ.x) - armX);
-              bowArm = exp(-armDist * armDist * 3.6) * fade * 0.24;
+              bowArm = exp(-armDist * armDist * 3.6) * exp(-distFromBow * 0.26) * 0.24;
             }
 
-            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.20;
-
+            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.19;
             float dZ = relXZ.y - uHullRadiusZ * 0.88;
-            float sternChurn = 0.0;
-            if (dZ > 0.0) {
-              sternChurn = exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.22;
-            }
-
+            float sternChurn = dZ > 0.0 ? exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.22 : 0.0;
             float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.22;
 
-            float fNoise1 = texture2D(uFoamNoise, turbPos * 0.54 - flow * uTime * 0.88).r;
-            float fNoise2 = texture2D(uFoamNoise, (rotB * turbPos) * 1.32 - (rotB * flow) * uTime * 1.28 + vec2(0.29, 0.63)).r;
-            float organicBreakup = fNoise1 * 0.52 + fNoise2 * 0.48;
-
+            float organicBreakup = utilA.b * 0.50 + utilB.b * 0.50;
             float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.82);
-            float finalFoam = smoothstep(0.26, 0.82, rawFoam * (0.35 + 1.02 * organicBreakup)) * 0.42;
+            float finalFoam = smoothstep(0.24, 0.80, rawFoam * (0.38 + 1.05 * organicBreakup)) * 0.42;
 
-            float foamLit = 0.82 + 0.14 * wrapDiffuse;
-            col = mix(col, uFoamColor * foamLit, finalFoam);
+            col = mix(col, uFoamColor * (0.82 + 0.14 * wrapDiffuse), finalFoam);
 
             if (uFogDensity > 0.0) {
               float fogFactor = 1.0 - exp(-uFogDensity * uFogDensity * vFogDepth * vFogDepth);
               col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.90));
             }
 
-            float centerDist = length(vWorldPos.xz);
+            float centerDist = length(vLocalXZ);
             float edgeFade = smoothstep(28.0, 19.0, centerDist);
 
             float alpha = mix(0.89, 0.96, fresnel * 0.5);
@@ -1284,21 +1607,12 @@
 
           void main() {
             vColor = aColor;
-
-            float pX = aFlightA.x;
-            float pY = aFlightA.y;
-            float pZ = aFlightA.z;
-            float wanderR = aFlightA.w;
-
-            float spd = aFlightB.x;
-            float pulseSpeed = aFlightB.y;
-            float pulsePhase = aFlightB.z;
-            float sizeScale = aFlightB.w;
-
+            float pX = aFlightA.x, pY = aFlightA.y, pZ = aFlightA.z, wanderR = aFlightA.w;
+            float spd = aFlightB.x, pulseSpeed = aFlightB.y, pulsePhase = aFlightB.z, sizeScale = aFlightB.w;
             float t = uTime * spd;
 
             vec3 offset;
-            offset.x = (sin(t * 1.00 + pX) * 0.62 + sin(t * 2.13 + pZ * 1.4) * 0.28 + cos(t * 0.47 + pY) * 0.35) * wanderR;
+            offset.x = (sin(t + pX) * 0.62 + sin(t * 2.13 + pZ * 1.4) * 0.28 + cos(t * 0.47 + pY) * 0.35) * wanderR;
             offset.z = (cos(t * 0.89 + pZ) * 0.62 + sin(t * 1.91 + pX * 1.3) * 0.28 + sin(t * 0.53 + pY) * 0.35) * wanderR;
             offset.y = (sin(t * 1.27 + pY) * 0.45 + cos(t * 2.61 + pX) * 0.18 + sin(t * 0.61 + pZ) * 0.22) * (wanderR * 0.42);
             offset.y += sin(uTime * 5.2 + pX * 3.0) * 0.025;
@@ -1308,14 +1622,13 @@
 
             float waveA = 0.5 + 0.5 * sin(uTime * pulseSpeed + pulsePhase);
             float waveB = 0.5 + 0.5 * sin(uTime * (pulseSpeed * 0.47) + pulsePhase * 1.7);
-            float breath = pow(max(waveA, 0.0001), 1.65) * (0.55 + 0.45 * waveB);
-            vGlow = 0.14 + 0.86 * breath;
+            vGlow = 0.14 + 0.86 * pow(max(waveA, 0.0001), 1.65) * (0.55 + 0.45 * waveB);
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
 
             float baseSize = (24.0 + 30.0 * vGlow) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 56.0);
+            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 54.0);
           }
         `,
         fragmentShader: /* glsl */`
@@ -1333,7 +1646,6 @@
 
             float alpha = clamp((core * 0.95 + innerHalo * 0.78 + outerMist) * vGlow, 0.0, 1.0);
             vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.92), core * 0.75) * (0.95 + vGlow * 0.60);
-
             gl_FragColor = vec4(finalCol, alpha);
           }
         `
@@ -1345,6 +1657,9 @@
       barcaAnchorGroup.add(firefliesMesh);
     }
 
+    // =========================================================================
+    // ✨ MATERIALIZACIÓN ÚNICA + BATCHING POST-MATERIALIZACIÓN (InstancedMesh)
+    // =========================================================================
     function buildSurfaceParticleGeometry(sourceRoot, referenceParent, particleCount) {
       referenceParent.updateMatrixWorld(true);
       const invParent = new THREE.Matrix4().copy(referenceParent.matrixWorld).invert();
@@ -1353,15 +1668,10 @@
       const triangles = [];
       let totalArea = 0;
 
-      const vA = new THREE.Vector3();
-      const vB = new THREE.Vector3();
-      const vC = new THREE.Vector3();
-      const e1 = new THREE.Vector3();
-      const e2 = new THREE.Vector3();
-      const cross = new THREE.Vector3();
+      const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+      const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), cross = new THREE.Vector3();
 
-      let minY = Infinity;
-      let maxY = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
 
       sourceRoot.traverse((node) => {
         if (!node.isMesh || !node.geometry) return;
@@ -1381,12 +1691,8 @@
           vB.fromBufferAttribute(posAttr, i1).applyMatrix4(relMat);
           vC.fromBufferAttribute(posAttr, i2).applyMatrix4(relMat);
 
-          if (vA.y < minY) minY = vA.y;
-          if (vB.y < minY) minY = vB.y;
-          if (vC.y < minY) minY = vC.y;
-          if (vA.y > maxY) maxY = vA.y;
-          if (vB.y > maxY) maxY = vB.y;
-          if (vC.y > maxY) maxY = vC.y;
+          if (vA.y < minY) minY = vA.y; if (vB.y < minY) minY = vB.y; if (vC.y < minY) minY = vC.y;
+          if (vA.y > maxY) maxY = vA.y; if (vB.y > maxY) maxY = vB.y; if (vC.y > maxY) maxY = vC.y;
 
           e1.subVectors(vB, vA);
           e2.subVectors(vC, vA);
@@ -1394,20 +1700,12 @@
           const area = cross.length() * 0.5;
           if (area > 1e-7) {
             totalArea += area;
-            triangles.push({
-              ax: vA.x, ay: vA.y, az: vA.z,
-              bx: vB.x, by: vB.y, bz: vB.z,
-              cx: vC.x, cy: vC.y, cz: vC.z,
-              cumArea: totalArea
-            });
+            triangles.push({ ax: vA.x, ay: vA.y, az: vA.z, bx: vB.x, by: vB.y, bz: vB.z, cx: vC.x, cy: vC.y, cz: vC.z, cumArea: totalArea });
           }
         }
       });
 
-      if (!isFinite(minY) || !isFinite(maxY) || maxY <= minY) {
-        minY = -0.3;
-        maxY = 4.2;
-      }
+      if (!isFinite(minY) || !isFinite(maxY) || maxY <= minY) { minY = -0.3; maxY = 4.2; }
       localBoundsMinY = minY;
       localBoundsMaxY = maxY;
       const heightSpan = Math.max(0.01, maxY - minY);
@@ -1430,29 +1728,22 @@
         let px = 0, py = minY, pz = 0;
         if (triangles.length > 0) {
           const tri = pickTriangle(Math.random() * totalArea);
-          let r1 = Math.random();
-          let r2 = Math.random();
-          if (r1 + r2 > 1.0) {
-            r1 = 1.0 - r1;
-            r2 = 1.0 - r2;
-          }
+          let r1 = Math.random(), r2 = Math.random();
+          if (r1 + r2 > 1.0) { r1 = 1.0 - r1; r2 = 1.0 - r2; }
           const r0 = 1.0 - r1 - r2;
           px = tri.ax * r0 + tri.bx * r1 + tri.cx * r2;
           py = tri.ay * r0 + tri.by * r1 + tri.cy * r2;
           pz = tri.az * r0 + tri.bz * r1 + tri.cz * r2;
         }
 
-        positions[i * 3]     = px;
-        positions[i * 3 + 1] = py;
-        positions[i * 3 + 2] = pz;
-
+        positions[i * 3] = px; positions[i * 3 + 1] = py; positions[i * 3 + 2] = pz;
         const theta = Math.random() * Math.PI * 2;
         const horiz = 0.55 + Math.random() * 1.10;
-        scatterDirs[i * 3]     = Math.cos(theta) * horiz;
+        scatterDirs[i * 3] = Math.cos(theta) * horiz;
         scatterDirs[i * 3 + 1] = (Math.random() - 0.30) * 0.90;
         scatterDirs[i * 3 + 2] = Math.sin(theta) * horiz;
 
-        meta[i * 4]     = THREE.MathUtils.clamp((py - minY) / heightSpan, 0, 1);
+        meta[i * 4] = THREE.MathUtils.clamp((py - minY) / heightSpan, 0, 1);
         meta[i * 4 + 1] = Math.random() * Math.PI * 2;
         meta[i * 4 + 2] = 0.78 + Math.random() * 0.95;
         meta[i * 4 + 3] = Math.random();
@@ -1480,37 +1771,22 @@
         vertexShader: /* glsl */`
           attribute vec3 aScatter;
           attribute vec4 aMeta;
-
-          uniform float uTime;
-          uniform float uProgress;
-          uniform float uPixelRatio;
-
-          varying float vAlpha;
-          varying float vHeat;
-          varying float vColorMix;
+          uniform float uTime, uProgress, uPixelRatio;
+          varying float vAlpha, vHeat, vColorMix;
 
           void main() {
-            float normY = aMeta.x;
-            float phase = aMeta.y;
-            float sizeScale = aMeta.z;
+            float normY = aMeta.x, phase = aMeta.y, sizeScale = aMeta.z;
             vColorMix = aMeta.w;
-
             float wavePos = uProgress * 1.24 - 0.10;
             float dist = normY - wavePos;
 
             float approach = smoothstep(0.42, 0.0, dist);
             float afterFade = smoothstep(-0.14, 0.02, dist);
-
             float scatterAmt = clamp(max(dist, 0.0) * 2.1, 0.0, 1.0);
             float swirlAngle = uTime * 3.2 + phase + scatterAmt * 2.8;
-            vec3 swirlOffset = vec3(
-              cos(swirlAngle) * 0.25,
-              sin(uTime * 2.6 + phase) * 0.14,
-              sin(swirlAngle) * 0.25
-            ) * scatterAmt;
+            vec3 swirlOffset = vec3(cos(swirlAngle) * 0.25, sin(uTime * 2.6 + phase) * 0.14, sin(swirlAngle) * 0.25) * scatterAmt;
 
             vec3 pos = position + aScatter * (scatterAmt * scatterAmt * 1.12) + swirlOffset;
-
             float edgeBand = exp(-dist * dist * 125.0);
             vHeat = clamp(edgeBand * 1.35, 0.0, 1.0);
 
@@ -1520,32 +1796,20 @@
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
-
-            float baseSize = (13.0 + 16.0 * vHeat) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 32.0);
+            gl_PointSize = clamp(((13.0 + 16.0 * vHeat) * sizeScale * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 30.0);
           }
         `,
         fragmentShader: /* glsl */`
-          uniform vec3 uColorA;
-          uniform vec3 uColorB;
-
-          varying float vAlpha;
-          varying float vHeat;
-          varying float vColorMix;
-
+          uniform vec3 uColorA, uColorB;
+          varying float vAlpha, vHeat, vColorMix;
           void main() {
             if (vAlpha < 0.015) discard;
-
-            vec2 uv = gl_PointCoord - vec2(0.5);
-            float d = length(uv);
+            float d = length(gl_PointCoord - vec2(0.5));
             if (d > 0.5) discard;
-
             float core = smoothstep(0.19, 0.0, d);
             float halo = exp(-d * 5.8);
-
             vec3 baseCol = mix(uColorA, uColorB, clamp(vColorMix * 0.55 + vHeat * 0.65, 0.0, 1.0));
             vec3 finalCol = mix(baseCol, vec3(1.0, 0.99, 0.92), core * (0.48 + vHeat * 0.45));
-
             gl_FragColor = vec4(finalCol, clamp((core * 0.92 + halo * 0.68) * vAlpha, 0.0, 1.0));
           }
         `
@@ -1553,11 +1817,13 @@
     }
 
     function assignBoatClippingPlane(rootObject, plane, maxAniso, cloneMaterials) {
+      const clonedMats = [];
       rootObject.traverse((node) => {
         if (!node.isMesh || !node.material) return;
         const originalMats = Array.isArray(node.material) ? node.material : [node.material];
         const nextMats = originalMats.map((mat) => {
           const targetMat = cloneMaterials ? mat.clone() : mat;
+          if (cloneMaterials) clonedMats.push(targetMat);
           targetMat.clippingPlanes = [plane];
           if (targetMat.map) targetMat.map.anisotropy = maxAniso;
           targetMat.needsUpdate = true;
@@ -1565,6 +1831,71 @@
         });
         node.material = Array.isArray(node.material) ? nextMats : nextMats[0];
       });
+      return clonedMats;
+    }
+
+    // Convierte las 12 barcas en InstancedMesh y libera partículas/materiales clonados tras la materialización única
+    function finalizeAndOptimizeFleet() {
+      renderer.localClippingEnabled = false;
+      magicWaveLight.intensity = 0;
+
+      // 1) Limpiar clippingPlanes permanentes en la barca principal
+      sculptureRoot.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach((m) => {
+          m.clippingPlanes = null;
+          m.needsUpdate = true;
+        });
+      });
+
+      // 2) Liberar completamente partículas de materialización (ya nunca volverán a usarse)
+      for (let i = 0; i < boatControllers.length; i++) {
+        const b = boatControllers[i];
+        if (b.particles) {
+          if (b.particles.parent) b.particles.parent.remove(b.particles);
+          b.particles = null;
+        }
+        if (b.particleMat) {
+          b.particleMat.dispose();
+          b.particleMat = null;
+        }
+      }
+      if (mainParticleGeoRef) { mainParticleGeoRef.dispose(); mainParticleGeoRef = null; }
+      if (fleetParticleGeoRef) { fleetParticleGeoRef.dispose(); fleetParticleGeoRef = null; }
+
+      // 3) Batching en InstancedMesh para las 12 barcas (baja de 12xN draw calls a 1xN)
+      if (canUseInstancing && baseMeshTemplates.length > 0 && fleetData.length > 0) {
+        for (let p = 0; p < baseMeshTemplates.length; p++) {
+          const tpl = baseMeshTemplates[p];
+          const instMesh = new THREE.InstancedMesh(tpl.geometry, tpl.material, fleetData.length);
+          instMesh.frustumCulled = false;
+          instMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          fleetInstancedGroup.add(instMesh);
+          fleetInstancedPrimitives.push({ instancedMesh: instMesh, localMatrix: tpl.localMatrix });
+        }
+
+        // Eliminar los 12 clones individuales y liberar sus materiales clonados
+        for (let i = 0; i < boatControllers.length; i++) {
+          const b = boatControllers[i];
+          if (!b.isMain && b.clonedMats) {
+            b.clonedMats.forEach((m) => m.dispose());
+            b.clonedMats = null;
+          }
+        }
+        while (fleetGroup.children.length > 0) {
+          fleetGroup.remove(fleetGroup.children[0]);
+        }
+        usingInstancedFleet = true;
+      } else {
+        // Fallback seguro si el modelo tuviera skinning: al menos quitar clippingPlanes
+        for (let i = 0; i < boatControllers.length; i++) {
+          const b = boatControllers[i];
+          if (!b.isMain && b.clonedMats) {
+            b.clonedMats.forEach((m) => { m.clippingPlanes = null; m.needsUpdate = true; });
+          }
+        }
+      }
     }
 
     function setupQuestControllersAndHands() {
@@ -1578,8 +1909,11 @@
         const controller = renderer.xr.getController(i);
         controller.add(new THREE.Line(lineGeo, lineMat));
         controller.addEventListener('selectstart', () => {
-          unlockAndPlayAudio(false);
-          triggerMaterializationWave();
+          unlockAndPlayAudio();
+          // En AR con escaneo activo, el gatillo coloca las barcas sobre el plano (suelo o pared) SIN rematerializar
+          if (isARModeActive && isARPlacementMode) {
+            placeSceneAtDetectedSurface();
+          }
         });
         cameraRig.add(controller);
         const grip = renderer.xr.getControllerGrip(i);
@@ -1588,8 +1922,10 @@
         const hand = renderer.xr.getHand(i);
         hand.add(handModelFactory.createHandModel(hand, 'spheres'));
         hand.addEventListener('pinchstart', () => {
-          unlockAndPlayAudio(false);
-          triggerMaterializationWave();
+          unlockAndPlayAudio();
+          if (isARModeActive && isARPlacementMode) {
+            placeSceneAtDetectedSurface();
+          }
         });
         cameraRig.add(hand);
       }
@@ -1597,17 +1933,36 @@
 
     function buildFleetAndMaterializers(baseTemplate, maxAniso) {
       boatControllers.length = 0;
-      while (fleetGroup.children.length > 0) {
-        fleetGroup.remove(fleetGroup.children[0]);
-      }
+      fleetData.length = 0;
+      baseMeshTemplates.length = 0;
 
-      const mainParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 1750);
-      const fleetParticleGeo = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, 460);
+      // Extraer primitivas base para el InstancedMesh posterior a la materialización
+      canUseInstancing = true;
+      sculpturePivot.updateMatrixWorld(true);
+      const invPivot = new THREE.Matrix4().copy(sculpturePivot.matrixWorld).invert();
+      baseTemplate.traverse((node) => {
+        if (node.isSkinnedMesh || (node.morphTargetInfluences && node.morphTargetInfluences.length > 0)) {
+          canUseInstancing = false;
+        }
+        if (node.isMesh && node.geometry && node.material && !Array.isArray(node.material)) {
+          const localMat = new THREE.Matrix4().multiplyMatrices(invPivot, node.matrixWorld);
+          baseMeshTemplates.push({
+            geometry: node.geometry,
+            material: node.material,
+            localMatrix: localMat
+          });
+        } else if (node.isMesh && Array.isArray(node.material)) {
+          canUseInstancing = false;
+        }
+      });
 
-      const mainPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
+      mainParticleGeoRef = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, PERF.mainParticles);
+      fleetParticleGeoRef = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, PERF.fleetParticles);
+
+      const mainPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -100);
       assignBoatClippingPlane(baseTemplate, mainPlane, maxAniso, false);
       const mainParticleMat = createMaterializationParticleMaterial();
-      const mainParticles = new THREE.Points(mainParticleGeo, mainParticleMat);
+      const mainParticles = new THREE.Points(mainParticleGeoRef, mainParticleMat);
       mainParticles.frustumCulled = false;
       mainParticles.renderOrder = 3;
       mainParticles.visible = false;
@@ -1620,6 +1975,7 @@
         baseY: SCULPTURE_CONFIG.positionY,
         baseZ: SCULPTURE_CONFIG.positionZ,
         scaleMul: 1.0,
+        yawRad: THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg),
         phase: 0.0,
         clippingPlane: mainPlane,
         particles: mainParticles,
@@ -1634,21 +1990,23 @@
         const rad = THREE.MathUtils.degToRad(cfg.angleDeg);
         const bx = SCULPTURE_CONFIG.positionX + Math.sin(rad) * cfg.radius;
         const bz = SCULPTURE_CONFIG.positionZ + Math.cos(rad) * cfg.radius;
+        const yawRad = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg + cfg.yawOffsetDeg);
+        const phase = idx * 0.91 + cfg.radius * 0.37;
 
         const bobGroup = new THREE.Group();
         bobGroup.position.set(bx, SCULPTURE_CONFIG.positionY, bz);
 
         const pivot = new THREE.Group();
-        pivot.rotation.y = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg + cfg.yawOffsetDeg);
+        pivot.rotation.y = yawRad;
         pivot.scale.setScalar(cfg.scaleMul);
 
         const clone = baseTemplate.clone(true);
-        const boatPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-        assignBoatClippingPlane(clone, boatPlane, maxAniso, true);
+        const boatPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -100);
+        const clonedMats = assignBoatClippingPlane(clone, boatPlane, maxAniso, true);
         clone.traverse((node) => { node.frustumCulled = true; });
 
         const pMat = createMaterializationParticleMaterial();
-        const pPoints = new THREE.Points(fleetParticleGeo, pMat);
+        const pPoints = new THREE.Points(fleetParticleGeoRef, pMat);
         pPoints.frustumCulled = false;
         pPoints.renderOrder = 3;
         pPoints.visible = false;
@@ -1659,7 +2017,16 @@
         fleetGroup.add(bobGroup);
 
         const radialNorm = THREE.MathUtils.clamp((cfg.radius - 8.5) / 11.0, 0, 1);
-        const staggerDelay = 0.32 + radialNorm * MATERIALIZATION_CONFIG.fleetMaxDelay + (idx % 3) * 0.14;
+        const staggerDelay = 0.28 + radialNorm * MATERIALIZATION_CONFIG.fleetMaxDelay + (idx % 3) * 0.12;
+
+        fleetData.push({
+          baseX: bx,
+          baseY: SCULPTURE_CONFIG.positionY,
+          baseZ: bz,
+          scaleMul: cfg.scaleMul,
+          yawRad,
+          phase
+        });
 
         boatControllers.push({
           isMain: false,
@@ -1668,8 +2035,10 @@
           baseY: SCULPTURE_CONFIG.positionY,
           baseZ: bz,
           scaleMul: cfg.scaleMul,
-          phase: idx * 0.91 + cfg.radius * 0.37,
+          yawRad,
+          phase,
           clippingPlane: boatPlane,
+          clonedMats,
           particles: pPoints,
           particleMat: pMat,
           delay: staggerDelay,
@@ -1723,10 +2092,10 @@
         waterUniforms.uHullRadiusX.value = Math.max(0.7, orientedSize.x * 0.43);
         waterUniforms.uHullRadiusZ.value = Math.max(1.0, orientedSize.z * 0.45);
 
-        const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        const aniso = Math.min(PERF.maxAniso, renderer.capabilities.getMaxAnisotropy());
         sculptureRoot.traverse((node) => { node.frustumCulled = false; });
 
-        buildFleetAndMaterializers(sculptureRoot, maxAniso);
+        buildFleetAndMaterializers(sculptureRoot, aniso);
 
         dracoLoader.dispose();
 
@@ -1736,12 +2105,40 @@
         document.getElementById('loading-message').textContent = '¡La Barca de las Grullas está lista para VR y AR!';
         launchControls.classList.remove('hidden');
         launchControls.classList.add('flex');
-
-        triggerMaterializationWave();
       } catch (e) {
         console.error('Error cargando el modelo de la barca:', e);
         document.getElementById('loading-message').textContent = 'Error al cargar barcagrullas.glb. Verifica conexión o ruta en GitHub.';
       }
+    }
+
+    // Dispara la materialización UNA SOLA VEZ; jamás vuelve a ejecutarse
+    function triggerMaterializationOnce() {
+      if (hasMaterializedOnce || isMaterializing || boatControllers.length === 0) return;
+
+      renderer.localClippingEnabled = true;
+      isMaterializing = true;
+      materializationElapsed = 0;
+      currentRevealAudioFactor = 0.0;
+
+      if (!isAudioMuted) {
+        unlockAndPlayAudio();
+        setAudioGainImmediate(AUDIO_CONFIG.baseVolume);
+      }
+
+      const anchorY = barcaAnchorGroup.position.y;
+      const anchorScaleY = barcaAnchorGroup.scale.y;
+
+      for (let i = 0; i < boatControllers.length; i++) {
+        const b = boatControllers[i];
+        b.done = false;
+        b.progress = 0.0;
+        b.clippingPlane.constant = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY - 0.1;
+        b.particleMat.uniforms.uProgress.value = 0.0;
+        b.particles.visible = true;
+      }
+
+      magicWaveLight.intensity = 2.6;
+      if (!renderer.xr.isPresenting) showToast('✨ Materializando La Barca de las Grullas...');
     }
 
     async function detectXRCapabilities() {
@@ -1752,12 +2149,16 @@
       const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
       const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
       if (vrSupported && arSupported) xrStatusBadge.textContent = 'Meta Quest 3 · VR y AR Listos';
-      else if (arSupported) xrStatusBadge.textContent = 'WebXR AR Cámara Listo';
+      else if (arSupported) xrStatusBadge.textContent = 'WebXR AR (Suelo y Pared) Listo';
       else if (vrSupported) xrStatusBadge.textContent = 'WebXR VR Listo · AR Cámara';
       else xrStatusBadge.textContent = 'Vista 3D · AR Cámara Disponible';
     }
 
     function resetViewerPosition(notify = true) {
+      if (!isARModeActive) {
+        barcaAnchorGroup.position.set(0, 0, 0);
+        barcaAnchorGroup.rotation.set(0, 0, 0);
+      }
       cameraRig.position.set(
         SCULPTURE_CONFIG.positionX,
         0,
@@ -1768,7 +2169,7 @@
 
       if (!renderer.xr.isPresenting) {
         yaw = 0; pitch = 0;
-        gyroBaseYaw = null; // Realinear frente a la cámara actual si el giroscopio está activo
+        gyroBaseYaw = null;
         camera.position.set(0, 1.65, 0);
         camera.rotation.set(0, 0, 0, 'YXZ');
       }
@@ -1776,7 +2177,7 @@
     }
 
     function adjustARScale(delta) {
-      arAnchorScale = THREE.MathUtils.clamp(arAnchorScale + delta, 0.35, 1.8);
+      arAnchorScale = THREE.MathUtils.clamp(arAnchorScale + delta, 0.30, 1.80);
       barcaAnchorGroup.scale.setScalar(arAnchorScale);
       showToast(`Escala AR: ${Math.round(arAnchorScale * 100)}%`);
     }
@@ -1790,35 +2191,8 @@
       cameraRig.position.z += _headBefore.z - _headAfter.z;
     }
 
-    function triggerMaterializationWave() {
-      if (boatControllers.length === 0) return;
-      renderer.localClippingEnabled = true;
-      isMaterializing = true;
-      materializationElapsed = 0;
-      currentRevealAudioFactor = 0.0;
-
-      // Reiniciar suavemente el volumen para crecer conforme emergen las barcas
-      if (!isAudioMuted) {
-        unlockAndPlayAudio(true);
-        setAudioGainImmediate(AUDIO_CONFIG.baseVolume);
-      }
-
-      for (let i = 0; i < boatControllers.length; i++) {
-        const b = boatControllers[i];
-        b.done = false;
-        b.progress = 0.0;
-        const scaleFactor = b.scaleMul * barcaAnchorGroup.scale.y;
-        b.clippingPlane.constant = b.group.position.y * barcaAnchorGroup.scale.y + localBoundsMinY * scaleFactor - 0.1;
-        b.particleMat.uniforms.uProgress.value = 0.0;
-        b.particles.visible = true;
-      }
-
-      magicWaveLight.intensity = 2.8;
-      if (!renderer.xr.isPresenting) showToast('✨ Materializando las barcas sobre el río...');
-    }
-
     // =========================================================================
-    // 📱 AR CÁMARA EN VIVO + GIROSCOPIO (CELULAR iOS / ANDROID SIN WEBXR AR)
+    // 📱 AR CÁMARA EN VIVO + GIROSCOPIO (CELULAR iOS / ANDROID)
     // =========================================================================
     function handleDeviceOrientation(e) {
       if (e.alpha === null || e.beta === null || e.gamma === null) return;
@@ -1835,9 +2209,7 @@
         window.addEventListener('deviceorientation', handleDeviceOrientation, true);
         gyroEnabled = true;
         gyroBaseYaw = null;
-      } catch (err) {
-        console.warn('Giroscopio no disponible:', err);
-      }
+      } catch (err) {}
     }
 
     function disableGyroscope() {
@@ -1868,7 +2240,6 @@
 
       _yawOffsetQuat.setFromAxisAngle(_upAxis, -gyroBaseYaw + yaw);
       _touchQuat.setFromEuler(_tempEuler.set(pitch, 0, 0, 'YXZ'));
-
       camera.quaternion.copy(_yawOffsetQuat).multiply(_gyroQuat).multiply(_touchQuat);
     }
 
@@ -1889,6 +2260,9 @@
         waterUniforms.uFogDensity.value = SCENE_FOG_DENSITY;
         arAnchorScale = 1.0;
         barcaAnchorGroup.scale.setScalar(1.0);
+        barcaAnchorGroup.position.set(0, 0, 0);
+        barcaAnchorGroup.rotation.set(0, 0, 0);
+        barcaAnchorGroup.visible = true;
       }
     }
 
@@ -1900,8 +2274,8 @@
       const constraints = {
         video: {
           facingMode: { ideal: facingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: IS_MOBILE ? 960 : 1280 },
+          height: { ideal: IS_MOBILE ? 540 : 720 }
         },
         audio: false
       };
@@ -1925,19 +2299,21 @@
       try {
         await startCameraStream(currentFacingMode);
         isCameraARActive = true;
+        isARModeActive = true;
         applyTransparentARVisuals(true);
 
         hudOverlay.classList.remove('active');
         arHudOverlay.classList.add('active');
         btnArSwitchCam.classList.remove('hidden');
-        arModeLabel.textContent = 'AR Cámara Celular';
 
-        arAnchorScale = 0.75;
+        arAnchorScale = 0.70;
         barcaAnchorGroup.scale.setScalar(arAnchorScale);
         resetViewerPosition(false);
 
-        triggerMaterializationWave();
-        showToast('📷 Cámara AR activa · Mueve el dispositivo');
+        // Si ya se materializó antes, dejar visible de inmediato; si es primera vez, permitir colocar o desplegar
+        barcaAnchorGroup.visible = hasMaterializedOnce || hasPlacedInAR;
+        setARPlacementMode(true);
+        showToast('📷 Apunta al suelo o a una pared y toca Colocar');
       } catch (err) {
         console.warn('No se pudo abrir la cámara AR:', err);
         hudOverlay.classList.add('active');
@@ -1954,6 +2330,8 @@
       }
       if (isCameraARActive) {
         isCameraARActive = false;
+        isARModeActive = false;
+        setARPlacementMode(false);
         stopCameraStream();
         disableGyroscope();
         applyTransparentARVisuals(false);
@@ -1961,18 +2339,17 @@
         btnArSwitchCam.classList.add('hidden');
         hudOverlay.classList.add('active');
         resetViewerPosition(false);
+        if (!hasMaterializedOnce) triggerMaterializationOnce();
         showToast('Modo AR finalizado');
       }
     }
 
     // =========================================================================
-    // 🥽 LANZADOR INTELIGENTE VR / AR (QUEST 3 + ANDROID ARCORE + CELULAR CÁMARA)
+    // 🥽 LANZADOR INTELIGENTE VR / AR (QUEST 3 + ARCORE + CELULAR CÁMARA)
     // =========================================================================
     async function startARExperience() {
-      unlockAndPlayAudio(false);
-      // Solicitar permiso de giroscopio de inmediato dentro del gesto del usuario (clave en iOS Safari)
+      unlockAndPlayAudio();
       const gyroPromise = enableGyroscopeIfAvailable();
-
       loadingModal.classList.add('hidden');
 
       if (navigator.xr) {
@@ -1989,7 +2366,7 @@
     }
 
     async function startXRSession(requestedMode = 'immersive-vr') {
-      unlockAndPlayAudio(false);
+      unlockAndPlayAudio();
       loadingModal.classList.add('hidden');
 
       if (isCameraARActive) {
@@ -2004,6 +2381,7 @@
           return;
         }
         hudOverlay.classList.add('active');
+        triggerMaterializationOnce();
         showToast('WebXR no disponible · Modo 3D activo');
         return;
       }
@@ -2020,6 +2398,7 @@
 
         if (!supported) {
           hudOverlay.classList.add('active');
+          triggerMaterializationOnce();
           showToast('Abre este enlace desde Meta Quest Browser para VR');
           return;
         }
@@ -2029,7 +2408,7 @@
         };
 
         if (mode === 'immersive-ar') {
-          sessionInit.optionalFeatures.push('dom-overlay');
+          sessionInit.optionalFeatures.push('hit-test', 'plane-detection', 'dom-overlay');
           sessionInit.domOverlay = { root: arHudOverlay };
         }
 
@@ -2041,27 +2420,64 @@
         cameraRig.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ + spawnDistance);
         cameraRig.rotation.set(0, 0, 0);
 
+        xrHitTestSource = null;
+        xrHitTestRequested = false;
+        xrRefSpace = null;
+        xrNoHitElapsed = 0;
+
         await renderer.xr.setSession(session);
         hudOverlay.classList.remove('active');
 
         const isPassthrough = mode === 'immersive-ar' || session.environmentBlendMode === 'alpha-blend';
+        isARModeActive = isPassthrough;
         applyTransparentARVisuals(isPassthrough);
 
-        if (isPassthrough && session.domOverlayState) {
-          arHudOverlay.classList.add('active');
-          btnArSwitchCam.classList.add('hidden');
-          arModeLabel.textContent = 'AR Passthrough WebXR';
+        if (isPassthrough) {
+          // Solicitar hit-test para detección simultánea de planos horizontales y verticales
+          xrRefSpace = renderer.xr.getReferenceSpace();
+          if (typeof session.requestHitTestSource === 'function') {
+            session.requestReferenceSpace('viewer').then((viewerSpace) => {
+              return session.requestHitTestSource({ space: viewerSpace });
+            }).then((source) => {
+              xrHitTestSource = source;
+            }).catch((err) => {
+              console.warn('Hit-test no disponible, usando respaldo:', err);
+            });
+            xrHitTestRequested = true;
+          }
+
+          arAnchorScale = IS_QUEST ? 0.82 : 0.72;
+          barcaAnchorGroup.scale.setScalar(arAnchorScale);
+          barcaAnchorGroup.visible = hasMaterializedOnce || hasPlacedInAR;
+
+          if (session.domOverlayState) {
+            arHudOverlay.classList.add('active');
+            btnArSwitchCam.classList.add('hidden');
+          }
+          setARPlacementMode(true);
         } else {
           arHudOverlay.classList.remove('active');
+          setARPlacementMode(false);
+          barcaAnchorGroup.visible = true;
+          // En VR, materializar SOLO la primera vez
+          triggerMaterializationOnce();
         }
 
-        triggerMaterializationWave();
-
         session.addEventListener('end', () => {
+          if (xrHitTestSource) {
+            try { xrHitTestSource.cancel(); } catch (e) {}
+            xrHitTestSource = null;
+          }
+          xrHitTestRequested = false;
+          xrRefSpace = null;
+          clearDetectedPlaneMeshes();
+          isARModeActive = false;
+          setARPlacementMode(false);
           applyTransparentARVisuals(false);
           arHudOverlay.classList.remove('active');
           hudOverlay.classList.add('active');
           resetViewerPosition(false);
+          if (!hasMaterializedOnce) triggerMaterializationOnce();
         });
       } catch (err) {
         console.warn('Error al iniciar WebXR:', err);
@@ -2070,6 +2486,7 @@
           await startMobileCameraARMode();
         } else {
           hudOverlay.classList.add('active');
+          triggerMaterializationOnce();
           showToast('No se pudo iniciar XR · Modo 3D activo');
         }
       }
@@ -2079,29 +2496,27 @@
       btnLaunchVRDirect.addEventListener('click', () => startXRSession('immersive-vr'));
       btnLaunchARDirect.addEventListener('click', startARExperience);
       btnStartPreview.addEventListener('click', () => {
-        unlockAndPlayAudio(true);
+        unlockAndPlayAudio();
         loadingModal.classList.add('hidden');
         hudOverlay.classList.add('active');
-        triggerMaterializationWave();
+        barcaAnchorGroup.visible = true;
+        triggerMaterializationOnce();
       });
 
-      btnReplayMagic.addEventListener('click', () => {
-        unlockAndPlayAudio(false);
-        triggerMaterializationWave();
-      });
       btnToggleAudio.addEventListener('click', toggleAudioMute);
       btnFullscreen.addEventListener('click', toggleFullscreen);
-
       btnEnterVR.addEventListener('click', () => startXRSession('immersive-vr'));
       btnEnterAR.addEventListener('click', startARExperience);
       btnResetView.addEventListener('click', () => resetViewerPosition(true));
 
-      // Controles de la interfaz AR
-      btnArReplay.addEventListener('click', () => {
-        unlockAndPlayAudio(false);
-        triggerMaterializationWave();
+      // Controles AR (ninguno dispara rematerialización)
+      btnArPlace.addEventListener('click', () => {
+        unlockAndPlayAudio();
+        placeSceneAtDetectedSurface();
       });
-      btnArCenter.addEventListener('click', () => resetViewerPosition(true));
+      btnArToggleScan.addEventListener('click', () => {
+        setARPlacementMode(!isARPlacementMode);
+      });
       btnArAudio.addEventListener('click', toggleAudioMute);
       btnArFullscreen.addEventListener('click', toggleFullscreen);
       btnExitAr.addEventListener('click', exitActiveARMode);
@@ -2138,7 +2553,7 @@
         isPointerDown = true;
         prevPointerX = e.clientX;
         prevPointerY = e.clientY;
-        if (!audioStarted && !isAudioMuted) unlockAndPlayAudio(false);
+        if (!audioStarted && !isAudioMuted) unlockAndPlayAudio();
       });
       window.addEventListener('pointermove', (e) => {
         if (!isPointerDown || renderer.xr.isPresenting) return;
@@ -2146,9 +2561,7 @@
         prevPointerX = e.clientX; prevPointerY = e.clientY;
         yaw -= dx * 0.0045;
         pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -1.0, 1.0);
-        if (!gyroEnabled) {
-          camera.rotation.set(pitch, yaw, 0, 'YXZ');
-        }
+        if (!gyroEnabled) camera.rotation.set(pitch, yaw, 0, 'YXZ');
       });
       window.addEventListener('pointerup', () => { isPointerDown = false; });
     }
@@ -2176,7 +2589,8 @@
           if (Math.abs(stickX) > 0.15) cameraRig.position.addScaledVector(_xrRight, stickX * speed * dt);
           const xP = !!(buttons[4] && buttons[4].pressed);
           const yP = !!(buttons[5] && buttons[5].pressed);
-          if (xP && !prevButtons.leftX) triggerMaterializationWave();
+          // Botón X: en AR activa/desactiva reubicación en plano (nunca rematerializa)
+          if (xP && !prevButtons.leftX && isARModeActive) setARPlacementMode(!isARPlacementMode);
           if (yP && !prevButtons.leftY) resetViewerPosition(false);
           prevButtons.leftX = xP; prevButtons.leftY = yP;
         }
@@ -2189,7 +2603,7 @@
           if (Math.abs(stickY) > 0.2) cameraRig.position.addScaledVector(_xrForward, -stickY * 1.8 * dt);
           const aP = !!(buttons[4] && buttons[4].pressed);
           const bP = !!(buttons[5] && buttons[5].pressed);
-          if (aP && !prevButtons.rightA) triggerMaterializationWave();
+          if (aP && !prevButtons.rightA && isARModeActive && isARPlacementMode) placeSceneAtDetectedSurface();
           if (bP && !prevButtons.rightB) resetViewerPosition(false);
           prevButtons.rightA = aP; prevButtons.rightB = bP;
         }
@@ -2217,51 +2631,102 @@
       if (keysPressed.a) cameraRig.position.addScaledVector(_xrRight, -speed * dt);
     }
 
-    function applyWaterBobbingToGroup(group, bx, by, bz, timeSec, phaseOffset = 0) {
-      const sampleSpan = 0.95;
-      const hCenter = sampleRiverHeightJS(bx, bz, timeSec);
-      const hRight  = sampleRiverHeightJS(bx + sampleSpan, bz, timeSec);
-      const hFront  = sampleRiverHeightJS(bx, bz + sampleSpan, timeSec);
-
-      const slopeX = (hRight - hCenter) / sampleSpan;
-      const slopeZ = (hFront - hCenter) / sampleSpan;
-
+    function applyWaterBobbingToGroup(group, bx, by, bz, timeSec, phaseOffset) {
+      sampleRiverHeightAndSlopeJS(bx, bz, timeSec, _waveSample);
       group.position.set(
         bx + Math.sin(timeSec * 0.44 + phaseOffset) * 0.04,
-        by + hCenter * 0.72 + Math.sin(timeSec * 0.82 + phaseOffset) * 0.02,
+        by + _waveSample.h * 0.72 + Math.sin(timeSec * 0.82 + phaseOffset) * 0.02,
         bz + Math.cos(timeSec * 0.38 + phaseOffset) * 0.04
       );
-      group.rotation.z = THREE.MathUtils.clamp(-slopeX * 0.28, -0.075, 0.075);
-      group.rotation.x = THREE.MathUtils.clamp(slopeZ * 0.28, -0.075, 0.075);
+      group.rotation.z = THREE.MathUtils.clamp(-_waveSample.sx * 0.28, -0.075, 0.075);
+      group.rotation.x = THREE.MathUtils.clamp(_waveSample.sz * 0.28, -0.075, 0.075);
     }
 
-    function renderLoop(timestamp) {
+    // Actualiza todas las 12 barcas en InstancedMesh con 0 asignaciones de memoria
+    function updateInstancedFleetBobbing(timeSec) {
+      const primCount = fleetInstancedPrimitives.length;
+      if (primCount === 0) return;
+
+      for (let i = 0; i < fleetData.length; i++) {
+        const d = fleetData[i];
+        sampleRiverHeightAndSlopeJS(d.baseX, d.baseZ, timeSec, _waveSample);
+
+        // Transformación de bobbing (equivalente a bobGroup)
+        _dummyObj.position.set(
+          d.baseX + Math.sin(timeSec * 0.44 + d.phase) * 0.04,
+          d.baseY + _waveSample.h * 0.72 + Math.sin(timeSec * 0.82 + d.phase) * 0.02,
+          d.baseZ + Math.cos(timeSec * 0.38 + d.phase) * 0.04
+        );
+        _dummyObj.rotation.set(
+          THREE.MathUtils.clamp(_waveSample.sz * 0.28, -0.075, 0.075),
+          0,
+          THREE.MathUtils.clamp(-_waveSample.sx * 0.28, -0.075, 0.075)
+        );
+        _dummyObj.scale.set(1, 1, 1);
+        _dummyObj.updateMatrix();
+        _boatMat.copy(_dummyObj.matrix);
+
+        // Transformación de pivote (giro + escala relativa)
+        _dummyObj.position.set(0, 0, 0);
+        _dummyObj.rotation.set(0, d.yawRad, 0);
+        _dummyObj.scale.setScalar(d.scaleMul);
+        _dummyObj.updateMatrix();
+        _pivotMat.multiplyMatrices(_boatMat, _dummyObj.matrix);
+
+        for (let p = 0; p < primCount; p++) {
+          const prim = fleetInstancedPrimitives[p];
+          _instanceMat.multiplyMatrices(_pivotMat, prim.localMatrix);
+          prim.instancedMesh.setMatrixAt(i, _instanceMat);
+        }
+      }
+
+      for (let p = 0; p < primCount; p++) {
+        fleetInstancedPrimitives[p].instancedMesh.instanceMatrix.needsUpdate = true;
+      }
+    }
+
+    function renderLoop(timestamp, frame) {
       const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000 || 0.016);
       lastFrameTime = timestamp;
       const timeSec = timestamp * 0.001;
 
       if (renderer.xr.isPresenting) {
         updateVRLocomotion(dt);
+        if (isARModeActive && frame) updateWebXRHitTest(frame, dt);
       } else {
         if (gyroEnabled) updateCameraFromGyro();
         updateDesktopMovement(dt);
+        if (isCameraARActive && isARPlacementMode) {
+          updateFallbackSurfaceEstimate(false);
+        }
       }
 
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
       if (firefliesMaterial) firefliesMaterial.uniforms.uTime.value = timeSec;
 
-      for (let i = 0; i < boatControllers.length; i++) {
-        const b = boatControllers[i];
-        applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
+      // Oscilación de barcas: InstancedMesh optimizado tras materialización o grupos individuales durante la materialización inicial
+      if (usingInstancedFleet) {
+        if (boatControllers.length > 0) {
+          const mainB = boatControllers[0];
+          applyWaterBobbingToGroup(mainB.group, mainB.baseX, mainB.baseY, mainB.baseZ, timeSec, mainB.phase);
+        }
+        updateInstancedFleetBobbing(timeSec);
+      } else {
+        for (let i = 0; i < boatControllers.length; i++) {
+          const b = boatControllers[i];
+          applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
+        }
       }
 
-      // Materialización escalonada + cálculo de volumen progresivo conforme aparecen las barcas
+      // Materialización única con partículas (cuando termina, libera recursos y no vuelve a ejecutarse)
       if (isMaterializing) {
         materializationElapsed += dt;
         let allDone = true;
         let mainProg = 0;
         let fleetProgSum = 0;
         let fleetCount = 0;
+
+        const anchorY = barcaAnchorGroup.position.y;
         const anchorScaleY = barcaAnchorGroup.scale.y;
 
         for (let i = 0; i < boatControllers.length; i++) {
@@ -2276,7 +2741,7 @@
           if (localT <= 0) {
             allDone = false;
             b.progress = 0.0;
-            b.clippingPlane.constant = b.group.position.y * anchorScaleY + localBoundsMinY * b.scaleMul * anchorScaleY - 0.1;
+            b.clippingPlane.constant = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY - 0.1;
             b.particleMat.uniforms.uTime.value = timeSec;
             b.particleMat.uniforms.uProgress.value = 0.0;
             if (!b.isMain) fleetCount++;
@@ -2303,8 +2768,8 @@
           const eased = localT * localT * (3.0 - 2.0 * localT);
           b.progress = eased;
 
-          const worldMinY = b.group.position.y * anchorScaleY + localBoundsMinY * b.scaleMul * anchorScaleY;
-          const worldMaxY = b.group.position.y * anchorScaleY + (localBoundsMaxY + 0.18) * b.scaleMul * anchorScaleY;
+          const worldMinY = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY;
+          const worldMaxY = anchorY + (b.group.position.y + (localBoundsMaxY + 0.18) * b.scaleMul) * anchorScaleY;
           const currentRevealY = THREE.MathUtils.lerp(worldMinY, worldMaxY, eased);
 
           b.clippingPlane.constant = currentRevealY;
@@ -2313,8 +2778,12 @@
 
           if (b.isMain) {
             mainProg = eased;
-            magicWaveLight.position.set(b.group.position.x, b.group.position.y + THREE.MathUtils.lerp(localBoundsMinY, localBoundsMaxY, eased), b.group.position.z);
-            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.8;
+            magicWaveLight.position.set(
+              b.group.position.x,
+              b.group.position.y + THREE.MathUtils.lerp(localBoundsMinY, localBoundsMaxY, eased),
+              b.group.position.z
+            );
+            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.6;
           } else {
             fleetProgSum += eased;
             fleetCount++;
@@ -2326,15 +2795,15 @@
 
         if (allDone) {
           isMaterializing = false;
-          renderer.localClippingEnabled = false;
-          magicWaveLight.intensity = 0;
+          hasMaterializedOnce = true;
           currentRevealAudioFactor = 1.0;
+          finalizeAndOptimizeFleet();
         }
-      } else {
+      } else if (hasMaterializedOnce) {
         currentRevealAudioFactor = 1.0;
       }
 
-      // Envolvente fluida de audio sincronizada con las barcas
+      // Envolvente de audio sincronizada
       if (ambientAudioEl) {
         const targetGain = isAudioMuted
           ? 0.0

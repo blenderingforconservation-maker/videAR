@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>La Barca de las Grullas · VR & AR Optimizado · Museo Leonora Carrington</title>
+  <title>La Barca de las Grullas · Travesía AR & VR · Museo Leonora Carrington</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,85 +20,123 @@
   </script>
 
   <style>
-    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: #0b2f35; font-family: 'Inter', sans-serif; touch-action: none; }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden;
+      background-color: #09292e; font-family: 'Inter', sans-serif; touch-action: none;
+    }
     .font-museum { font-family: 'Cormorant Garamond', Georgia, serif; }
 
     #ar-camera-feed {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-      display: none;
-      background: #000;
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 1; display: none; background: #000;
     }
     #ar-camera-feed.active { display: block; }
+    #ar-camera-feed.mirrored { transform: scaleX(-1); }
 
     #webgl-viewport { position: fixed; inset: 0; z-index: 2; cursor: grab; }
     #webgl-viewport:active { cursor: grabbing; }
 
-    #hud-overlay, #ar-hud-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 15;
-      pointer-events: none;
-      display: none;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: env(safe-area-inset-top, 14px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 18px) env(safe-area-inset-left, 16px);
+    #shutter-flash {
+      position: fixed; inset: 0; z-index: 45; pointer-events: none;
+      background: #f0fdfa; opacity: 0; transition: opacity 0.22s ease-out;
     }
-    #ar-hud-overlay { z-index: 22; }
-    #hud-overlay.active, #ar-hud-overlay.active { display: flex; }
 
+    /* Interfaz orgánica y translúcida */
+    #experience-hud {
+      position: fixed; inset: 0; z-index: 20; pointer-events: none;
+      display: none; flex-direction: column; justify-content: space-between;
+      padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+    #experience-hud.active { display: flex; }
     .interactive { pointer-events: auto; }
-    .glass-pill {
-      background: rgba(6, 26, 30, 0.72);
+
+    .organic-glass {
+      background: rgba(7, 29, 33, 0.56);
+      backdrop-filter: blur(14px) saturate(135%);
+      -webkit-backdrop-filter: blur(14px) saturate(135%);
+      border: 1px solid rgba(153, 246, 228, 0.24);
+      box-shadow: 0 8px 28px rgba(2, 16, 19, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .organic-btn {
+      transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .organic-btn:active, .organic-btn.pressing {
+      transform: scale(0.92);
+      border-color: rgba(253, 224, 71, 0.72);
+    }
+
+    .cta-luminous {
+      background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 55%, #f5e67a 100%);
+      box-shadow: 0 8px 26px rgba(45, 212, 191, 0.36);
+      transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+    }
+    .cta-luminous:active { transform: scale(0.95); }
+
+    /* Botón obturador táctil foto / video */
+    #shutter-btn {
+      width: 72px; height: 72px; border-radius: 999px;
+      padding: 5px;
+      background: rgba(7, 29, 33, 0.42);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(94, 234, 212, 0.36);
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+      border: 2.5px solid rgba(236, 254, 255, 0.92);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), 0 0 22px rgba(45, 212, 191, 0.28);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .magic-btn {
-      background: radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.28), rgba(10, 42, 46, 0.88) 75%);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(94, 234, 212, 0.45);
-      box-shadow: 0 0 20px rgba(20, 184, 166, 0.22), inset 0 1px 1px rgba(204, 251, 241, 0.32);
-      transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    #shutter-btn:active { transform: scale(0.92); }
+    #shutter-core {
+      width: 100%; height: 100%; border-radius: 999px;
+      background: linear-gradient(145deg, #ffffff 0%, #ccfbf1 100%);
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .magic-btn:active, .magic-btn.pressing {
-      transform: scale(0.94);
-      border-color: rgba(253, 224, 71, 0.95);
-      box-shadow: 0 0 28px rgba(45, 212, 191, 0.50), inset 0 0 12px rgba(45, 212, 191, 0.42);
+    #shutter-btn.video-mode #shutter-core {
+      background: linear-gradient(145deg, #fb7185 0%, #e11d48 100%);
+      transform: scale(0.86);
     }
-    .magic-cta {
-      background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 55%, #fde047 100%);
-      box-shadow: 0 0 30px rgba(45, 212, 191, 0.50), 0 0 60px rgba(20, 184, 166, 0.24);
-      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    #shutter-btn.recording {
+      border-color: rgba(251, 113, 133, 0.95);
+      box-shadow: 0 0 0 6px rgba(225, 29, 72, 0.22), 0 6px 24px rgba(0, 0, 0, 0.4);
     }
-    .magic-cta:active { transform: scale(0.95); }
+    #shutter-btn.recording #shutter-core {
+      width: 26px; height: 26px; border-radius: 8px;
+      background: #f43f5e; transform: scale(1);
+    }
+
+    .mode-pill-active {
+      background: rgba(45, 212, 191, 0.24);
+      color: #f0fdfa;
+      border-color: rgba(94, 234, 212, 0.55);
+    }
 
     #toast-banner {
-      position: fixed;
-      top: 72px;
-      left: 50%;
+      position: fixed; top: max(68px, calc(env(safe-area-inset-top) + 54px)); left: 50%;
       transform: translateX(-50%);
-      padding: 8px 20px;
-      background: rgba(9, 36, 40, 0.94);
-      border: 1px solid rgba(94, 234, 212, 0.45);
-      border-radius: 999px;
-      color: #ccfbf1;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.03em;
-      opacity: 0;
-      transition: opacity 0.25s ease;
-      pointer-events: none;
-      text-align: center;
-      max-width: 90vw;
-      z-index: 40;
+      padding: 8px 18px;
+      background: rgba(7, 29, 33, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(153, 246, 228, 0.35);
+      border-radius: 999px; color: #e6fffb; font-size: 12px; font-weight: 500;
+      letter-spacing: 0.02em; opacity: 0; transition: opacity 0.24s ease;
+      pointer-events: none; text-align: center; max-width: 88vw; z-index: 42;
+    }
+
+    /* Panel flotante desplegable de ajustes rápidos */
+    #quick-tools-drawer {
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #quick-tools-drawer.drawer-closed {
+      opacity: 0; pointer-events: none; transform: translateY(10px) scale(0.96);
+    }
+
+    /* Modal de previsualización y guardado de foto/video */
+    #capture-modal {
+      background: rgba(4, 18, 21, 0.84);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
     }
   </style>
 </head>
@@ -106,143 +144,180 @@
 
   <video id="ar-camera-feed" autoplay playsinline muted></video>
   <div id="webgl-viewport"></div>
-  <div id="toast-banner">Cargando La Barca de las Grullas...</div>
+  <div id="shutter-flash"></div>
+  <div id="toast-banner">Cargando travesía...</div>
 
-  <!-- MODAL DE CARGA Y ACCESO -->
-  <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 px-6 text-center transition-opacity duration-500">
-    <div class="w-14 h-14 mb-4 rounded-full bg-teal-500/10 border border-teal-300/40 flex items-center justify-center shadow-[0_0_30px_rgba(45,212,191,0.3)]">
-      <div class="w-3.5 h-3.5 rounded-full bg-lime-300 animate-ping"></div>
+  <!-- PANTALLA DE BIENVENIDA MINIMALISTA -->
+  <div id="loading-modal" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#061c20] px-6 text-center transition-opacity duration-500">
+    <div class="w-14 h-14 mb-5 rounded-full bg-teal-400/10 border border-teal-300/35 flex items-center justify-center shadow-[0_0_36px_rgba(45,212,191,0.28)]">
+      <div class="w-3 h-3 rounded-full bg-lime-200 animate-ping"></div>
     </div>
-    <span class="text-[10px] uppercase tracking-[0.3em] text-teal-300/90 font-semibold mb-1">
-      Museo Leonora Carrington SLP · VR & AR
+    <span class="text-[10px] uppercase tracking-[0.32em] text-teal-200/80 font-medium mb-1.5">
+      Museo Leonora Carrington SLP
     </span>
-    <h1 class="font-museum text-3xl sm:text-4xl text-stone-100 tracking-wide mb-2">
+    <h1 class="font-museum text-4xl sm:text-5xl text-stone-50 tracking-wide mb-2">
       La Barca de las Grullas
     </h1>
-    <p id="loading-message" class="text-xs text-slate-300 max-w-xs mb-6 leading-relaxed">
-      Optimizando geometría, agua fluvial y detección de planos...
+    <p id="loading-message" class="text-xs text-teal-100/75 max-w-xs mb-6 leading-relaxed">
+      Preparando la travesía de las 9 barcas y el río nocturno...
     </p>
-    <div id="progress-container" class="w-64 flex flex-col items-center mb-5">
-      <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-        <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-300 w-0 transition-all duration-200"></div>
+
+    <div id="progress-container" class="w-60 flex flex-col items-center mb-4">
+      <div class="w-full h-1 bg-teal-950 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-teal-400 via-emerald-300 to-yellow-200 w-0 transition-all duration-200"></div>
       </div>
-      <span id="progress-text" class="text-[10px] font-mono text-teal-300/80 mt-2">0%</span>
+      <span id="progress-text" class="text-[10px] font-mono text-teal-300/75 mt-2">0%</span>
     </div>
-    <div id="launch-controls" class="hidden flex-col gap-2.5 w-full max-w-xs">
-      <button id="btn-launch-vr-direct" class="magic-cta w-full py-3.5 px-7 rounded-full text-slate-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-        <span>Entrar en VR (Quest 3)</span>
+
+    <div id="launch-controls" class="hidden flex-col gap-3 w-full max-w-xs">
+      <button id="btn-launch-ar-direct" class="cta-luminous w-full py-3.5 px-6 rounded-full text-slate-950 font-bold text-xs uppercase tracking-[0.14em] flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Desplegar AR · Cámara</span>
       </button>
-      <button id="btn-launch-ar-direct" class="magic-btn w-full py-3.5 px-6 rounded-full text-teal-100 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-        <span>Modo AR (Paredes y Suelo)</span>
+      <button id="btn-launch-vr-direct" class="organic-glass organic-btn w-full py-3.5 px-6 rounded-full text-teal-50 font-semibold text-xs uppercase tracking-[0.14em] flex items-center justify-center gap-2">
+        <span>Entrar en VR · Quest 3</span>
       </button>
-      <button id="btn-start-preview" class="glass-pill w-full py-3 px-6 rounded-full text-slate-200 font-semibold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform">
-        <span>Vista Previa 3D</span>
+      <button id="btn-start-preview" class="w-full py-2.5 px-6 rounded-full text-teal-200/80 hover:text-teal-50 font-medium text-[11px] uppercase tracking-[0.16em] transition-colors">
+        Explorar en Vista 3D
       </button>
     </div>
-    <div class="mt-5 max-w-xs text-[11px] text-slate-300/90 bg-slate-900/75 border border-teal-400/20 rounded-2xl px-4 py-3 text-left space-y-1">
-      <p class="text-teal-300 font-semibold uppercase tracking-wider text-[10px] mb-1">Controles Quest 3 y Celular</p>
-      <p>• <strong class="text-slate-100">AR Planos:</strong> Detecta suelo (turquesa) y paredes (dorado) para desplegar</p>
-      <p>• <strong class="text-slate-100">Quest 3:</strong> Stick Izq caminar · Stick Der giro/zoom · Gatillo colocar en AR</p>
-    </div>
+
+    <p class="mt-6 max-w-xs text-[11px] text-teal-200/55 leading-relaxed">
+      Las 9 barcas cruzarán frente a ti sobre el río. Captura fotos o graba video directo en tu galería.
+    </p>
   </div>
 
-  <!-- HUD PRINCIPAL (VISTA 3D / ESCRITORIO / LANZADOR XR) -->
-  <div id="hud-overlay">
-    <header class="w-full flex flex-wrap items-center justify-between gap-2">
-      <div class="glass-pill flex items-center gap-2.5 rounded-full px-3.5 py-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
-        <span id="xr-status-badge" class="text-[11px] font-medium text-stone-100">
-          La Barca de las Grullas · Listo
+  <!-- INTERFAZ UNIFICADA ORGÁNICA (3D / AR CÁMARA / WEBXR AR) -->
+  <div id="experience-hud">
+    <!-- BARRA SUPERIOR -->
+    <header class="w-full flex items-center justify-between gap-2">
+      <!-- Indicador dinámico de estado / REC -->
+      <div id="status-pill" class="organic-glass flex items-center gap-2 rounded-full px-3.5 py-2">
+        <span id="status-dot" class="w-2 h-2 rounded-full bg-teal-300 animate-pulse"></span>
+        <span id="status-label" class="text-[11px] font-medium text-teal-50 tracking-wide">
+          Travesía · 9 Barcas
         </span>
       </div>
-      <div class="interactive flex items-center gap-2">
-        <button id="btn-toggle-audio" class="glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform" title="Activar o silenciar audio">
-          🔊 Audio
-        </button>
-        <button id="btn-fullscreen" class="glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform flex items-center gap-1.5" title="Pantalla completa">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <polyline points="9 21 3 21 3 15"></polyline>
-            <line x1="21" y1="3" x2="14" y2="10"></line>
-            <line x1="3" y1="21" x2="10" y2="14"></line>
-          </svg>
-          <span class="btn-fs-label hidden sm:inline">Pantalla Completa</span>
-        </button>
-      </div>
-    </header>
-    <footer class="w-full flex flex-col items-center gap-2.5">
-      <div class="interactive flex flex-wrap items-center justify-center gap-2.5 w-full max-w-md">
-        <button id="btn-enter-vr" class="magic-cta flex-1 min-w-[148px] py-3.5 px-5 rounded-full text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-          <span>Entrar en VR</span>
-        </button>
-        <button id="btn-enter-ar" class="magic-btn flex-1 min-w-[148px] py-3.5 px-5 rounded-full text-teal-100 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-          <span>AR Cámara</span>
-        </button>
-      </div>
-      <div class="interactive flex items-center justify-center gap-2.5 w-full max-w-sm">
-        <button id="btn-step-back" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-teal-100 text-xs font-semibold tracking-wider uppercase">
-          <span>↓ Alejar</span>
-        </button>
-        <button id="btn-reset-view" class="glass-pill px-4 py-2 rounded-2xl border-yellow-300/40 flex flex-col items-center justify-center min-w-[88px] active:scale-95 transition-transform">
-          <span class="text-[9px] uppercase tracking-widest text-teal-300/80">Posición</span>
-          <span class="text-xs font-mono font-bold text-yellow-300">Centrar</span>
-        </button>
-        <button id="btn-step-forward" class="magic-btn flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-yellow-200 text-xs font-semibold tracking-wider uppercase">
-          <span>Acercar ↑</span>
-        </button>
-      </div>
-    </footer>
-  </div>
 
-  <!-- INTERFAZ AR DEDICADA (DETECTOR DE PLANOS HORIZONTALES Y VERTICALES) -->
-  <div id="ar-hud-overlay">
-    <header class="w-full flex flex-wrap items-center justify-between gap-2">
-      <div class="glass-pill flex items-center gap-2 rounded-full px-3.5 py-2">
-        <span id="ar-plane-dot" class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
-        <span id="ar-mode-label" class="text-[11px] font-semibold text-teal-50 tracking-wide">
-          Escaneando suelo y paredes...
-        </span>
-      </div>
+      <!-- Iconos circulares minimalistas -->
       <div class="interactive flex items-center gap-2">
-        <button id="btn-ar-switch-cam" class="hidden glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform" title="Cambiar cámara">
-          🔄 Cámara
+        <button id="btn-switch-cam" class="hidden organic-glass organic-btn w-10 h-10 rounded-full flex items-center justify-center text-teal-50" title="Cambiar cámara">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
         </button>
-        <button id="btn-ar-audio" class="glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform" title="Activar o silenciar audio">
-          🔊
+        <button id="btn-audio" class="organic-glass organic-btn w-10 h-10 rounded-full flex items-center justify-center text-teal-50" title="Sonido ambiental">
+          <svg id="icon-audio-on" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <svg id="icon-audio-off" class="w-4 h-4 hidden text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
         </button>
-        <button id="btn-ar-fullscreen" class="glass-pill px-3 py-2 rounded-full text-teal-100 text-[11px] font-medium active:scale-95 transition-transform" title="Pantalla completa">
-          ⛶
+        <button id="btn-fullscreen" class="organic-glass organic-btn w-10 h-10 rounded-full flex items-center justify-center text-teal-50" title="Pantalla completa">
+          <svg id="icon-fs-enter" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <svg id="icon-fs-exit" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         </button>
-        <button id="btn-exit-ar" class="px-3.5 py-2 rounded-full bg-rose-950/85 border border-rose-400/50 text-rose-100 text-[11px] font-semibold uppercase tracking-wider active:scale-95 transition-transform backdrop-blur-md">
+        <button id="btn-exit-ar" class="hidden px-3.5 h-10 rounded-full bg-rose-950/75 border border-rose-400/45 text-rose-100 text-[11px] font-semibold uppercase tracking-wider organic-btn backdrop-blur-md">
           Salir AR
         </button>
       </div>
     </header>
 
-    <footer class="w-full flex flex-col items-center gap-2.5">
-      <div class="interactive flex items-center justify-center gap-2 w-full max-w-sm">
-        <button id="btn-ar-place" class="magic-cta flex-1 py-3 px-4 rounded-full text-slate-950 font-extrabold text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5">
-          <span>📍 Colocar en Plano</span>
+    <!-- DOCK INFERIOR ORGÁNICO -->
+    <footer class="w-full flex flex-col items-center gap-3">
+
+      <!-- Acción de despliegue en plano (solo visible al escanear suelo/pared en AR) -->
+      <div id="ar-placement-bar" class="hidden interactive flex items-center justify-center gap-2.5 w-full max-w-xs">
+        <button id="btn-ar-place" class="cta-luminous flex-1 py-3 px-5 rounded-full text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+          <span>Desplegar en Plano</span>
         </button>
-        <button id="btn-ar-toggle-scan" class="glass-pill px-4 py-3 rounded-full border-yellow-300/45 text-yellow-200 font-semibold text-[11px] uppercase tracking-wider active:scale-95 transition-transform">
-          🎯 Reubicar
+        <button id="btn-ar-cancel-place" class="hidden organic-glass organic-btn px-4 py-3 rounded-full text-teal-100 text-[11px] font-medium">
+          Listo
         </button>
       </div>
-      <div class="interactive flex items-center justify-center gap-2.5 w-full max-w-sm">
-        <button id="btn-ar-back" class="magic-btn flex-1 py-2.5 px-3 rounded-2xl text-teal-100 text-[11px] font-semibold uppercase tracking-wider">
-          ↓ Alejar
-        </button>
-        <button id="btn-ar-scale-down" class="glass-pill px-3.5 py-2.5 rounded-2xl text-teal-100 text-xs font-bold active:scale-95 transition-transform" title="Reducir escala AR">
-          −
-        </button>
-        <button id="btn-ar-scale-up" class="glass-pill px-3.5 py-2.5 rounded-2xl text-teal-100 text-xs font-bold active:scale-95 transition-transform" title="Aumentar escala AR">
-          +
-        </button>
-        <button id="btn-ar-forward" class="magic-btn flex-1 py-2.5 px-3 rounded-2xl text-yellow-200 text-[11px] font-semibold uppercase tracking-wider">
-          Acercar ↑
-        </button>
+
+      <!-- Panel flotante compacto de ajustes (Distancia / Escala / Modo) -->
+      <div id="quick-tools-drawer" class="drawer-closed interactive organic-glass rounded-3xl px-3.5 py-2.5 flex flex-wrap items-center justify-center gap-2 max-w-sm">
+        <button id="btn-move-back" class="organic-btn px-3 py-1.5 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-[11px] font-medium">↓ Alejar</button>
+        <button id="btn-move-forward" class="organic-btn px-3 py-1.5 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-[11px] font-medium">Acercar ↑</button>
+        <div class="w-px h-4 bg-teal-300/20"></div>
+        <button id="btn-scale-down" class="organic-btn w-8 h-8 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-sm font-semibold">−</button>
+        <span id="scale-readout" class="text-[11px] font-mono text-teal-200/90 min-w-[38px] text-center">100%</span>
+        <button id="btn-scale-up" class="organic-btn w-8 h-8 rounded-full bg-teal-950/60 border border-teal-400/30 text-teal-100 text-sm font-semibold">+</button>
+        <div class="w-px h-4 bg-teal-300/20"></div>
+        <button id="btn-recenter" class="organic-btn px-3 py-1.5 rounded-full bg-yellow-300/15 border border-yellow-300/40 text-yellow-200 text-[11px] font-medium">Centrar</button>
+        <button id="btn-switch-vr" class="organic-btn px-3 py-1.5 rounded-full bg-teal-400/20 border border-teal-300/40 text-teal-50 text-[11px] font-semibold">VR</button>
+      </div>
+
+      <!-- Barra de captura principal (ergonomía a una mano) -->
+      <div id="capture-dock" class="interactive flex flex-col items-center gap-2.5 w-full max-w-sm">
+        <!-- Selector orgánico Foto / Video -->
+        <div class="organic-glass rounded-full p-1 flex items-center gap-1">
+          <button id="mode-photo" class="mode-pill-active px-4 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase border border-transparent transition-all">
+            Foto
+          </button>
+          <button id="mode-video" class="px-4 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase text-teal-200/70 border border-transparent transition-all">
+            Video
+          </button>
+        </div>
+
+        <!-- Fila de obturador + accesos directos -->
+        <div class="w-full grid grid-cols-3 items-center px-2">
+          <!-- Izquierda: AR / Reubicar plano -->
+          <div class="flex justify-start">
+            <button id="btn-left-context" class="organic-glass organic-btn h-11 px-4 rounded-full text-teal-50 text-[11px] font-semibold tracking-wide flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-teal-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+              <span id="btn-left-label">AR</span>
+            </button>
+          </div>
+
+          <!-- Centro: Obturador táctil -->
+          <div class="flex justify-center">
+            <button id="shutter-btn" aria-label="Capturar foto o video">
+              <span id="shutter-core"></span>
+            </button>
+          </div>
+
+          <!-- Derecha: Ajustes rápidos / última captura -->
+          <div class="flex justify-end items-center gap-2">
+            <button id="btn-last-capture" class="hidden organic-glass organic-btn w-11 h-11 rounded-full overflow-hidden p-0.5" title="Ver última captura">
+              <img id="last-capture-thumb" class="w-full h-full object-cover rounded-full" alt="Última captura" />
+            </button>
+            <button id="btn-toggle-tools" class="organic-glass organic-btn w-11 h-11 rounded-full flex items-center justify-center text-teal-50" title="Ajustes de vista y escala">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </footer>
+  </div>
+
+  <!-- MODAL DE PREVISUALIZACIÓN Y GUARDADO EN TELÉFONO -->
+  <div id="capture-modal" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-5">
+    <div class="organic-glass w-full max-w-md rounded-3xl p-4 flex flex-col gap-3.5 shadow-2xl">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-teal-300"></span>
+          <span id="capture-modal-title" class="text-xs font-semibold uppercase tracking-widest text-teal-100">
+            Captura Lista
+          </span>
+        </div>
+        <button id="btn-close-capture" class="organic-btn w-8 h-8 rounded-full bg-teal-950/80 border border-teal-400/30 text-teal-100 flex items-center justify-center text-sm">
+          ✕
+        </button>
+      </div>
+
+      <div class="relative w-full max-h-[58dvh] rounded-2xl overflow-hidden bg-slate-950/90 border border-teal-300/20 flex items-center justify-center">
+        <img id="preview-photo" class="hidden max-w-full max-h-[58dvh] object-contain" alt="Foto capturada" />
+        <video id="preview-video" class="hidden max-w-full max-h-[58dvh] object-contain" controls playsinline loop></video>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="btn-save-device" class="cta-luminous flex-1 py-3.5 px-5 rounded-full text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Guardar en Teléfono</span>
+        </button>
+        <button id="btn-share-device" class="hidden organic-glass organic-btn py-3.5 px-4 rounded-full text-teal-50 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" title="Compartir o guardar en Fotos">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span>Fotos</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script type="module">
@@ -262,66 +337,69 @@
 
     const PERF = {
       maxDpr: IS_MOBILE ? 1.25 : 1.5,
-      waterSubdivisions: IS_MOBILE ? 84 : (IS_QUEST ? 112 : 128),
-      fireflyCount: IS_MOBILE ? 115 : 175,
-      mainParticles: IS_MOBILE ? 850 : 1350,
-      fleetParticles: IS_MOBILE ? 170 : 300,
+      waterSubdivisions: IS_MOBILE ? 80 : (IS_QUEST ? 108 : 124),
+      fireflyCount: IS_MOBILE ? 105 : 160,
+      particlesPerBoat: IS_MOBILE ? 220 : 380,
       maxAniso: IS_MOBILE ? 2 : 4
     };
 
     // =========================================================================
-    // 📍 ZONA EDITABLE: ESCULTURAS, AGUA, MATERIALIZACIÓN Y AUDIO
+    // 📍 ZONA EDITABLE: TRAVESÍA DE LAS 9 BARCAS, AGUA Y AUDIO
     // =========================================================================
     const SCULPTURE_CONFIG = {
-      positionX: 0.0,
-      positionY: 0.0,
-      positionZ: 0.0,
-      rotationYDeg: 90,
-      scale: 4.2,
-      submersionRatio: 0.14
+      baseScale: 3.4,          // Escala base de cada barca
+      submersionRatio: 0.14,   // Inmersión del casco en el agua
+      headingOffsetDeg: 0      // 0 = proa alineada al sentido de avance (cambia a 180 si deseas invertirla)
     };
+
+    const CONVOY_CONFIG = {
+      spanHalfX: 23.0,         // Recorrido horizontal de -23m a +23m (46m totales)
+      approachDepthZ: 4.4,     // Cuánto se acercan hacia el espectador al cruzar el centro
+      direction: 1             // 1 = izquierda a derecha (-X -> +X), -1 = derecha a izquierda
+    };
+
+    // 9 barcas en 3 carriles orgánicos que se acercan navegando y atraviesan el escenario
+    const CONVOY_BOATS_LAYOUT = [
+      // Carril frontal (las más cercanas al espectador, encuadre ideal para foto/video)
+      { uStart: 0.34, speed: 0.043, laneZ:  0.45, scaleMul: 1.00, swayAmp: 0.55, swayPhase: 0.2 },
+      { uStart: 0.14, speed: 0.042, laneZ:  0.95, scaleMul: 0.94, swayAmp: 0.62, swayPhase: 2.1 },
+      { uStart: 0.72, speed: 0.041, laneZ:  0.20, scaleMul: 0.96, swayAmp: 0.50, swayPhase: 4.4 },
+
+      // Carril medio (coro navegando en diagonal)
+      { uStart: 0.48, speed: 0.038, laneZ: -2.40, scaleMul: 0.88, swayAmp: 0.70, swayPhase: 1.1 },
+      { uStart: 0.24, speed: 0.039, laneZ: -3.10, scaleMul: 0.84, swayAmp: 0.64, swayPhase: 3.3 },
+      { uStart: 0.84, speed: 0.037, laneZ: -2.70, scaleMul: 0.86, swayAmp: 0.68, swayPhase: 5.2 },
+
+      // Carril lejano (profundidad escénica y horizonte)
+      { uStart: 0.04, speed: 0.034, laneZ: -5.80, scaleMul: 0.76, swayAmp: 0.75, swayPhase: 0.7 },
+      { uStart: 0.58, speed: 0.035, laneZ: -6.40, scaleMul: 0.78, swayAmp: 0.72, swayPhase: 2.8 },
+      { uStart: 0.92, speed: 0.033, laneZ: -5.50, scaleMul: 0.74, swayAmp: 0.68, swayPhase: 4.9 }
+    ];
 
     const WATER_CONFIG = {
       levelY: 0.28,
       subdivisions: PERF.waterSubdivisions,
-      waveAmplitude: 1.52,
+      waveAmplitude: 1.48,
       flowSpeed: 0.34,
       turbulence: 1.22
     };
 
     const MATERIALIZATION_CONFIG = {
-      mainDuration: 2.4,
-      fleetDuration: 2.0,
-      fleetMaxDelay: 1.55
+      boatDuration: 2.1,
+      maxStaggerDelay: 1.45
     };
 
     const AUDIO_CONFIG = {
       baseVolume: 0.06,
-      maxVolume: 0.88
+      maxVolume: 0.86
     };
 
     const FIREFLY_CONFIG = {
       count: PERF.fireflyCount,
-      minHeight: 0.36,
+      minHeight: 0.38,
       maxHeight: 4.8,
-      spreadRadius: 20.5
+      spreadRadius: 21.0
     };
-
-    // 12 barcas adicionales (batching automático en InstancedMesh tras materializarse)
-    const SURROUNDING_BOATS_LAYOUT = [
-      { angleDeg: -52,  radius: 8.8,  scaleMul: 0.84, yawOffsetDeg: -10 },
-      { angleDeg:  54,  radius: 9.2,  scaleMul: 0.80, yawOffsetDeg:  12 },
-      { angleDeg: -108, radius: 10.4, scaleMul: 0.88, yawOffsetDeg:   6 },
-      { angleDeg:  112, radius: 10.8, scaleMul: 0.82, yawOffsetDeg:  -9 },
-      { angleDeg: -154, radius: 9.8,  scaleMul: 0.90, yawOffsetDeg:  14 },
-      { angleDeg:  158, radius: 11.4, scaleMul: 0.85, yawOffsetDeg: -11 },
-      { angleDeg: -26,  radius: 14.8, scaleMul: 0.78, yawOffsetDeg:   8 },
-      { angleDeg:  30,  radius: 15.6, scaleMul: 0.76, yawOffsetDeg: -13 },
-      { angleDeg: -78,  radius: 16.5, scaleMul: 0.92, yawOffsetDeg:  -6 },
-      { angleDeg:  84,  radius: 17.2, scaleMul: 0.86, yawOffsetDeg:  10 },
-      { angleDeg: -136, radius: 18.0, scaleMul: 0.95, yawOffsetDeg:  -8 },
-      { angleDeg:  142, radius: 18.8, scaleMul: 0.88, yawOffsetDeg:   7 }
-    ];
     // =========================================================================
 
     const REPO_RAW_BASE = 'https://blenderingforconservation-maker.github.io/videAR/';
@@ -336,42 +414,50 @@
     const SCENE_FOG_DENSITY = 0.0155;
 
     let scene, camera, cameraRig, renderer, gltfLoader;
-    let barcaAnchorGroup, boatBobbingGroup, sculpturePivot, sculptureRoot;
-    let fleetGroup, fleetInstancedGroup;
-    const boatControllers = [];
+    let barcaAnchorGroup, convoyGroup, fleetInstancedGroup;
+    const convoyBoats = [];              // Las 9 barcas navegantes
     const fleetInstancedPrimitives = []; // { instancedMesh, localMatrix }
-    const fleetData = [];                // Datos ligeros para actualizar InstancedMesh cada frame
+    const baseMeshTemplates = [];
     let usingInstancedFleet = false;
     let canUseInstancing = false;
-    const baseMeshTemplates = [];        // { geometry, material, localMatrix }
 
     let waterMesh, waterUniforms, skyDome;
-    let magicWaveLight;
     let firefliesMesh, firefliesMaterial;
 
-    // Estado de materialización ÚNICA (una vez completada jamás se reinicia)
+    // Estado de materialización ÚNICA
     let isMaterializing = false;
     let hasMaterializedOnce = false;
     let materializationElapsed = 0;
     let currentRevealAudioFactor = 0.0;
-    let mainParticleGeoRef = null;
-    let fleetParticleGeoRef = null;
+    let boatParticleGeoRef = null;
+    let convoyElapsedTime = 0;
 
-    let spawnDistance = 4.6;
+    let spawnDistance = 6.2;
     let lastFrameTime = performance.now();
-    let boatSubmersion = 0;
     let localBoundsMinY = -0.3;
-    let localBoundsMaxY = 4.5;
+    let localBoundsMaxY = 4.2;
 
-    // Audio
+    // Audio + mezcla a grabación de video
     let ambientAudioEl = null;
     let audioCtx = null;
     let audioGainNode = null;
+    let audioRecordDest = null;
     let isAudioMuted = false;
     let audioStarted = false;
     let currentAppliedGain = 0.0;
 
-    // Estado AR + Detector de Planos Horizontales y Verticales
+    // Captura de Foto y Video
+    let captureMode = 'photo'; // 'photo' | 'video'
+    let isRecordingVideo = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordStartTime = 0;
+    let recordTimerInterval = null;
+    const captureCanvas = document.createElement('canvas');
+    const captureCtx = captureCanvas.getContext('2d', { alpha: false });
+    let lastCapture = null; // { blob, url, filename, type: 'photo'|'video', mimeType }
+
+    // AR + Detector de Planos Horizontales y Verticales
     let isCameraARActive = false;
     let isARModeActive = false;
     let isARPlacementMode = false;
@@ -383,32 +469,28 @@
     let latestDeviceOrientation = null;
     let arAnchorScale = 1.0;
 
-    // WebXR Hit-Test & Plane Detection
     let xrHitTestSource = null;
-    let xrHitTestRequested = false;
     let xrRefSpace = null;
     let xrNoHitElapsed = 0;
-    const detectedPlaneMeshes = new Map(); // XRPlane -> Mesh
+    const detectedPlaneMeshes = new Map();
     let detectedPlanesGroup;
     let surfaceReticle, reticleRingMat, reticleInnerMat, reticleWallBrackets;
     const currentSurfaceHit = {
-      valid: false,
-      isVertical: false,
-      position: new THREE.Vector3(),
-      normal: new THREE.Vector3(0, 1, 0),
-      quaternion: new THREE.Quaternion()
+      valid: false, isVertical: false,
+      position: new THREE.Vector3(), normal: new THREE.Vector3(0, 1, 0), quaternion: new THREE.Quaternion()
     };
 
-    // Controles
+    // Controles táctiles / escritorio / Quest
     let moveButtonDir = 0;
     const keysPressed = { w: false, s: false, a: false, d: false };
     let isPointerDown = false, prevPointerX = 0, prevPointerY = 0;
+    let pinchStartDist = 0, pinchStartScale = 1.0;
     let yaw = 0, pitch = 0;
-
+    let toolsDrawerOpen = false;
     let snapTurnReady = true;
     const prevButtons = { leftX: false, leftY: false, rightA: false, rightB: false };
 
-    // Vectores y matrices reutilizables (cero allocs por frame para evitar GC pauses)
+    // Vectores y matrices reutilizables (0 allocs en renderLoop)
     const _xrForward = new THREE.Vector3();
     const _xrRight = new THREE.Vector3();
     const _upAxis = new THREE.Vector3(0, 1, 0);
@@ -434,40 +516,65 @@
     const _camWorldPos = new THREE.Vector3();
     const _camWorldDir = new THREE.Vector3();
     const _wallFwd = new THREE.Vector3();
+    const _tmpWorldPos = new THREE.Vector3();
+    const _waveSample = { h: 0, sx: 0, sz: 0 };
+    const _pathSampleA = { x: 0, z: 0 };
+    const _pathSampleB = { x: 0, z: 0 };
+    const _boatWakeArray = Array.from({ length: 9 }, () => new THREE.Vector3(999, 999, 0));
 
-    // Referencias DOM
+    // DOM
     const arCameraFeed = document.getElementById('ar-camera-feed');
-    const hudOverlay = document.getElementById('hud-overlay');
-    const arHudOverlay = document.getElementById('ar-hud-overlay');
-    const arModeLabel = document.getElementById('ar-mode-label');
-    const arPlaneDot = document.getElementById('ar-plane-dot');
+    const shutterFlash = document.getElementById('shutter-flash');
     const loadingModal = document.getElementById('loading-modal');
     const launchControls = document.getElementById('launch-controls');
-
-    const btnLaunchVRDirect = document.getElementById('btn-launch-vr-direct');
-    const btnLaunchARDirect = document.getElementById('btn-launch-ar-direct');
-    const btnStartPreview = document.getElementById('btn-start-preview');
-    const btnEnterVR = document.getElementById('btn-enter-vr');
-    const btnEnterAR = document.getElementById('btn-enter-ar');
-    const btnToggleAudio = document.getElementById('btn-toggle-audio');
-    const btnFullscreen = document.getElementById('btn-fullscreen');
-    const btnStepForward = document.getElementById('btn-step-forward');
-    const btnStepBack = document.getElementById('btn-step-back');
-    const btnResetView = document.getElementById('btn-reset-view');
-
-    const btnArSwitchCam = document.getElementById('btn-ar-switch-cam');
-    const btnArAudio = document.getElementById('btn-ar-audio');
-    const btnArFullscreen = document.getElementById('btn-ar-fullscreen');
-    const btnExitAr = document.getElementById('btn-exit-ar');
-    const btnArPlace = document.getElementById('btn-ar-place');
-    const btnArToggleScan = document.getElementById('btn-ar-toggle-scan');
-    const btnArBack = document.getElementById('btn-ar-back');
-    const btnArForward = document.getElementById('btn-ar-forward');
-    const btnArScaleDown = document.getElementById('btn-ar-scale-down');
-    const btnArScaleUp = document.getElementById('btn-ar-scale-up');
-
-    const xrStatusBadge = document.getElementById('xr-status-badge');
+    const experienceHud = document.getElementById('experience-hud');
     const toastBanner = document.getElementById('toast-banner');
+
+    const statusDot = document.getElementById('status-dot');
+    const statusLabel = document.getElementById('status-label');
+    const btnSwitchCam = document.getElementById('btn-switch-cam');
+    const btnAudio = document.getElementById('btn-audio');
+    const iconAudioOn = document.getElementById('icon-audio-on');
+    const iconAudioOff = document.getElementById('icon-audio-off');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const iconFsEnter = document.getElementById('icon-fs-enter');
+    const iconFsExit = document.getElementById('icon-fs-exit');
+    const btnExitAr = document.getElementById('btn-exit-ar');
+
+    const arPlacementBar = document.getElementById('ar-placement-bar');
+    const btnArPlace = document.getElementById('btn-ar-place');
+    const btnArCancelPlace = document.getElementById('btn-ar-cancel-place');
+    const captureDock = document.getElementById('capture-dock');
+    const quickToolsDrawer = document.getElementById('quick-tools-drawer');
+    const btnToggleTools = document.getElementById('btn-toggle-tools');
+
+    const modePhotoBtn = document.getElementById('mode-photo');
+    const modeVideoBtn = document.getElementById('mode-video');
+    const shutterBtn = document.getElementById('shutter-btn');
+    const btnLeftContext = document.getElementById('btn-left-context');
+    const btnLeftLabel = document.getElementById('btn-left-label');
+    const btnLastCapture = document.getElementById('btn-last-capture');
+    const lastCaptureThumb = document.getElementById('last-capture-thumb');
+
+    const btnMoveBack = document.getElementById('btn-move-back');
+    const btnMoveForward = document.getElementById('btn-move-forward');
+    const btnScaleDown = document.getElementById('btn-scale-down');
+    const btnScaleUp = document.getElementById('btn-scale-up');
+    const scaleReadout = document.getElementById('scale-readout');
+    const btnRecenter = document.getElementById('btn-recenter');
+    const btnSwitchVr = document.getElementById('btn-switch-vr');
+
+    const captureModal = document.getElementById('capture-modal');
+    const captureModalTitle = document.getElementById('capture-modal-title');
+    const previewPhoto = document.getElementById('preview-photo');
+    const previewVideo = document.getElementById('preview-video');
+    const btnCloseCapture = document.getElementById('btn-close-capture');
+    const btnSaveDevice = document.getElementById('btn-save-device');
+    const btnShareDevice = document.getElementById('btn-share-device');
+
+    const btnLaunchARDirect = document.getElementById('btn-launch-ar-direct');
+    const btnLaunchVRDirect = document.getElementById('btn-launch-vr-direct');
+    const btnStartPreview = document.getElementById('btn-start-preview');
 
     function showToast(msg) {
       toastBanner.textContent = msg;
@@ -477,7 +584,7 @@
     }
 
     // =========================================================================
-    // 🔊 AUDIO NOCTURNO (bosque_noche.mp3)
+    // 🔊 AUDIO AMBIENTAL (bosque_noche.mp3) + MEZCLA PARA VIDEO
     // =========================================================================
     function initAudioSystem() {
       if (ambientAudioEl) return;
@@ -497,24 +604,27 @@
           audioGainNode.gain.value = 0.0;
           sourceNode.connect(audioGainNode);
           audioGainNode.connect(audioCtx.destination);
+          if (typeof audioCtx.createMediaStreamDestination === 'function') {
+            audioRecordDest = audioCtx.createMediaStreamDestination();
+            audioGainNode.connect(audioRecordDest);
+          }
         } else {
           ambientAudioEl.volume = 0.0;
         }
       } catch (err) {
         audioGainNode = null;
+        audioRecordDest = null;
         ambientAudioEl.volume = 0.0;
       }
     }
 
     function unlockAndPlayAudio() {
       initAudioSystem();
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
-      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
       if (!isAudioMuted && ambientAudioEl && ambientAudioEl.paused) {
         ambientAudioEl.play().then(() => { audioStarted = true; }).catch(() => {});
       }
-      updateAudioButtonsUI();
+      updateAudioUI();
     }
 
     function setAudioGainImmediate(val) {
@@ -527,9 +637,9 @@
       }
     }
 
-    function updateAudioButtonsUI() {
-      btnToggleAudio.textContent = isAudioMuted ? '🔇 Silencio' : '🔊 Audio';
-      btnArAudio.textContent = isAudioMuted ? '🔇' : '🔊';
+    function updateAudioUI() {
+      iconAudioOn.classList.toggle('hidden', isAudioMuted);
+      iconAudioOff.classList.toggle('hidden', !isAudioMuted);
     }
 
     function toggleAudioMute() {
@@ -537,12 +647,280 @@
       isAudioMuted = !isAudioMuted;
       if (!isAudioMuted) {
         unlockAndPlayAudio();
-        showToast('🔊 Audio ambiental activado');
+        showToast('Sonido ambiental activado');
       } else {
         setAudioGainImmediate(0.0);
-        showToast('🔇 Audio silenciado');
+        showToast('Sonido silenciado');
       }
-      updateAudioButtonsUI();
+      updateAudioUI();
+    }
+
+    // =========================================================================
+    // 📸 COMPOSITOR DE FOTO Y VIDEO (AR CÁMARA + 3D + AUDIO) + GUARDADO MÓVIL
+    // =========================================================================
+    function syncCaptureCanvasSize() {
+      const maxEdge = IS_MOBILE ? 1080 : 1440;
+      const vw = Math.max(2, window.innerWidth);
+      const vh = Math.max(2, window.innerHeight);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      let cw = Math.round(vw * dpr);
+      let ch = Math.round(vh * dpr);
+      const longest = Math.max(cw, ch);
+      if (longest > maxEdge) {
+        const ratio = maxEdge / longest;
+        cw = Math.round(cw * ratio);
+        ch = Math.round(ch * ratio);
+      }
+      // Dimensiones pares obligatorias para codificadores H.264/MP4
+      cw = cw - (cw % 2);
+      ch = ch - (ch % 2);
+      if (captureCanvas.width !== cw || captureCanvas.height !== ch) {
+        captureCanvas.width = Math.max(2, cw);
+        captureCanvas.height = Math.max(2, ch);
+      }
+    }
+
+    function compositeCurrentFrameToCaptureCanvas() {
+      syncCaptureCanvasSize();
+      const cw = captureCanvas.width;
+      const ch = captureCanvas.height;
+
+      captureCtx.clearRect(0, 0, cw, ch);
+
+      // 1) Capa de cámara en vivo en modo AR celular (con recorte object-fit: cover exacto)
+      if (isCameraARActive && arCameraFeed.readyState >= 2 && arCameraFeed.videoWidth > 0) {
+        const vw = arCameraFeed.videoWidth;
+        const vh = arCameraFeed.videoHeight;
+        const videoAspect = vw / vh;
+        const canvasAspect = cw / ch;
+
+        let sx = 0, sy = 0, sw = vw, sh = vh;
+        if (videoAspect > canvasAspect) {
+          sw = vh * canvasAspect;
+          sx = (vw - sw) * 0.5;
+        } else {
+          sh = vw / canvasAspect;
+          sy = (vh - sh) * 0.5;
+        }
+
+        captureCtx.save();
+        if (currentFacingMode === 'user') {
+          captureCtx.translate(cw, 0);
+          captureCtx.scale(-1, 1);
+        }
+        captureCtx.drawImage(arCameraFeed, sx, sy, sw, sh, 0, 0, cw, ch);
+        captureCtx.restore();
+      } else if (!isARModeActive) {
+        captureCtx.fillStyle = '#0d363c';
+        captureCtx.fillRect(0, 0, cw, ch);
+      } else {
+        captureCtx.fillStyle = '#071d21';
+        captureCtx.fillRect(0, 0, cw, ch);
+      }
+
+      // 2) Capa WebGL (las 9 barcas, río verde-aqua y luciérnagas)
+      captureCtx.drawImage(renderer.domElement, 0, 0, cw, ch);
+    }
+
+    function flashShutterVisual() {
+      shutterFlash.style.opacity = '0.78';
+      requestAnimationFrame(() => {
+        setTimeout(() => { shutterFlash.style.opacity = '0'; }, 70);
+      });
+    }
+
+    function getTimestampStamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    }
+
+    function capturePhoto() {
+      if (isRecordingVideo) return;
+      flashShutterVisual();
+
+      // Render fresco justo antes de leer el búfer WebGL (sin costo de preserveDrawingBuffer)
+      const prevReticleVis = surfaceReticle.visible;
+      const prevPlanesVis = detectedPlanesGroup.visible;
+      surfaceReticle.visible = false;
+      detectedPlanesGroup.visible = false;
+      renderer.render(scene, camera);
+      compositeCurrentFrameToCaptureCanvas();
+      surfaceReticle.visible = prevReticleVis;
+      detectedPlanesGroup.visible = prevPlanesVis;
+
+      captureCanvas.toBlob((blob) => {
+        if (!blob) {
+          showToast('No se pudo generar la fotografía');
+          return;
+        }
+        const filename = `BarcaGrullas_${getTimestampStamp()}.jpg`;
+        openCapturePreview(blob, filename, 'photo', 'image/jpeg');
+      }, 'image/jpeg', 0.93);
+    }
+
+    function pickBestVideoMimeType() {
+      if (typeof MediaRecorder === 'undefined') return '';
+      const candidates = [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+      ];
+      for (const mime of candidates) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mime)) return mime;
+      }
+      return '';
+    }
+
+    function startVideoRecording() {
+      if (typeof MediaRecorder === 'undefined' || typeof captureCanvas.captureStream !== 'function') {
+        showToast('Este navegador no soporta grabación de video · Usa modo Foto');
+        return;
+      }
+
+      unlockAndPlayAudio();
+      compositeCurrentFrameToCaptureCanvas();
+
+      const stream = captureCanvas.captureStream(30);
+      if (audioRecordDest && !isAudioMuted) {
+        const audioTracks = audioRecordDest.stream.getAudioTracks();
+        if (audioTracks.length > 0) stream.addTrack(audioTracks[0]);
+      }
+
+      const mimeType = pickBestVideoMimeType();
+      const options = mimeType ? { mimeType, videoBitsPerSecond: IS_MOBILE ? 4500000 : 6500000 } : {};
+
+      try {
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (err) {
+        try {
+          mediaRecorder = new MediaRecorder(stream);
+        } catch (err2) {
+          showToast('No se pudo iniciar la grabación de video');
+          return;
+        }
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const finalMime = (mediaRecorder && mediaRecorder.mimeType) || mimeType || 'video/webm';
+        const isMp4 = finalMime.includes('mp4');
+        const ext = isMp4 ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: finalMime });
+        const filename = `BarcaGrullas_${getTimestampStamp()}.${ext}`;
+        stream.getTracks().forEach((t) => {
+          if (t.kind === 'video') t.stop();
+        });
+        openCapturePreview(blob, filename, 'video', finalMime);
+      };
+
+      mediaRecorder.start(250);
+      isRecordingVideo = true;
+      recordStartTime = performance.now();
+      shutterBtn.classList.add('recording');
+      updateRecordingTimerUI();
+      recordTimerInterval = setInterval(updateRecordingTimerUI, 250);
+    }
+
+    function stopVideoRecording() {
+      if (!isRecordingVideo) return;
+      isRecordingVideo = false;
+      clearInterval(recordTimerInterval);
+      shutterBtn.classList.remove('recording');
+      restoreStatusLabel();
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    function updateRecordingTimerUI() {
+      if (!isRecordingVideo) return;
+      const secs = Math.floor((performance.now() - recordStartTime) / 1000);
+      const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+      const ss = String(secs % 60).padStart(2, '0');
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping';
+      statusLabel.textContent = `REC ${mm}:${ss}`;
+    }
+
+    function openCapturePreview(blob, filename, type, mimeType) {
+      if (lastCapture && lastCapture.url) URL.revokeObjectURL(lastCapture.url);
+      const url = URL.createObjectURL(blob);
+      lastCapture = { blob, url, filename, type, mimeType };
+
+      captureModalTitle.textContent = type === 'photo' ? 'Fotografía Lista' : 'Video Grabado';
+
+      if (type === 'photo') {
+        previewPhoto.src = url;
+        previewPhoto.classList.remove('hidden');
+        previewVideo.classList.add('hidden');
+        previewVideo.pause();
+        previewVideo.removeAttribute('src');
+        lastCaptureThumb.src = url;
+        btnLastCapture.classList.remove('hidden');
+      } else {
+        previewVideo.src = url;
+        previewVideo.classList.remove('hidden');
+        previewPhoto.classList.add('hidden');
+        previewVideo.play().catch(() => {});
+        // Miniatura del último fotograma
+        lastCaptureThumb.src = captureCanvas.toDataURL('image/jpeg', 0.65);
+        btnLastCapture.classList.remove('hidden');
+      }
+
+      // Mostrar botón nativo de Compartir / Guardar en Fotos si el teléfono soporta Web Share con archivos
+      let canNativeShare = false;
+      try {
+        const testFile = new File([blob], filename, { type: mimeType });
+        canNativeShare = !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
+      } catch (e) {}
+      btnShareDevice.classList.toggle('hidden', !canNativeShare);
+
+      captureModal.classList.remove('hidden');
+    }
+
+    function saveCaptureToPhone() {
+      if (!lastCapture) return;
+      const a = document.createElement('a');
+      a.href = lastCapture.url;
+      a.download = lastCapture.filename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast(lastCapture.type === 'photo' ? 'Foto guardada en tu teléfono' : 'Video guardado en tu teléfono');
+    }
+
+    async function shareCaptureToGallery() {
+      if (!lastCapture || !navigator.share) {
+        saveCaptureToPhone();
+        return;
+      }
+      try {
+        const file = new File([lastCapture.blob], lastCapture.filename, { type: lastCapture.mimeType });
+        await navigator.share({
+          title: 'La Barca de las Grullas · Museo Leonora Carrington',
+          files: [file]
+        });
+      } catch (err) {
+        if (err && err.name !== 'AbortError') saveCaptureToPhone();
+      }
+    }
+
+    function setCaptureMode(mode) {
+      if (isRecordingVideo) return;
+      captureMode = mode;
+      const isVid = mode === 'video';
+      modePhotoBtn.classList.toggle('mode-pill-active', !isVid);
+      modePhotoBtn.classList.toggle('text-teal-200/70', isVid);
+      modeVideoBtn.classList.toggle('mode-pill-active', isVid);
+      modeVideoBtn.classList.toggle('text-teal-200/70', !isVid);
+      shutterBtn.classList.toggle('video-mode', isVid);
     }
 
     // =========================================================================
@@ -554,9 +932,8 @@
 
     function updateFullscreenUI() {
       const fs = isInFullscreen();
-      const label = btnFullscreen.querySelector('.btn-fs-label');
-      if (label) label.textContent = fs ? 'Salir Pantalla' : 'Pantalla Completa';
-      btnArFullscreen.textContent = fs ? '✕' : '⛶';
+      iconFsEnter.classList.toggle('hidden', fs);
+      iconFsExit.classList.toggle('hidden', !fs);
     }
 
     async function toggleFullscreen() {
@@ -577,24 +954,24 @@
     }
 
     // =========================================================================
-    // 🌊 ONDULACIÓN ANALÍTICA EN CPU (SINCRONIZADA CON EL VERTEX SHADER)
+    // 🌊 ONDULACIÓN ANALÍTICA + RUTA ORGÁNICA DE LAS 9 BARCAS NAVEGANDO
     // =========================================================================
     function sampleRiverHeightAndSlopeJS(px, pz, t, out) {
       const flowT = t * (0.64 + WATER_CONFIG.flowSpeed * 1.25);
       const amp = WATER_CONFIG.waveAmplitude;
       const turb = WATER_CONFIG.turbulence;
 
-      const ph0 = pz * 0.42 - flowT * 0.78 + px * 0.16;
-      const ph1 = pz * 0.76 - flowT * 1.05 + px * 0.28;
-      const ph2 = px * 0.64 + pz * 0.92 - flowT * 1.28;
-      const ph3 = -px * 0.78 + pz * 1.12 - flowT * 1.42;
-      const ph4 = px * 1.38 - pz * 0.68 - flowT * 1.72;
-      const ph5 = px * 1.12 + pz * 1.78 - flowT * 1.98;
+      const ph0 = px * 0.40 - flowT * 0.80 + pz * 0.16;
+      const ph1 = px * 0.74 - flowT * 1.08 + pz * 0.28;
+      const ph2 = pz * 0.64 + px * 0.90 - flowT * 1.30;
+      const ph3 = -pz * 0.78 + px * 1.10 - flowT * 1.44;
+      const ph4 = pz * 1.36 - px * 0.66 - flowT * 1.72;
+      const ph5 = pz * 1.10 + px * 1.74 - flowT * 1.98;
 
       const c0 = Math.cos(ph0), c1 = Math.cos(ph1), c2 = Math.cos(ph2);
       const c3 = Math.cos(ph3), c4 = Math.cos(ph4), s5 = Math.sin(ph5);
 
-      const h = (
+      out.h = (
         Math.sin(ph0) * 0.068 +
         Math.sin(ph1) * 0.048 +
         Math.sin(ph2) * 0.038 +
@@ -603,30 +980,45 @@
         Math.cos(ph5) * 0.015 * turb
       ) * amp;
 
-      const dhdx = (
+      out.sx = (
+        c0 * 0.068 * 0.40 +
+        c1 * 0.048 * 0.74 +
+        c2 * 0.038 * 0.90 +
+        c3 * 0.032 * 1.10 +
+        c4 * 0.018 * turb * -0.66 -
+        s5 * 0.015 * turb * 1.74
+      ) * amp;
+
+      out.sz = (
         c0 * 0.068 * 0.16 +
         c1 * 0.048 * 0.28 +
         c2 * 0.038 * 0.64 +
         c3 * 0.032 * -0.78 +
-        c4 * 0.018 * turb * 1.38 -
-        s5 * 0.015 * turb * 1.12
+        c4 * 0.018 * turb * 1.36 -
+        s5 * 0.015 * turb * 1.10
       ) * amp;
-
-      const dhdz = (
-        c0 * 0.068 * 0.42 +
-        c1 * 0.048 * 0.76 +
-        c2 * 0.038 * 0.92 +
-        c3 * 0.032 * 1.12 +
-        c4 * 0.018 * turb * -0.68 -
-        s5 * 0.015 * turb * 1.78
-      ) * amp;
-
-      out.h = h;
-      out.sx = dhdx;
-      out.sz = dhdz;
     }
 
-    const _waveSample = { h: 0, sx: 0, sz: 0 };
+    // Evalúa la curva de navegación: entra desde un lado, se acerca al centro del escenario y cruza hacia el otro lado
+    function evaluateConvoyPosition(u, cfg, out) {
+      const dir = CONVOY_CONFIG.direction;
+      const halfX = CONVOY_CONFIG.spanHalfX;
+      const x = THREE.MathUtils.lerp(-halfX, halfX, u) * dir;
+
+      // Arco de aproximación: en los extremos las barcas están más lejos y al acercarse al centro se aproximan al usuario
+      const centered = (u - 0.5) * 2.35;
+      const approachBell = Math.exp(-centered * centered);
+      const meander = Math.sin(u * Math.PI * 3.0 + cfg.swayPhase) * cfg.swayAmp;
+
+      const z = cfg.laneZ - CONVOY_CONFIG.approachDepthZ * (1.0 - approachBell) + meander;
+      out.x = x;
+      out.z = z;
+    }
+
+    function smoothstepJS(edge0, edge1, x) {
+      const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
 
     init();
 
@@ -637,16 +1029,16 @@
       scene.fog = new THREE.FogExp2(SCENE_FOG_HEX, SCENE_FOG_DENSITY);
 
       cameraRig = new THREE.Group();
-      cameraRig.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ + spawnDistance);
+      cameraRig.position.set(0, 0, spawnDistance);
       scene.add(cameraRig);
 
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 150);
+      camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.05, 150);
       camera.position.set(0, 1.65, 0);
       camera.rotation.order = 'YXZ';
       cameraRig.add(camera);
 
       renderer = new THREE.WebGLRenderer({
-        antialias: !IS_MOBILE, // En móviles evita MSAA costoso manteniendo nitidez con DPR adaptativo
+        antialias: !IS_MOBILE,
         alpha: true,
         powerPreference: 'high-performance'
       });
@@ -669,31 +1061,18 @@
       barcaAnchorGroup = new THREE.Group();
       scene.add(barcaAnchorGroup);
 
-      boatBobbingGroup = new THREE.Group();
-      boatBobbingGroup.position.set(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionY, SCULPTURE_CONFIG.positionZ);
-      barcaAnchorGroup.add(boatBobbingGroup);
-
-      sculpturePivot = new THREE.Group();
-      sculpturePivot.rotation.y = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg);
-      boatBobbingGroup.add(sculpturePivot);
-
-      fleetGroup = new THREE.Group();
-      barcaAnchorGroup.add(fleetGroup);
+      convoyGroup = new THREE.Group();
+      barcaAnchorGroup.add(convoyGroup);
 
       fleetInstancedGroup = new THREE.Group();
       barcaAnchorGroup.add(fleetInstancedGroup);
-
-      magicWaveLight = new THREE.PointLight(0xeef7a3, 0, 14);
-      magicWaveLight.position.set(SCULPTURE_CONFIG.positionX, WATER_CONFIG.levelY + 0.5, SCULPTURE_CONFIG.positionZ);
-      barcaAnchorGroup.add(magicWaveLight);
 
       setupWaterSurface();
       loadRepoWaterTexture();
       setupOrganicFireflies();
       await loadBarcaModel();
 
-      await detectXRCapabilities();
-      setupUIAndDesktopControls();
+      setupUIAndControls();
 
       window.addEventListener('resize', () => {
         if (!renderer.xr.isPresenting) {
@@ -710,7 +1089,6 @@
       renderer.setAnimationLoop(renderLoop);
     }
 
-    // Rig optimizado de solo 3 luces (ahorra ~50% de costo PBR en las 13 barcas)
     function setupOptimizedLighting() {
       const hemi = new THREE.HemisphereLight(0xf0fffc, 0x1d8a80, 2.85);
       hemi.position.set(0, 18, 0);
@@ -748,14 +1126,8 @@
           }
         `,
         fragmentShader: `
-          uniform vec3 uTopColor;
-          uniform vec3 uMidSkyColor;
-          uniform vec3 uHorizonColor;
-          uniform vec3 uMistGlowColor;
-          uniform vec3 uBottomColor;
-          uniform vec3 uMoonDir;
+          uniform vec3 uTopColor, uMidSkyColor, uHorizonColor, uMistGlowColor, uBottomColor, uMoonDir;
           varying vec3 vWorldPos;
-
           void main() {
             vec3 dir = normalize(vWorldPos);
             float h = dir.y;
@@ -774,7 +1146,7 @@
     }
 
     // =========================================================================
-    // 🎯 RETÍCULA DUAL (PLANOS HORIZONTALES Y VERTICALES) + PLANOS DETECTADOS
+    // 🎯 DETECTOR DE PLANOS HORIZONTALES Y VERTICALES (QUEST 3 Y CELULAR)
     // =========================================================================
     function setupSurfaceReticleAndPlaneGroup() {
       detectedPlanesGroup = new THREE.Group();
@@ -784,30 +1156,18 @@
       surfaceReticle.matrixAutoUpdate = false;
       surfaceReticle.visible = false;
 
-      // Anillo exterior (en el plano XZ de la retícula, normal = +Y)
-      const ringGeo = new THREE.RingGeometry(0.18, 0.23, 36).rotateX(-Math.PI / 2);
+      const ringGeo = new THREE.RingGeometry(0.18, 0.225, 36).rotateX(-Math.PI / 2);
       reticleRingMat = new THREE.MeshBasicMaterial({
-        color: 0x2dd4bf,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.92,
-        depthTest: false
+        color: 0x2dd4bf, side: THREE.DoubleSide, transparent: true, opacity: 0.92, depthTest: false
       });
-      const ringMesh = new THREE.Mesh(ringGeo, reticleRingMat);
-      surfaceReticle.add(ringMesh);
+      surfaceReticle.add(new THREE.Mesh(ringGeo, reticleRingMat));
 
-      // Punto central
-      const dotGeo = new THREE.CircleGeometry(0.035, 18).rotateX(-Math.PI / 2);
+      const dotGeo = new THREE.CircleGeometry(0.032, 18).rotateX(-Math.PI / 2);
       reticleInnerMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.95,
-        depthTest: false
+        color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95, depthTest: false
       });
       surfaceReticle.add(new THREE.Mesh(dotGeo, reticleInnerMat));
 
-      // Indicador adicional de plano vertical (marco cuadrado sutil alrededor del anillo)
       const bracketPts = [
         -0.28, 0, -0.28, -0.16, 0, -0.28,  -0.28, 0, -0.28, -0.28, 0, -0.16,
          0.28, 0, -0.28,  0.16, 0, -0.28,   0.28, 0, -0.28,  0.28, 0, -0.16,
@@ -816,13 +1176,9 @@
       ];
       const bracketGeo = new THREE.BufferGeometry();
       bracketGeo.setAttribute('position', new THREE.Float32BufferAttribute(bracketPts, 3));
-      const bracketMat = new THREE.LineBasicMaterial({
-        color: 0xfde047,
-        transparent: true,
-        opacity: 0.92,
-        depthTest: false
-      });
-      reticleWallBrackets = new THREE.LineSegments(bracketGeo, bracketMat);
+      reticleWallBrackets = new THREE.LineSegments(bracketGeo, new THREE.LineBasicMaterial({
+        color: 0xfde047, transparent: true, opacity: 0.92, depthTest: false
+      }));
       reticleWallBrackets.visible = false;
       surfaceReticle.add(reticleWallBrackets);
 
@@ -830,19 +1186,34 @@
       scene.add(surfaceReticle);
     }
 
-    function updateReticleVisualState(isVertical, sourceLabel) {
+    function restoreStatusLabel() {
+      if (isRecordingVideo) return;
+      if (isARModeActive) {
+        statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        statusLabel.textContent = isARPlacementMode ? 'Escaneando suelo y pared...' : 'AR · 9 Barcas Navegando';
+      } else {
+        statusDot.className = 'w-2 h-2 rounded-full bg-teal-300 animate-pulse';
+        statusLabel.textContent = 'Travesía · 9 Barcas';
+      }
+    }
+
+    function updateReticleVisualState(isVertical, labelText) {
       if (isVertical) {
         reticleRingMat.color.setHex(0xfde047);
         reticleWallBrackets.visible = true;
-        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-yellow-300 animate-pulse';
-        arModeLabel.textContent = sourceLabel || 'Plano Vertical (Pared)';
-        btnArPlace.innerHTML = '<span>📍 Colocar en Pared</span>';
+        if (!isRecordingVideo) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-yellow-300 animate-pulse';
+          statusLabel.textContent = labelText || 'Plano Vertical (Pared)';
+        }
+        btnArPlace.innerHTML = '<span>Desplegar en Pared</span>';
       } else {
         reticleRingMat.color.setHex(0x2dd4bf);
         reticleWallBrackets.visible = false;
-        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
-        arModeLabel.textContent = sourceLabel || 'Plano Horizontal (Suelo)';
-        btnArPlace.innerHTML = '<span>📍 Colocar en Suelo</span>';
+        if (!isRecordingVideo) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          statusLabel.textContent = labelText || 'Plano Horizontal (Suelo)';
+        }
+        btnArPlace.innerHTML = '<span>Desplegar en Suelo</span>';
       }
     }
 
@@ -855,16 +1226,14 @@
       detectedPlaneMeshes.clear();
     }
 
-    // Actualiza polígonos detectados por WebXR Plane Detection (Quest 3 / ARCore) tanto horizontales como verticales
     function updateWebXRDetectedPlanes(frame) {
       if (!isARPlacementMode || !frame.detectedPlanes || !xrRefSpace) {
         detectedPlanesGroup.visible = false;
         return;
       }
       detectedPlanesGroup.visible = true;
-
       const activePlanes = frame.detectedPlanes;
-      // Limpiar planos que ya no existen
+
       for (const [xrPlane, mesh] of detectedPlaneMeshes.entries()) {
         if (!activePlanes.has(xrPlane)) {
           if (mesh.geometry) mesh.geometry.dispose();
@@ -877,7 +1246,6 @@
       activePlanes.forEach((xrPlane) => {
         const pose = frame.getPose(xrPlane.planeSpace, xrRefSpace);
         if (!pose) return;
-
         let mesh = detectedPlaneMeshes.get(xrPlane);
         const lastChanged = xrPlane.lastChangedTime || 0;
 
@@ -887,79 +1255,62 @@
             if (mesh.material) mesh.material.dispose();
             detectedPlanesGroup.remove(mesh);
           }
-
           const poly = xrPlane.polygon;
           if (!poly || poly.length < 3) return;
-
           const shape = new THREE.Shape();
           shape.moveTo(poly[0].x, -poly[0].z);
-          for (let i = 1; i < poly.length; i++) {
-            shape.lineTo(poly[i].x, -poly[i].z);
-          }
+          for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i].x, -poly[i].z);
           shape.closePath();
 
           const geo = new THREE.ShapeGeometry(shape);
           geo.rotateX(-Math.PI / 2);
-
           const isVert = xrPlane.orientation === 'vertical';
           const mat = new THREE.MeshBasicMaterial({
             color: isVert ? 0xfde047 : 0x2dd4bf,
-            transparent: true,
-            opacity: isVert ? 0.14 : 0.11,
-            side: THREE.DoubleSide,
-            depthWrite: false
+            transparent: true, opacity: isVert ? 0.14 : 0.11,
+            side: THREE.DoubleSide, depthWrite: false
           });
-
           mesh = new THREE.Mesh(geo, mat);
           mesh.matrixAutoUpdate = false;
           mesh.userData.lastChanged = lastChanged;
           detectedPlanesGroup.add(mesh);
           detectedPlaneMeshes.set(xrPlane, mesh);
         }
-
         mesh.matrix.fromArray(pose.transform.matrix);
       });
     }
 
-    // Estima un plano horizontal o vertical de respaldo si la cámara apunta a una pared lisa sin textura
     function updateFallbackSurfaceEstimate(isWebXR) {
       const activeCam = isWebXR ? renderer.xr.getCamera() : camera;
       activeCam.getWorldPosition(_camWorldPos);
       activeCam.getWorldDirection(_camWorldDir);
 
-      // Si mira hacia abajo (>15°), proyectar en plano horizontal; si mira al frente/paredes, plano vertical
-      const lookingDown = _camWorldDir.y < -0.26;
-
+      const lookingDown = _camWorldDir.y < -0.25;
       if (lookingDown) {
-        const floorY = isWebXR ? 0.0 : 0.0;
-        const t = (_camWorldPos.y - floorY) / Math.max(0.26, -_camWorldDir.y);
-        const dist = THREE.MathUtils.clamp(t, 2.2, 6.2);
+        const t = (_camWorldPos.y) / Math.max(0.25, -_camWorldDir.y);
+        const dist = THREE.MathUtils.clamp(t, 2.5, 6.8);
         currentSurfaceHit.position.copy(_camWorldPos).addScaledVector(_camWorldDir, dist);
-        currentSurfaceHit.position.y = floorY;
+        currentSurfaceHit.position.y = 0.0;
         currentSurfaceHit.normal.set(0, 1, 0);
         currentSurfaceHit.quaternion.identity();
         currentSurfaceHit.isVertical = false;
         currentSurfaceHit.valid = true;
-
         surfaceReticle.visible = true;
         surfaceReticle.matrix.compose(currentSurfaceHit.position, currentSurfaceHit.quaternion, _hitScale.set(1, 1, 1));
-        updateReticleVisualState(false, isWebXR ? 'Plano Horizontal (Estimado)' : 'Plano Horizontal (Suelo)');
+        updateReticleVisualState(false, 'Plano Horizontal (Suelo)');
       } else {
-        const dist = 3.6;
+        const dist = 4.2;
         currentSurfaceHit.position.copy(_camWorldPos).addScaledVector(_camWorldDir, dist);
-        // Normal de pared apuntando horizontalmente hacia el usuario
         _wallFwd.set(-_camWorldDir.x, 0, -_camWorldDir.z);
         if (_wallFwd.lengthSq() < 0.0001) _wallFwd.set(0, 0, 1);
         _wallFwd.normalize();
-
         currentSurfaceHit.normal.copy(_wallFwd);
         currentSurfaceHit.quaternion.setFromUnitVectors(_upAxis, _wallFwd);
         currentSurfaceHit.isVertical = true;
         currentSurfaceHit.valid = true;
-
         surfaceReticle.visible = true;
         surfaceReticle.matrix.compose(currentSurfaceHit.position, currentSurfaceHit.quaternion, _hitScale.set(1, 1, 1));
-        updateReticleVisualState(true, isWebXR ? 'Plano Vertical (Pared)' : 'Plano Vertical (Pared)');
+        updateReticleVisualState(true, 'Plano Vertical (Pared)');
       }
     }
 
@@ -983,7 +1334,6 @@
             _hitNormal.set(0, 1, 0).applyQuaternion(_hitQuat).normalize();
 
             const isVert = Math.abs(_hitNormal.y) < 0.65;
-
             currentSurfaceHit.valid = true;
             currentSurfaceHit.isVertical = isVert;
             currentSurfaceHit.position.copy(_hitPos);
@@ -1002,16 +1352,13 @@
 
       if (!foundRealHit) {
         xrNoHitElapsed += dt;
-        // Tras 0.45s sin hit real (ej. muro blanco liso), activa respaldo automático para no perder la escena
-        if (xrNoHitElapsed > 0.45) {
-          updateFallbackSurfaceEstimate(true);
-        }
+        if (xrNoHitElapsed > 0.45) updateFallbackSurfaceEstimate(true);
       }
     }
 
     function placeSceneAtDetectedSurface() {
       if (!currentSurfaceHit.valid) {
-        showToast('Apunta al suelo o a una pared para detectar un plano');
+        showToast('Apunta al suelo o a una pared para desplegar');
         return;
       }
 
@@ -1019,62 +1366,53 @@
       activeCam.getWorldPosition(_camWorldPos);
 
       if (currentSurfaceHit.isVertical) {
-        // Despliegue sobre plano vertical: separar ligeramente de la pared para que no corte las barcas y orientar hacia el espectador
         _wallFwd.set(currentSurfaceHit.normal.x, 0, currentSurfaceHit.normal.z);
         if (_wallFwd.lengthSq() < 0.001) {
           _wallFwd.subVectors(_camWorldPos, currentSurfaceHit.position);
           _wallFwd.y = 0;
         }
         _wallFwd.normalize();
-
-        // Asegurar que la normal apunte hacia la cámara
         const toCamX = _camWorldPos.x - currentSurfaceHit.position.x;
         const toCamZ = _camWorldPos.z - currentSurfaceHit.position.z;
         if (_wallFwd.x * toCamX + _wallFwd.z * toCamZ < 0) _wallFwd.negate();
 
-        const wallClearance = 1.15 * arAnchorScale;
+        const clearance = 1.6 * arAnchorScale;
         barcaAnchorGroup.position.set(
-          currentSurfaceHit.position.x + _wallFwd.x * wallClearance,
-          currentSurfaceHit.position.y - 0.50 * arAnchorScale,
-          currentSurfaceHit.position.z + _wallFwd.z * wallClearance
+          currentSurfaceHit.position.x + _wallFwd.x * clearance,
+          currentSurfaceHit.position.y - 0.55 * arAnchorScale,
+          currentSurfaceHit.position.z + _wallFwd.z * clearance
         );
         barcaAnchorGroup.rotation.set(0, Math.atan2(_wallFwd.x, _wallFwd.z), 0);
-        showToast('✓ Desplegado frente a pared vertical');
+        showToast('Travesía desplegada frente a la pared');
       } else {
-        // Despliegue sobre plano horizontal (suelo o mesa)
         const dx = _camWorldPos.x - currentSurfaceHit.position.x;
         const dz = _camWorldPos.z - currentSurfaceHit.position.z;
         barcaAnchorGroup.position.copy(currentSurfaceHit.position);
         barcaAnchorGroup.rotation.set(0, Math.atan2(dx, dz), 0);
-        showToast('✓ Desplegado sobre plano horizontal');
+        showToast('Travesía desplegada sobre el plano');
       }
 
       barcaAnchorGroup.visible = true;
       hasPlacedInAR = true;
       setARPlacementMode(false);
-
-      // Materializar SOLO si nunca se ha materializado; si ya ocurrió, las barcas permanecen visibles
       triggerMaterializationOnce();
     }
 
     function setARPlacementMode(enable) {
       isARPlacementMode = enable;
       surfaceReticle.visible = enable;
-      if (!enable) {
-        detectedPlanesGroup.visible = false;
-        arPlaneDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
-        arModeLabel.textContent = 'Escena Anclada en AR';
-        btnArPlace.classList.add('hidden');
-        btnArToggleScan.textContent = '🎯 Reubicar';
-      } else {
-        btnArPlace.classList.remove('hidden');
-        btnArToggleScan.textContent = 'Cancelar';
-        arModeLabel.textContent = 'Apunta a suelo o pared...';
-      }
+      if (!enable) detectedPlanesGroup.visible = false;
+
+      arPlacementBar.classList.toggle('hidden', !enable);
+      btnArCancelPlace.classList.toggle('hidden', !hasPlacedInAR);
+      captureDock.classList.toggle('hidden', enable);
+      if (enable) toggleToolsDrawer(false);
+
+      restoreStatusLabel();
     }
 
     // =========================================================================
-    // 💧 TEXTURAS PRE-HORNEADAS PARA AGUA ULTRA-RÁPIDA (CERO FBM EN GPU)
+    // 💧 AGUA FLUVIAL OPTIMIZADA CON ESTELAS DINÁMICAS DE LAS 9 BARCAS
     // =========================================================================
     function createSeamlessUtilityTexture() {
       const size = 256;
@@ -1084,7 +1422,6 @@
       const imgData = ctx.createImageData(size, size);
       const data = imgData.data;
 
-      // Ruido periódico multi-octava precalculado (R: FBM turbulencia A, G: FBM turbulencia B, B: espuma orgánica)
       const perm = new Uint8Array(512);
       let seed = 1337;
       const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
@@ -1097,22 +1434,15 @@
       for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
 
       const tileNoise = (x, y, period) => {
-        const xi = Math.floor(x);
-        const yi = Math.floor(y);
-        const xf = x - xi;
-        const yf = y - yi;
-        const u = xf * xf * (3 - 2 * xf);
-        const v = yf * yf * (3 - 2 * yf);
-        const x0 = ((xi % period) + period) % period;
-        const y0 = ((yi % period) + period) % period;
-        const x1 = (x0 + 1) % period;
-        const y1 = (y0 + 1) % period;
-
+        const xi = Math.floor(x), yi = Math.floor(y);
+        const xf = x - xi, yf = y - yi;
+        const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+        const x0 = ((xi % period) + period) % period, y0 = ((yi % period) + period) % period;
+        const x1 = (x0 + 1) % period, y1 = (y0 + 1) % period;
         const aa = perm[(perm[x0 & 255] + y0) & 255] / 255;
         const ba = perm[(perm[x1 & 255] + y0) & 255] / 255;
         const ab = perm[(perm[x0 & 255] + y1) & 255] / 255;
         const bb = perm[(perm[x1 & 255] + y1) & 255] / 255;
-
         return (aa * (1 - u) + ba * u) * (1 - v) + (ab * (1 - u) + bb * u) * v;
       };
 
@@ -1120,8 +1450,7 @@
         let sum = 0, amp = 0.52, freq = baseFreq;
         for (let o = 0; o < 3; o++) {
           sum += tileNoise(u * freq + ox, v * freq + oy, freq) * amp;
-          freq *= 2;
-          amp *= 0.5;
+          freq *= 2; amp *= 0.5;
         }
         return Math.min(1, Math.max(0, sum));
       };
@@ -1130,21 +1459,17 @@
         const v = y / size;
         for (let x = 0; x < size; x++) {
           const u = x / size;
-          const r = fbmTile(u, v, 4, 0, 0);
-          const g = fbmTile(u, v, 4, 17, 29);
-          const b = fbmTile(u, v, 8, 43, 11);
           const idx = (y * size + x) * 4;
-          data[idx]     = Math.floor(r * 255);
-          data[idx + 1] = Math.floor(g * 255);
-          data[idx + 2] = Math.floor(Math.pow(b, 1.35) * 255);
+          data[idx]     = Math.floor(fbmTile(u, v, 4, 0, 0) * 255);
+          data[idx + 1] = Math.floor(fbmTile(u, v, 4, 17, 29) * 255);
+          data[idx + 2] = Math.floor(Math.pow(fbmTile(u, v, 8, 43, 11), 1.35) * 255);
           data[idx + 3] = 255;
         }
       }
 
       ctx.putImageData(imgData, 0, 0);
       const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
       tex.needsUpdate = true;
       return tex;
     }
@@ -1158,21 +1483,18 @@
       const data = imgData.data;
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          const u = (x / size) * Math.PI * 2;
-          const v = (y / size) * Math.PI * 2;
+          const u = (x / size) * Math.PI * 2, v = (y / size) * Math.PI * 2;
           const dx = Math.cos(u * 3 + v * 2) * 0.34 + Math.cos(u * 5 - v * 4) * 0.26 + Math.sin(u * 2 + v * 6) * 0.22 + Math.cos(u * 9 + v * 7) * 0.14;
           const dy = Math.sin(u * 2 + v * 4) * 0.34 + Math.cos(u * 4 + v * 5) * 0.26 + Math.sin(u * 6 - v * 3) * 0.22 + Math.sin(u * 8 - v * 9) * 0.14;
           const idx = (y * size + x) * 4;
-          data[idx]     = Math.floor((dx * 0.44 + 0.5) * 255);
+          data[idx] = Math.floor((dx * 0.44 + 0.5) * 255);
           data[idx + 1] = Math.floor((dy * 0.44 + 0.5) * 255);
-          data[idx + 2] = 238;
-          data[idx + 3] = 255;
+          data[idx + 2] = 238; data[idx + 3] = 255;
         }
       }
       ctx.putImageData(imgData, 0, 0);
       const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
       return tex;
     }
 
@@ -1185,27 +1507,16 @@
       const srcData = srcCtx.getImageData(0, 0, size, size).data;
 
       const lum = new Float32Array(size * size);
-      let sumR = 0, sumG = 0, sumB = 0;
-      const step = 8;
-      let samples = 0;
-
+      let sumR = 0, sumG = 0, sumB = 0, samples = 0;
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
           const i = (y * size + x) * 4;
-          const r = srcData[i] / 255;
-          const g = srcData[i + 1] / 255;
-          const b = srcData[i + 2] / 255;
+          const r = srcData[i] / 255, g = srcData[i + 1] / 255, b = srcData[i + 2] / 255;
           lum[y * size + x] = r * 0.299 + g * 0.587 + b * 0.114;
-          if ((x % step === 0) && (y % step === 0)) {
-            sumR += r; sumG += g; sumB += b; samples++;
-          }
+          if ((x & 7) === 0 && (y & 7) === 0) { sumR += r; sumG += g; sumB += b; samples++; }
         }
       }
-
-      const avgR = sumR / samples;
-      const avgG = sumG / samples;
-      const avgB = sumB / samples;
-      if ((avgB > 0.72) && (Math.abs(avgR - 0.5) < 0.16) && (Math.abs(avgG - 0.5) < 0.16)) {
+      if ((sumB / samples > 0.72) && (Math.abs(sumR / samples - 0.5) < 0.16) && (Math.abs(sumG / samples - 0.5) < 0.16)) {
         return { isNormalMap: true, normalTex: null };
       }
 
@@ -1214,24 +1525,16 @@
       const outCtx = outCanvas.getContext('2d');
       const outImg = outCtx.createImageData(size, size);
       const out = outImg.data;
-
       const sampleLum = (x, y) => lum[(((y + size) % size) * size) + ((x + size) % size)];
 
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          const tl = sampleLum(x - 1, y - 1);
-          const t  = sampleLum(x,     y - 1);
-          const tr = sampleLum(x + 1, y - 1);
-          const l  = sampleLum(x - 1, y);
-          const r  = sampleLum(x + 1, y);
-          const bl = sampleLum(x - 1, y + 1);
-          const b  = sampleLum(x,     y + 1);
-          const br = sampleLum(x + 1, y + 1);
-
+          const tl = sampleLum(x - 1, y - 1), t = sampleLum(x, y - 1), tr = sampleLum(x + 1, y - 1);
+          const l = sampleLum(x - 1, y), r = sampleLum(x + 1, y);
+          const bl = sampleLum(x - 1, y + 1), b = sampleLum(x, y + 1), br = sampleLum(x + 1, y + 1);
           const dx = (tr + 2 * r + br - tl - 2 * l - bl) * strength;
           const dy = (bl + 2 * b + br - tl - 2 * t - tr) * strength;
           const invLen = 1.0 / Math.hypot(dx, dy, 1.0);
-
           const idx = (y * size + x) * 4;
           out[idx]     = Math.floor((-dx * invLen * 0.5 + 0.5) * 255);
           out[idx + 1] = Math.floor((-dy * invLen * 0.5 + 0.5) * 255);
@@ -1239,11 +1542,9 @@
           out[idx + 3] = 255;
         }
       }
-
       outCtx.putImageData(outImg, 0, 0);
       const normalTex = new THREE.CanvasTexture(outCanvas);
-      normalTex.wrapS = THREE.RepeatWrapping;
-      normalTex.wrapT = THREE.RepeatWrapping;
+      normalTex.wrapS = THREE.RepeatWrapping; normalTex.wrapT = THREE.RepeatWrapping;
       normalTex.needsUpdate = true;
       return { isNormalMap: false, normalTex };
     }
@@ -1251,38 +1552,24 @@
     function loadRepoWaterTexture() {
       const texLoader = new THREE.TextureLoader();
       texLoader.setCrossOrigin('anonymous');
-      texLoader.load(
-        ASSETS.waterTexture,
-        (loadedTex) => {
-          const aniso = Math.min(PERF.maxAniso, renderer.capabilities.getMaxAnisotropy());
-          loadedTex.wrapS = THREE.RepeatWrapping;
-          loadedTex.wrapT = THREE.RepeatWrapping;
-          loadedTex.anisotropy = aniso;
-          loadedTex.needsUpdate = true;
-          try {
-            const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 2.9);
-            if (analysis.isNormalMap) {
-              waterUniforms.uNormalMap.value = loadedTex;
-            } else {
-              analysis.normalTex.anisotropy = aniso;
-              waterUniforms.uNormalMap.value = analysis.normalTex;
-            }
-          } catch (err) {
-            // Mantiene el normal map procedural si hay restricción CORS
-          }
-        },
-        undefined,
-        () => {}
-      );
+      texLoader.load(ASSETS.waterTexture, (loadedTex) => {
+        const aniso = Math.min(PERF.maxAniso, renderer.capabilities.getMaxAnisotropy());
+        loadedTex.wrapS = THREE.RepeatWrapping; loadedTex.wrapT = THREE.RepeatWrapping;
+        loadedTex.anisotropy = aniso; loadedTex.needsUpdate = true;
+        try {
+          const analysis = buildSobelNormalTextureFromImage(loadedTex.image, 2.9);
+          if (analysis.isNormalMap) waterUniforms.uNormalMap.value = loadedTex;
+          else { analysis.normalTex.anisotropy = aniso; waterUniforms.uNormalMap.value = analysis.normalTex; }
+        } catch (err) {}
+      }, undefined, () => {});
     }
 
-    // Shader de agua altamente optimizado: normales analíticas (1 pase/vértice) + textura de turbulencia pre-horneada (4 lecturas/píxel)
     function setupWaterSurface() {
       const normalTex = createFallbackWaterNormalTexture();
       const utilityTex = createSeamlessUtilityTexture();
 
       const segs = WATER_CONFIG.subdivisions;
-      const waterGeo = new THREE.PlaneGeometry(58, 58, segs, segs);
+      const waterGeo = new THREE.PlaneGeometry(58, 46, segs, segs);
       waterGeo.rotateX(-Math.PI / 2);
 
       waterUniforms = {
@@ -1299,13 +1586,11 @@
         uFoamColor:         { value: new THREE.Color(0xc4e3de) },
         uFogColor:          { value: new THREE.Color(SCENE_FOG_HEX) },
         uFogDensity:        { value: SCENE_FOG_DENSITY },
-        uHullCenter:        { value: new THREE.Vector2(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ) },
-        uHullRadiusX:       { value: 1.5 },
-        uHullRadiusZ:       { value: 3.4 },
-        uWaterFlow:         { value: new THREE.Vector2(0.0, 1.0) },
+        uWaterFlow:         { value: new THREE.Vector2(CONVOY_CONFIG.direction, 0.14).normalize() },
         uFlowSpeed:         { value: WATER_CONFIG.flowSpeed },
         uWaveAmp:           { value: WATER_CONFIG.waveAmplitude },
         uTurbulence:        { value: WATER_CONFIG.turbulence },
+        uBoatWakes:         { value: _boatWakeArray },
         uOpacity:           { value: 1.0 }
       };
 
@@ -1316,83 +1601,47 @@
         side: THREE.FrontSide,
 
         vertexShader: /* glsl */`
-          uniform float uTime;
-          uniform float uWaveAmp;
-          uniform float uFlowSpeed;
-          uniform float uTurbulence;
-          uniform vec2 uHullCenter;
-          uniform float uHullRadiusX;
-          uniform float uHullRadiusZ;
-
-          varying vec3 vWorldPos;
+          uniform float uTime, uWaveAmp, uFlowSpeed, uTurbulence;
+          varying vec3 vWorldPos, vWaveNormal;
           varying vec2 vLocalXZ;
-          varying vec3 vWaveNormal;
-          varying float vHeight;
-          varying float vSteepness;
-          varying float vFogDepth;
+          varying float vHeight, vSteepness, vFogDepth;
 
-          // 1 solo pase por vértice con derivadas analíticas exactas (sin finite differences x5)
           void main() {
             vec3 pos = position;
             vec2 p = pos.xz;
             float flowT = uTime * (0.64 + uFlowSpeed * 1.25);
 
-            float ph0 = p.y * 0.42 - flowT * 0.78 + p.x * 0.16;
-            float ph1 = p.y * 0.76 - flowT * 1.05 + p.x * 0.28;
-            float ph2 = p.x * 0.64 + p.y * 0.92 - flowT * 1.28;
-            float ph3 = -p.x * 0.78 + p.y * 1.12 - flowT * 1.42;
-            float ph4 = p.x * 1.38 - p.y * 0.68 - flowT * 1.72;
-            float ph5 = p.x * 1.12 + p.y * 1.78 - flowT * 1.98;
-            float ph6 = p.x * 2.15 - p.y * 1.90 - flowT * 2.35;
+            float ph0 = p.x * 0.40 - flowT * 0.80 + p.y * 0.16;
+            float ph1 = p.x * 0.74 - flowT * 1.08 + p.y * 0.28;
+            float ph2 = p.y * 0.64 + p.x * 0.90 - flowT * 1.30;
+            float ph3 = -p.y * 0.78 + p.x * 1.10 - flowT * 1.44;
+            float ph4 = p.y * 1.36 - p.x * 0.66 - flowT * 1.72;
+            float ph5 = p.y * 1.10 + p.x * 1.74 - flowT * 1.98;
+            float ph6 = p.y * 2.10 - p.x * 1.85 - flowT * 2.30;
 
             float c0 = cos(ph0), c1 = cos(ph1), c2 = cos(ph2), c3 = cos(ph3), c4 = cos(ph4), s5 = sin(ph5), c6 = cos(ph6);
 
             float h = (
-              sin(ph0) * 0.068 +
-              sin(ph1) * 0.048 +
-              sin(ph2) * 0.038 +
-              sin(ph3) * 0.032 +
-              sin(ph4) * 0.018 * uTurbulence +
-              cos(ph5) * 0.015 * uTurbulence +
-              sin(ph6) * 0.011 * uTurbulence
+              sin(ph0) * 0.068 + sin(ph1) * 0.048 + sin(ph2) * 0.038 + sin(ph3) * 0.032 +
+              sin(ph4) * 0.018 * uTurbulence + cos(ph5) * 0.015 * uTurbulence + sin(ph6) * 0.011 * uTurbulence
             ) * uWaveAmp;
 
             float dhdx = (
-              c0 * 0.01088 +
-              c1 * 0.01344 +
-              c2 * 0.02432 -
-              c3 * 0.02496 +
-              c4 * 0.02484 * uTurbulence -
-              s5 * 0.01680 * uTurbulence +
-              c6 * 0.02365 * uTurbulence
+              c0 * 0.02720 + c1 * 0.03552 + c2 * 0.03420 + c3 * 0.03520 -
+              c4 * 0.01188 * uTurbulence - s5 * 0.02610 * uTurbulence - c6 * 0.02035 * uTurbulence
             ) * uWaveAmp;
 
             float dhdz = (
-              c0 * 0.02856 +
-              c1 * 0.03648 +
-              c2 * 0.03496 +
-              c3 * 0.03584 -
-              c4 * 0.01224 * uTurbulence -
-              s5 * 0.02670 * uTurbulence -
-              c6 * 0.02090 * uTurbulence
+              c0 * 0.01088 + c1 * 0.01344 + c2 * 0.02432 - c3 * 0.02496 +
+              c4 * 0.02448 * uTurbulence - s5 * 0.01650 * uTurbulence + c6 * 0.02310 * uTurbulence
             ) * uWaveAmp;
 
-            // Desplazamiento horizontal suave + interacción en proa
-            pos.x += (c2 * 0.012 - c3 * 0.011) * uWaveAmp;
-            pos.z += (c0 * 0.024 + c1 * 0.016) * uWaveAmp;
-
-            vec2 rel = p - uHullCenter;
-            float bowZ = -uHullRadiusZ * 1.04;
-            float dBowZ = rel.y - bowZ;
-            float bowRipple = exp(-dBowZ * dBowZ * 0.72) * exp(-rel.x * rel.x * 0.75) * 0.052 * (0.92 + 0.08 * sin(uTime * 2.5));
-            h += bowRipple;
-            dhdx += bowRipple * (-1.50 * rel.x);
-            dhdz += bowRipple * (-1.44 * dBowZ);
-
+            pos.x += (c0 * 0.024 + c1 * 0.016) * uWaveAmp;
+            pos.z += (c2 * 0.012 - c3 * 0.011) * uWaveAmp;
             pos.y += h;
+
             vHeight = h;
             vLocalXZ = pos.xz;
-
             vec3 n = normalize(vec3(-dhdx, 1.0, -dhdz));
             vWaveNormal = normalize(mat3(modelMatrix) * n);
             vSteepness = clamp(1.0 - n.y, 0.0, 1.0);
@@ -1406,54 +1655,27 @@
         `,
 
         fragmentShader: /* glsl */`
-          uniform sampler2D uNormalMap;
-          uniform sampler2D uUtilityMap;
-          uniform float uTime;
-          uniform vec3 uSunDirection;
-          uniform vec3 uSkyZenithColor;
-          uniform vec3 uSkyHorizonColor;
-          uniform vec3 uWaterDeepColor;
-          uniform vec3 uWaterShallowColor;
-          uniform vec3 uCrestGlowColor;
-          uniform vec3 uAtmoAmbientColor;
-          uniform vec3 uFoamColor;
-          uniform vec3 uFogColor;
-          uniform float uFogDensity;
-          uniform vec2 uHullCenter;
-          uniform float uHullRadiusX;
-          uniform float uHullRadiusZ;
+          uniform sampler2D uNormalMap, uUtilityMap;
+          uniform float uTime, uFogDensity, uFlowSpeed, uTurbulence, uOpacity;
+          uniform vec3 uSunDirection, uSkyZenithColor, uSkyHorizonColor, uWaterDeepColor, uWaterShallowColor;
+          uniform vec3 uCrestGlowColor, uAtmoAmbientColor, uFoamColor, uFogColor;
           uniform vec2 uWaterFlow;
-          uniform float uFlowSpeed;
-          uniform float uTurbulence;
-          uniform float uOpacity;
+          uniform vec3 uBoatWakes[9];
 
-          varying vec3 vWorldPos;
+          varying vec3 vWorldPos, vWaveNormal;
           varying vec2 vLocalXZ;
-          varying vec3 vWaveNormal;
-          varying float vHeight;
-          varying float vSteepness;
-          varying float vFogDepth;
+          varying float vHeight, vSteepness, vFogDepth;
 
           void main() {
-            // Coordenadas locales a barcaAnchorGroup para que el agua funcione igual al moverla en AR
-            vec2 relXZ = vLocalXZ - uHullCenter;
-            float ellDist = length(vec2(relXZ.x / max(uHullRadiusX, 0.1), relXZ.y / max(uHullRadiusZ, 0.1)));
-
-            float deflect = exp(-max(ellDist - 0.85, 0.0) * 1.45);
-            float smoothSide = relXZ.x / (abs(relXZ.x) + 0.75);
-            vec2 basePos = vLocalXZ - vec2(smoothSide * deflect * 0.35, 0.0);
-
             vec2 flow = uWaterFlow * uFlowSpeed;
             float tFlow = uTime * uFlowSpeed;
 
-            // Solo 2 lecturas pre-horneadas de turbulencia/espuma (sustituye 9 ruidos FBM en GPU)
-            vec3 utilA = texture2D(uUtilityMap, basePos * 0.075 - vec2(0.0, tFlow * 0.14)).rgb;
-            vec3 utilB = texture2D(uUtilityMap, basePos * 0.165 - vec2(0.0, tFlow * 0.24) + vec2(0.31, 0.19)).rgb;
+            vec3 utilA = texture2D(uUtilityMap, vLocalXZ * 0.075 - flow * uTime * 0.16).rgb;
+            vec3 utilB = texture2D(uUtilityMap, vLocalXZ * 0.165 - flow * uTime * 0.28 + vec2(0.31, 0.19)).rgb;
 
             vec2 warp = (utilA.rg - 0.5) * 0.78 * uTurbulence;
-            vec2 turbPos = basePos + warp;
+            vec2 turbPos = vLocalXZ + warp;
 
-            // 2 capas de normales rotadas (sin patrones lineales, mitad de costo)
             mat2 rotA = mat2(0.92, -0.39, 0.39, 0.92);
             vec3 n1 = texture2D(uNormalMap, turbPos * 0.25 - flow * uTime * 0.80).xyz * 2.0 - 1.0;
             vec3 n2 = texture2D(uNormalMap, (rotA * turbPos) * 0.54 - (rotA * flow) * uTime * 1.18 + vec2(0.37, 0.61)).xyz * 2.0 - 1.0;
@@ -1463,7 +1685,6 @@
             vec3 V = normalize(cameraPosition - vWorldPos);
             float NdotV = max(dot(N, V), 0.001);
 
-            // Fresnel suave no metálico
             float fresnel = 0.02 + 0.98 * pow(max(1.0 - NdotV, 0.0001), 4.8);
             vec3 R = reflect(-V, N);
             vec3 skyRefl = mix(uSkyHorizonColor, uSkyZenithColor, pow(clamp(R.y, 0.0001, 1.0), 0.62));
@@ -1476,7 +1697,6 @@
             float softSparkle = pow(max(NdotH, 0.0001), 86.0) * 0.20;
             float softSheen   = pow(max(NdotH, 0.0001), 18.0) * 0.07;
 
-            // Color verde aqua luminoso con relleno atmosférico suave
             float eddyTone = utilA.r * 0.55 + utilB.g * 0.45;
             float depthT = clamp(smoothstep(-0.20, 0.22, vHeight) * 0.58 + eddyTone * 0.42, 0.0, 1.0);
             vec3 waterColor = mix(uWaterDeepColor, uWaterShallowColor, depthT);
@@ -1485,34 +1705,34 @@
             float sssMask = smoothstep(0.04, 0.24, vHeight) * (0.4 + 0.6 * pow(max(dot(V, -L), 0.0001), 2.0));
             waterColor = mix(waterColor, uCrestGlowColor, clamp(sssMask * 0.30, 0.0, 0.32));
 
-            float underHullDarken = smoothstep(1.18, 0.70, ellDist) * 0.22;
-            waterColor *= (1.0 - underHullDarken);
+            // Estela y sombra suave dinámica siguiendo a cada una de las 9 barcas en movimiento
+            float wakeFoamAcc = 0.0;
+            float hullShadowAcc = 0.0;
+            for (int i = 0; i < 9; i++) {
+              vec3 bw = uBoatWakes[i];
+              if (bw.z > 0.05) {
+                vec2 d = vLocalXZ - bw.xy;
+                float d2 = dot(d, d);
+                if (d2 < 14.0) {
+                  // Sombra muy sutil bajo el casco
+                  hullShadowAcc += exp(-d2 * 0.55) * 0.18 * bw.z;
+                  // Estela suave detrás de la barca (estirada sobre el eje de avance)
+                  vec2 trailD = vec2(d.x * 0.46 + 0.9 * uWaterFlow.x, d.y * 1.05);
+                  wakeFoamAcc += exp(-dot(trailD, trailD) * 0.58) * 0.34 * bw.z;
+                }
+              }
+            }
+
+            waterColor *= (1.0 - clamp(hullShadowAcc, 0.0, 0.26));
 
             vec3 col = mix(waterColor, skyRefl, clamp(fresnel * 0.34, 0.04, 0.36));
             col += softSparkle * vec3(0.86, 0.95, 0.92);
             col += softSheen * vec3(0.56, 0.84, 0.80);
 
-            // Espuma discreta orgánica
-            vec2 bowPos = vec2(0.0, -uHullRadiusZ * 1.02);
-            float bowD = length(relXZ - bowPos);
-            float bowSplash = exp(-bowD * bowD * 3.6) * 0.34;
-
-            float distFromBow = relXZ.y - bowPos.y;
-            float bowArm = 0.0;
-            if (distFromBow > 0.0) {
-              float armX = uHullRadiusX * 0.34 + distFromBow * 0.34;
-              float armDist = abs(abs(relXZ.x) - armX);
-              bowArm = exp(-armDist * armDist * 3.6) * exp(-distFromBow * 0.26) * 0.24;
-            }
-
-            float hullContact = exp(-pow((ellDist - 1.01) * 6.5, 2.0)) * 0.19;
-            float dZ = relXZ.y - uHullRadiusZ * 0.88;
-            float sternChurn = dZ > 0.0 ? exp(-relXZ.x * relXZ.x * 2.2) * exp(-dZ * 0.50) * 0.22 : 0.0;
             float chopFoam = smoothstep(0.14, 0.28, vHeight) * smoothstep(0.04, 0.14, vSteepness) * 0.22;
-
             float organicBreakup = utilA.b * 0.50 + utilB.b * 0.50;
-            float rawFoam = clamp(bowSplash + bowArm + hullContact + sternChurn + chopFoam, 0.0, 0.82);
-            float finalFoam = smoothstep(0.24, 0.80, rawFoam * (0.38 + 1.05 * organicBreakup)) * 0.42;
+            float rawFoam = clamp(wakeFoamAcc + chopFoam, 0.0, 0.82);
+            float finalFoam = smoothstep(0.22, 0.78, rawFoam * (0.40 + 1.05 * organicBreakup)) * 0.42;
 
             col = mix(col, uFoamColor * (0.82 + 0.14 * wrapDiffuse), finalFoam);
 
@@ -1521,10 +1741,11 @@
               col = mix(col, uFogColor, clamp(fogFactor, 0.0, 0.90));
             }
 
-            float centerDist = length(vLocalXZ);
-            float edgeFade = smoothstep(28.0, 19.0, centerDist);
+            // Desvanecimiento ovalado suave hacia los bordes
+            float ovalDist = length(vec2(vLocalXZ.x / 27.0, vLocalXZ.y / 21.0));
+            float edgeFade = smoothstep(1.0, 0.66, ovalDist);
 
-            float alpha = mix(0.89, 0.96, fresnel * 0.5);
+            float alpha = mix(0.88, 0.96, fresnel * 0.5);
             alpha = mix(alpha, 0.98, finalFoam);
             alpha *= edgeFade * uOpacity;
 
@@ -1548,25 +1769,20 @@
       const flightB = new Float32Array(count * 4);
 
       const palette = [
-        new THREE.Color(0xd9f99d),
-        new THREE.Color(0xcff868),
-        new THREE.Color(0xbef264),
-        new THREE.Color(0xfef08a),
-        new THREE.Color(0xfde047)
+        new THREE.Color(0xd9f99d), new THREE.Color(0xcff868),
+        new THREE.Color(0xbef264), new THREE.Color(0xfef08a), new THREE.Color(0xfde047)
       ];
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 1.1 + Math.pow(Math.random(), 0.78) * FIREFLY_CONFIG.spreadRadius;
-        origins[i * 3]     = SCULPTURE_CONFIG.positionX + Math.cos(angle) * radius;
+        const radius = 1.0 + Math.pow(Math.random(), 0.78) * FIREFLY_CONFIG.spreadRadius;
+        origins[i * 3]     = Math.cos(angle) * radius;
         origins[i * 3 + 1] = WATER_CONFIG.levelY + FIREFLY_CONFIG.minHeight
                            + Math.pow(Math.random(), 1.25) * (FIREFLY_CONFIG.maxHeight - FIREFLY_CONFIG.minHeight);
-        origins[i * 3 + 2] = SCULPTURE_CONFIG.positionZ + Math.sin(angle) * radius;
+        origins[i * 3 + 2] = Math.sin(angle) * radius * 0.75 - 2.0;
 
         const c = palette[Math.floor(Math.random() * palette.length)];
-        colors[i * 3]     = c.r;
-        colors[i * 3 + 1] = c.g;
-        colors[i * 3 + 2] = c.b;
+        colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
 
         flightA[i * 4]     = Math.random() * Math.PI * 2;
         flightA[i * 4 + 1] = Math.random() * Math.PI * 2;
@@ -1585,9 +1801,7 @@
       geo.setAttribute('aFlightB', new THREE.BufferAttribute(flightB, 4));
 
       firefliesMaterial = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
         uniforms: {
           uTime: { value: 0 },
           uMinY: { value: WATER_CONFIG.levelY + 0.32 },
@@ -1595,15 +1809,9 @@
         },
         vertexShader: /* glsl */`
           attribute vec3 aColor;
-          attribute vec4 aFlightA;
-          attribute vec4 aFlightB;
-
-          uniform float uTime;
-          uniform float uMinY;
-          uniform float uPixelRatio;
-
-          varying vec3 vColor;
-          varying float vGlow;
+          attribute vec4 aFlightA, aFlightB;
+          uniform float uTime, uMinY, uPixelRatio;
+          varying vec3 vColor; varying float vGlow;
 
           void main() {
             vColor = aColor;
@@ -1626,24 +1834,17 @@
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
-
-            float baseSize = (24.0 + 30.0 * vGlow) * sizeScale;
-            gl_PointSize = clamp((baseSize * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 54.0);
+            gl_PointSize = clamp(((24.0 + 30.0 * vGlow) * sizeScale * uPixelRatio) / max(-mvPosition.z, 0.5), 5.0, 52.0);
           }
         `,
         fragmentShader: /* glsl */`
-          varying vec3 vColor;
-          varying float vGlow;
-
+          varying vec3 vColor; varying float vGlow;
           void main() {
-            vec2 uv = gl_PointCoord - vec2(0.5);
-            float d = length(uv);
+            float d = length(gl_PointCoord - vec2(0.5));
             if (d > 0.5) discard;
-
             float core = smoothstep(0.17, 0.0, d);
             float innerHalo = exp(-d * 5.6);
             float outerMist = smoothstep(0.5, 0.0, d) * 0.36;
-
             float alpha = clamp((core * 0.95 + innerHalo * 0.78 + outerMist) * vGlow, 0.0, 1.0);
             vec3 finalCol = mix(vColor, vec3(1.0, 1.0, 0.92), core * 0.75) * (0.95 + vGlow * 0.60);
             gl_FragColor = vec4(finalCol, alpha);
@@ -1658,7 +1859,7 @@
     }
 
     // =========================================================================
-    // ✨ MATERIALIZACIÓN ÚNICA + BATCHING POST-MATERIALIZACIÓN (InstancedMesh)
+    // ✨ MATERIALIZACIÓN ÚNICA + BATCHING EN 1 INSTANCEDMESH PARA LAS 9 BARCAS
     // =========================================================================
     function buildSurfaceParticleGeometry(sourceRoot, referenceParent, particleCount) {
       referenceParent.updateMatrixWorld(true);
@@ -1667,17 +1868,14 @@
 
       const triangles = [];
       let totalArea = 0;
-
       const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
       const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), cross = new THREE.Vector3();
-
       let minY = Infinity, maxY = -Infinity;
 
       sourceRoot.traverse((node) => {
         if (!node.isMesh || !node.geometry) return;
         const posAttr = node.geometry.attributes.position;
         if (!posAttr) return;
-
         relMat.multiplyMatrices(invParent, node.matrixWorld);
         const indexAttr = node.geometry.index;
         const triCount = indexAttr ? Math.floor(indexAttr.count / 3) : Math.floor(posAttr.count / 3);
@@ -1686,16 +1884,12 @@
           const i0 = indexAttr ? indexAttr.getX(i * 3)     : i * 3;
           const i1 = indexAttr ? indexAttr.getX(i * 3 + 1) : i * 3 + 1;
           const i2 = indexAttr ? indexAttr.getX(i * 3 + 2) : i * 3 + 2;
-
           vA.fromBufferAttribute(posAttr, i0).applyMatrix4(relMat);
           vB.fromBufferAttribute(posAttr, i1).applyMatrix4(relMat);
           vC.fromBufferAttribute(posAttr, i2).applyMatrix4(relMat);
-
           if (vA.y < minY) minY = vA.y; if (vB.y < minY) minY = vB.y; if (vC.y < minY) minY = vC.y;
           if (vA.y > maxY) maxY = vA.y; if (vB.y > maxY) maxY = vB.y; if (vC.y > maxY) maxY = vC.y;
-
-          e1.subVectors(vB, vA);
-          e2.subVectors(vC, vA);
+          e1.subVectors(vB, vA); e2.subVectors(vC, vA);
           cross.crossVectors(e1, e2);
           const area = cross.length() * 0.5;
           if (area > 1e-7) {
@@ -1705,7 +1899,7 @@
         }
       });
 
-      if (!isFinite(minY) || !isFinite(maxY) || maxY <= minY) { minY = -0.3; maxY = 4.2; }
+      if (!isFinite(minY) || !isFinite(maxY) || maxY <= minY) { minY = -0.3; maxY = 4.0; }
       localBoundsMinY = minY;
       localBoundsMaxY = maxY;
       const heightSpan = Math.max(0.01, maxY - minY);
@@ -1735,7 +1929,6 @@
           py = tri.ay * r0 + tri.by * r1 + tri.cy * r2;
           pz = tri.az * r0 + tri.bz * r1 + tri.cz * r2;
         }
-
         positions[i * 3] = px; positions[i * 3 + 1] = py; positions[i * 3 + 2] = pz;
         const theta = Math.random() * Math.PI * 2;
         const horiz = 0.55 + Math.random() * 1.10;
@@ -1745,7 +1938,7 @@
 
         meta[i * 4] = THREE.MathUtils.clamp((py - minY) / heightSpan, 0, 1);
         meta[i * 4 + 1] = Math.random() * Math.PI * 2;
-        meta[i * 4 + 2] = 0.78 + Math.random() * 0.95;
+        meta[i * 4 + 2] = 0.8 + Math.random() * 0.95;
         meta[i * 4 + 3] = Math.random();
       }
 
@@ -1758,42 +1951,33 @@
 
     function createMaterializationParticleMaterial() {
       return new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
         uniforms: {
-          uTime: { value: 0 },
-          uProgress: { value: 0 },
+          uTime: { value: 0 }, uProgress: { value: 0 },
           uPixelRatio: { value: renderer.getPixelRatio() },
           uColorA: { value: new THREE.Color(0x7af5df) },
           uColorB: { value: new THREE.Color(0xf4f99b) }
         },
         vertexShader: /* glsl */`
-          attribute vec3 aScatter;
-          attribute vec4 aMeta;
+          attribute vec3 aScatter; attribute vec4 aMeta;
           uniform float uTime, uProgress, uPixelRatio;
           varying float vAlpha, vHeat, vColorMix;
-
           void main() {
             float normY = aMeta.x, phase = aMeta.y, sizeScale = aMeta.z;
             vColorMix = aMeta.w;
             float wavePos = uProgress * 1.24 - 0.10;
             float dist = normY - wavePos;
-
             float approach = smoothstep(0.42, 0.0, dist);
             float afterFade = smoothstep(-0.14, 0.02, dist);
             float scatterAmt = clamp(max(dist, 0.0) * 2.1, 0.0, 1.0);
             float swirlAngle = uTime * 3.2 + phase + scatterAmt * 2.8;
             vec3 swirlOffset = vec3(cos(swirlAngle) * 0.25, sin(uTime * 2.6 + phase) * 0.14, sin(swirlAngle) * 0.25) * scatterAmt;
-
             vec3 pos = position + aScatter * (scatterAmt * scatterAmt * 1.12) + swirlOffset;
             float edgeBand = exp(-dist * dist * 125.0);
             vHeat = clamp(edgeBand * 1.35, 0.0, 1.0);
-
             float twinkle = 0.68 + 0.32 * sin(uTime * 11.5 + phase * 3.0);
             float envelope = smoothstep(0.0, 0.05, uProgress) * (1.0 - smoothstep(0.92, 1.0, uProgress));
             vAlpha = clamp((approach * afterFade * 0.78 + edgeBand * 0.98) * twinkle * envelope, 0.0, 1.0);
-
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
             gl_PointSize = clamp(((13.0 + 16.0 * vHeat) * sizeScale * uPixelRatio) / max(-mvPosition.z, 0.5), 2.5, 30.0);
@@ -1816,14 +2000,14 @@
       });
     }
 
-    function assignBoatClippingPlane(rootObject, plane, maxAniso, cloneMaterials) {
+    function assignBoatClippingPlane(rootObject, plane, maxAniso) {
       const clonedMats = [];
       rootObject.traverse((node) => {
         if (!node.isMesh || !node.material) return;
         const originalMats = Array.isArray(node.material) ? node.material : [node.material];
         const nextMats = originalMats.map((mat) => {
-          const targetMat = cloneMaterials ? mat.clone() : mat;
-          if (cloneMaterials) clonedMats.push(targetMat);
+          const targetMat = mat.clone();
+          clonedMats.push(targetMat);
           targetMat.clippingPlanes = [plane];
           if (targetMat.map) targetMat.map.anisotropy = maxAniso;
           targetMat.needsUpdate = true;
@@ -1834,217 +2018,105 @@
       return clonedMats;
     }
 
-    // Convierte las 12 barcas en InstancedMesh y libera partículas/materiales clonados tras la materialización única
-    function finalizeAndOptimizeFleet() {
+    function finalizeAndOptimizeConvoy() {
       renderer.localClippingEnabled = false;
-      magicWaveLight.intensity = 0;
 
-      // 1) Limpiar clippingPlanes permanentes en la barca principal
-      sculptureRoot.traverse((node) => {
-        if (!node.isMesh || !node.material) return;
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        mats.forEach((m) => {
-          m.clippingPlanes = null;
-          m.needsUpdate = true;
-        });
-      });
-
-      // 2) Liberar completamente partículas de materialización (ya nunca volverán a usarse)
-      for (let i = 0; i < boatControllers.length; i++) {
-        const b = boatControllers[i];
+      // Liberar geometría y materiales de partículas de materialización
+      for (let i = 0; i < convoyBoats.length; i++) {
+        const b = convoyBoats[i];
         if (b.particles) {
           if (b.particles.parent) b.particles.parent.remove(b.particles);
           b.particles = null;
         }
-        if (b.particleMat) {
-          b.particleMat.dispose();
-          b.particleMat = null;
-        }
+        if (b.particleMat) { b.particleMat.dispose(); b.particleMat = null; }
       }
-      if (mainParticleGeoRef) { mainParticleGeoRef.dispose(); mainParticleGeoRef = null; }
-      if (fleetParticleGeoRef) { fleetParticleGeoRef.dispose(); fleetParticleGeoRef = null; }
+      if (boatParticleGeoRef) { boatParticleGeoRef.dispose(); boatParticleGeoRef = null; }
 
-      // 3) Batching en InstancedMesh para las 12 barcas (baja de 12xN draw calls a 1xN)
-      if (canUseInstancing && baseMeshTemplates.length > 0 && fleetData.length > 0) {
+      // Consolidar las 9 barcas en 1 solo InstancedMesh por primitiva (de 9xN draw calls a 1xN)
+      if (canUseInstancing && baseMeshTemplates.length > 0) {
         for (let p = 0; p < baseMeshTemplates.length; p++) {
           const tpl = baseMeshTemplates[p];
-          const instMesh = new THREE.InstancedMesh(tpl.geometry, tpl.material, fleetData.length);
+          const instMesh = new THREE.InstancedMesh(tpl.geometry, tpl.material, convoyBoats.length);
           instMesh.frustumCulled = false;
           instMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           fleetInstancedGroup.add(instMesh);
           fleetInstancedPrimitives.push({ instancedMesh: instMesh, localMatrix: tpl.localMatrix });
         }
 
-        // Eliminar los 12 clones individuales y liberar sus materiales clonados
-        for (let i = 0; i < boatControllers.length; i++) {
-          const b = boatControllers[i];
-          if (!b.isMain && b.clonedMats) {
-            b.clonedMats.forEach((m) => m.dispose());
-            b.clonedMats = null;
-          }
+        for (let i = 0; i < convoyBoats.length; i++) {
+          const b = convoyBoats[i];
+          if (b.clonedMats) { b.clonedMats.forEach((m) => m.dispose()); b.clonedMats = null; }
         }
-        while (fleetGroup.children.length > 0) {
-          fleetGroup.remove(fleetGroup.children[0]);
-        }
+        while (convoyGroup.children.length > 0) convoyGroup.remove(convoyGroup.children[0]);
         usingInstancedFleet = true;
       } else {
-        // Fallback seguro si el modelo tuviera skinning: al menos quitar clippingPlanes
-        for (let i = 0; i < boatControllers.length; i++) {
-          const b = boatControllers[i];
-          if (!b.isMain && b.clonedMats) {
-            b.clonedMats.forEach((m) => { m.clippingPlanes = null; m.needsUpdate = true; });
-          }
+        for (let i = 0; i < convoyBoats.length; i++) {
+          const b = convoyBoats[i];
+          if (b.clonedMats) b.clonedMats.forEach((m) => { m.clippingPlanes = null; m.needsUpdate = true; });
         }
       }
     }
 
-    function setupQuestControllersAndHands() {
-      const controllerModelFactory = new XRControllerModelFactory();
-      const handModelFactory = new XRHandModelFactory();
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.0)
-      ]);
-      const lineMat = new THREE.LineBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.45 });
-      for (let i = 0; i < 2; i++) {
-        const controller = renderer.xr.getController(i);
-        controller.add(new THREE.Line(lineGeo, lineMat));
-        controller.addEventListener('selectstart', () => {
-          unlockAndPlayAudio();
-          // En AR con escaneo activo, el gatillo coloca las barcas sobre el plano (suelo o pared) SIN rematerializar
-          if (isARModeActive && isARPlacementMode) {
-            placeSceneAtDetectedSurface();
-          }
-        });
-        cameraRig.add(controller);
-        const grip = renderer.xr.getControllerGrip(i);
-        grip.add(controllerModelFactory.createControllerModel(grip));
-        cameraRig.add(grip);
-        const hand = renderer.xr.getHand(i);
-        hand.add(handModelFactory.createHandModel(hand, 'spheres'));
-        hand.addEventListener('pinchstart', () => {
-          unlockAndPlayAudio();
-          if (isARModeActive && isARPlacementMode) {
-            placeSceneAtDetectedSurface();
-          }
-        });
-        cameraRig.add(hand);
-      }
-    }
-
-    function buildFleetAndMaterializers(baseTemplate, maxAniso) {
-      boatControllers.length = 0;
-      fleetData.length = 0;
+    function buildNineBoatConvoy(baseTemplate, referencePivot, maxAniso) {
+      convoyBoats.length = 0;
       baseMeshTemplates.length = 0;
 
-      // Extraer primitivas base para el InstancedMesh posterior a la materialización
+      // Extraer primitivas limpias para el InstancedMesh posterior
       canUseInstancing = true;
-      sculpturePivot.updateMatrixWorld(true);
-      const invPivot = new THREE.Matrix4().copy(sculpturePivot.matrixWorld).invert();
+      referencePivot.updateMatrixWorld(true);
+      const invPivot = new THREE.Matrix4().copy(referencePivot.matrixWorld).invert();
       baseTemplate.traverse((node) => {
         if (node.isSkinnedMesh || (node.morphTargetInfluences && node.morphTargetInfluences.length > 0)) {
           canUseInstancing = false;
         }
         if (node.isMesh && node.geometry && node.material && !Array.isArray(node.material)) {
-          const localMat = new THREE.Matrix4().multiplyMatrices(invPivot, node.matrixWorld);
+          if (node.material.map) node.material.map.anisotropy = maxAniso;
           baseMeshTemplates.push({
             geometry: node.geometry,
             material: node.material,
-            localMatrix: localMat
+            localMatrix: new THREE.Matrix4().multiplyMatrices(invPivot, node.matrixWorld)
           });
         } else if (node.isMesh && Array.isArray(node.material)) {
           canUseInstancing = false;
         }
       });
 
-      mainParticleGeoRef = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, PERF.mainParticles);
-      fleetParticleGeoRef = buildSurfaceParticleGeometry(baseTemplate, sculpturePivot, PERF.fleetParticles);
+      boatParticleGeoRef = buildSurfaceParticleGeometry(baseTemplate, referencePivot, PERF.particlesPerBoat);
 
-      const mainPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -100);
-      assignBoatClippingPlane(baseTemplate, mainPlane, maxAniso, false);
-      const mainParticleMat = createMaterializationParticleMaterial();
-      const mainParticles = new THREE.Points(mainParticleGeoRef, mainParticleMat);
-      mainParticles.frustumCulled = false;
-      mainParticles.renderOrder = 3;
-      mainParticles.visible = false;
-      sculpturePivot.add(mainParticles);
-
-      boatControllers.push({
-        isMain: true,
-        group: boatBobbingGroup,
-        baseX: SCULPTURE_CONFIG.positionX,
-        baseY: SCULPTURE_CONFIG.positionY,
-        baseZ: SCULPTURE_CONFIG.positionZ,
-        scaleMul: 1.0,
-        yawRad: THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg),
-        phase: 0.0,
-        clippingPlane: mainPlane,
-        particles: mainParticles,
-        particleMat: mainParticleMat,
-        delay: 0.0,
-        duration: MATERIALIZATION_CONFIG.mainDuration,
-        progress: 0.0,
-        done: false
-      });
-
-      SURROUNDING_BOATS_LAYOUT.forEach((cfg, idx) => {
-        const rad = THREE.MathUtils.degToRad(cfg.angleDeg);
-        const bx = SCULPTURE_CONFIG.positionX + Math.sin(rad) * cfg.radius;
-        const bz = SCULPTURE_CONFIG.positionZ + Math.cos(rad) * cfg.radius;
-        const yawRad = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.rotationYDeg + cfg.yawOffsetDeg);
-        const phase = idx * 0.91 + cfg.radius * 0.37;
-
+      CONVOY_BOATS_LAYOUT.forEach((cfg, idx) => {
         const bobGroup = new THREE.Group();
-        bobGroup.position.set(bx, SCULPTURE_CONFIG.positionY, bz);
-
         const pivot = new THREE.Group();
-        pivot.rotation.y = yawRad;
-        pivot.scale.setScalar(cfg.scaleMul);
+        bobGroup.add(pivot);
 
         const clone = baseTemplate.clone(true);
         const boatPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -100);
-        const clonedMats = assignBoatClippingPlane(clone, boatPlane, maxAniso, true);
+        const clonedMats = assignBoatClippingPlane(clone, boatPlane, maxAniso);
         clone.traverse((node) => { node.frustumCulled = true; });
 
         const pMat = createMaterializationParticleMaterial();
-        const pPoints = new THREE.Points(fleetParticleGeoRef, pMat);
+        const pPoints = new THREE.Points(boatParticleGeoRef, pMat);
         pPoints.frustumCulled = false;
         pPoints.renderOrder = 3;
         pPoints.visible = false;
 
         pivot.add(clone);
         pivot.add(pPoints);
-        bobGroup.add(pivot);
-        fleetGroup.add(bobGroup);
+        convoyGroup.add(bobGroup);
 
-        const radialNorm = THREE.MathUtils.clamp((cfg.radius - 8.5) / 11.0, 0, 1);
-        const staggerDelay = 0.28 + radialNorm * MATERIALIZATION_CONFIG.fleetMaxDelay + (idx % 3) * 0.12;
-
-        fleetData.push({
-          baseX: bx,
-          baseY: SCULPTURE_CONFIG.positionY,
-          baseZ: bz,
-          scaleMul: cfg.scaleMul,
-          yawRad,
-          phase
-        });
-
-        boatControllers.push({
-          isMain: false,
+        convoyBoats.push({
+          cfg,
           group: bobGroup,
-          baseX: bx,
-          baseY: SCULPTURE_CONFIG.positionY,
-          baseZ: bz,
-          scaleMul: cfg.scaleMul,
-          yawRad,
-          phase,
+          pivot,
           clippingPlane: boatPlane,
           clonedMats,
           particles: pPoints,
           particleMat: pMat,
-          delay: staggerDelay,
-          duration: MATERIALIZATION_CONFIG.fleetDuration,
+          delay: (idx / Math.max(1, CONVOY_BOATS_LAYOUT.length - 1)) * MATERIALIZATION_CONFIG.maxStaggerDelay,
+          duration: MATERIALIZATION_CONFIG.boatDuration,
           progress: 0.0,
-          done: false
+          done: false,
+          phase: idx * 0.87,
+          curX: 0, curY: 0, curZ: 0, curYaw: 0, curPitch: 0, curRoll: 0, curScale: cfg.scaleMul
         });
       });
     }
@@ -2068,52 +2140,41 @@
           }, reject);
         });
 
-        sculptureRoot = gltf.scene;
-        sculptureRoot.scale.setScalar(SCULPTURE_CONFIG.scale);
-        sculptureRoot.updateMatrixWorld(true);
+        const templateRoot = gltf.scene;
+        templateRoot.scale.setScalar(SCULPTURE_CONFIG.baseScale);
+        templateRoot.updateMatrixWorld(true);
 
-        const rawBox = new THREE.Box3().setFromObject(sculptureRoot);
+        const rawBox = new THREE.Box3().setFromObject(templateRoot);
         const rawCenter = rawBox.getCenter(new THREE.Vector3());
         const rawSize = rawBox.getSize(new THREE.Vector3());
 
-        boatSubmersion = Math.min(0.85, Math.max(0.18, rawSize.y * SCULPTURE_CONFIG.submersionRatio));
-        sculptureRoot.position.set(-rawCenter.x, -rawBox.min.y - boatSubmersion, -rawCenter.z);
-        sculpturePivot.add(sculptureRoot);
+        const submersion = Math.min(0.80, Math.max(0.16, rawSize.y * SCULPTURE_CONFIG.submersionRatio));
+        templateRoot.position.set(-rawCenter.x, -rawBox.min.y - submersion, -rawCenter.z);
 
-        boatBobbingGroup.updateMatrixWorld(true);
-        const orientedBox = new THREE.Box3().setFromObject(sculpturePivot);
-        const orientedSize = orientedBox.getSize(new THREE.Vector3());
-
-        const maxFootprint = Math.max(orientedSize.x, orientedSize.z);
-        spawnDistance = Math.max(3.8, maxFootprint * 1.15 + 1.6);
-        resetViewerPosition(false);
-
-        waterUniforms.uHullCenter.value.set(SCULPTURE_CONFIG.positionX, SCULPTURE_CONFIG.positionZ);
-        waterUniforms.uHullRadiusX.value = Math.max(0.7, orientedSize.x * 0.43);
-        waterUniforms.uHullRadiusZ.value = Math.max(1.0, orientedSize.z * 0.45);
+        const refPivot = new THREE.Group();
+        refPivot.add(templateRoot);
+        refPivot.updateMatrixWorld(true);
 
         const aniso = Math.min(PERF.maxAniso, renderer.capabilities.getMaxAnisotropy());
-        sculptureRoot.traverse((node) => { node.frustumCulled = false; });
-
-        buildFleetAndMaterializers(sculptureRoot, aniso);
+        buildNineBoatConvoy(templateRoot, refPivot, aniso);
 
         dracoLoader.dispose();
 
         document.getElementById('progress-bar').style.width = '100%';
         document.getElementById('progress-text').textContent = '100%';
         document.getElementById('progress-container').classList.add('hidden');
-        document.getElementById('loading-message').textContent = '¡La Barca de las Grullas está lista para VR y AR!';
+        document.getElementById('loading-message').textContent = 'Las 9 barcas están listas para cruzar el río.';
         launchControls.classList.remove('hidden');
         launchControls.classList.add('flex');
       } catch (e) {
-        console.error('Error cargando el modelo de la barca:', e);
-        document.getElementById('loading-message').textContent = 'Error al cargar barcagrullas.glb. Verifica conexión o ruta en GitHub.';
+        console.error('Error cargando el modelo:', e);
+        document.getElementById('loading-message').textContent = 'No se pudo cargar barcagrullas.glb. Verifica tu conexión.';
       }
     }
 
-    // Dispara la materialización UNA SOLA VEZ; jamás vuelve a ejecutarse
+    // Materialización estrictamente única
     function triggerMaterializationOnce() {
-      if (hasMaterializedOnce || isMaterializing || boatControllers.length === 0) return;
+      if (hasMaterializedOnce || isMaterializing || convoyBoats.length === 0) return;
 
       renderer.localClippingEnabled = true;
       isMaterializing = true;
@@ -2125,75 +2186,50 @@
         setAudioGainImmediate(AUDIO_CONFIG.baseVolume);
       }
 
-      const anchorY = barcaAnchorGroup.position.y;
-      const anchorScaleY = barcaAnchorGroup.scale.y;
-
-      for (let i = 0; i < boatControllers.length; i++) {
-        const b = boatControllers[i];
+      for (let i = 0; i < convoyBoats.length; i++) {
+        const b = convoyBoats[i];
         b.done = false;
         b.progress = 0.0;
-        b.clippingPlane.constant = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY - 0.1;
+        b.clippingPlane.constant = -100;
         b.particleMat.uniforms.uProgress.value = 0.0;
         b.particles.visible = true;
       }
-
-      magicWaveLight.intensity = 2.6;
-      if (!renderer.xr.isPresenting) showToast('✨ Materializando La Barca de las Grullas...');
-    }
-
-    async function detectXRCapabilities() {
-      if (!navigator.xr) {
-        xrStatusBadge.textContent = 'Vista 3D · AR Cámara Disponible';
-        return;
-      }
-      const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
-      const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-      if (vrSupported && arSupported) xrStatusBadge.textContent = 'Meta Quest 3 · VR y AR Listos';
-      else if (arSupported) xrStatusBadge.textContent = 'WebXR AR (Suelo y Pared) Listo';
-      else if (vrSupported) xrStatusBadge.textContent = 'WebXR VR Listo · AR Cámara';
-      else xrStatusBadge.textContent = 'Vista 3D · AR Cámara Disponible';
-    }
-
-    function resetViewerPosition(notify = true) {
-      if (!isARModeActive) {
-        barcaAnchorGroup.position.set(0, 0, 0);
-        barcaAnchorGroup.rotation.set(0, 0, 0);
-      }
-      cameraRig.position.set(
-        SCULPTURE_CONFIG.positionX,
-        0,
-        SCULPTURE_CONFIG.positionZ + spawnDistance
-      );
-      cameraRig.rotation.set(0, 0, 0);
-      barcaAnchorGroup.scale.setScalar(arAnchorScale);
-
-      if (!renderer.xr.isPresenting) {
-        yaw = 0; pitch = 0;
-        gyroBaseYaw = null;
-        camera.position.set(0, 1.65, 0);
-        camera.rotation.set(0, 0, 0, 'YXZ');
-      }
-      if (notify) showToast('Posición centrada frente a la Barca');
-    }
-
-    function adjustARScale(delta) {
-      arAnchorScale = THREE.MathUtils.clamp(arAnchorScale + delta, 0.30, 1.80);
-      barcaAnchorGroup.scale.setScalar(arAnchorScale);
-      showToast(`Escala AR: ${Math.round(arAnchorScale * 100)}%`);
-    }
-
-    function rotateRigAroundHead(angle) {
-      renderer.xr.getCamera().getWorldPosition(_headBefore);
-      cameraRig.rotation.y += angle;
-      cameraRig.updateMatrixWorld(true);
-      renderer.xr.getCamera().getWorldPosition(_headAfter);
-      cameraRig.position.x += _headBefore.x - _headAfter.x;
-      cameraRig.position.z += _headBefore.z - _headAfter.z;
     }
 
     // =========================================================================
-    // 📱 AR CÁMARA EN VIVO + GIROSCOPIO (CELULAR iOS / ANDROID)
+    // 🥽 CONTROLES QUEST 3, AR CÁMARA CELULAR Y GIROSCOPIO
     // =========================================================================
+    function setupQuestControllersAndHands() {
+      const controllerModelFactory = new XRControllerModelFactory();
+      const handModelFactory = new XRHandModelFactory();
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -2.0)
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.45 });
+
+      for (let i = 0; i < 2; i++) {
+        const controller = renderer.xr.getController(i);
+        controller.add(new THREE.Line(lineGeo, lineMat));
+        controller.addEventListener('selectstart', () => {
+          unlockAndPlayAudio();
+          if (isARModeActive && isARPlacementMode) placeSceneAtDetectedSurface();
+        });
+        cameraRig.add(controller);
+
+        const grip = renderer.xr.getControllerGrip(i);
+        grip.add(controllerModelFactory.createControllerModel(grip));
+        cameraRig.add(grip);
+
+        const hand = renderer.xr.getHand(i);
+        hand.add(handModelFactory.createHandModel(hand, 'spheres'));
+        hand.addEventListener('pinchstart', () => {
+          unlockAndPlayAudio();
+          if (isARModeActive && isARPlacementMode) placeSceneAtDetectedSurface();
+        });
+        cameraRig.add(hand);
+      }
+    }
+
     function handleDeviceOrientation(e) {
       if (e.alpha === null || e.beta === null || e.gamma === null) return;
       latestDeviceOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
@@ -2263,7 +2299,16 @@
         barcaAnchorGroup.position.set(0, 0, 0);
         barcaAnchorGroup.rotation.set(0, 0, 0);
         barcaAnchorGroup.visible = true;
+        scaleReadout.textContent = '100%';
       }
+      updateContextUIForMode();
+    }
+
+    function updateContextUIForMode() {
+      btnExitAr.classList.toggle('hidden', !isARModeActive);
+      btnSwitchCam.classList.toggle('hidden', !isCameraARActive);
+      btnLeftLabel.textContent = isARModeActive ? 'Plano' : 'AR';
+      restoreStatusLabel();
     }
 
     async function startCameraStream(facingMode = 'environment') {
@@ -2271,17 +2316,17 @@
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('getUserMedia no disponible');
       }
-      const constraints = {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: facingMode },
-          width: { ideal: IS_MOBILE ? 960 : 1280 },
-          height: { ideal: IS_MOBILE ? 540 : 720 }
+          width: { ideal: IS_MOBILE ? 1280 : 1280 },
+          height: { ideal: IS_MOBILE ? 720 : 720 }
         },
         audio: false
-      };
-      cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      });
       arCameraFeed.srcObject = cameraStream;
       arCameraFeed.classList.add('active');
+      arCameraFeed.classList.toggle('mirrored', facingMode === 'user');
       await arCameraFeed.play();
     }
 
@@ -2291,38 +2336,39 @@
         cameraStream = null;
       }
       arCameraFeed.srcObject = null;
-      arCameraFeed.classList.remove('active');
+      arCameraFeed.classList.remove('active', 'mirrored');
     }
 
     async function startMobileCameraARMode() {
       loadingModal.classList.add('hidden');
+      experienceHud.classList.add('active');
       try {
         await startCameraStream(currentFacingMode);
         isCameraARActive = true;
         isARModeActive = true;
         applyTransparentARVisuals(true);
 
-        hudOverlay.classList.remove('active');
-        arHudOverlay.classList.add('active');
-        btnArSwitchCam.classList.remove('hidden');
-
-        arAnchorScale = 0.70;
+        arAnchorScale = 0.72;
         barcaAnchorGroup.scale.setScalar(arAnchorScale);
+        scaleReadout.textContent = `${Math.round(arAnchorScale * 100)}%`;
         resetViewerPosition(false);
 
-        // Si ya se materializó antes, dejar visible de inmediato; si es primera vez, permitir colocar o desplegar
         barcaAnchorGroup.visible = hasMaterializedOnce || hasPlacedInAR;
         setARPlacementMode(true);
-        showToast('📷 Apunta al suelo o a una pared y toca Colocar');
+        showToast('Apunta al suelo o a una pared para desplegar');
       } catch (err) {
         console.warn('No se pudo abrir la cámara AR:', err);
-        hudOverlay.classList.add('active');
-        arHudOverlay.classList.remove('active');
-        showToast('Permite el acceso a la cámara para usar AR');
+        isCameraARActive = false;
+        isARModeActive = false;
+        applyTransparentARVisuals(false);
+        setARPlacementMode(false);
+        triggerMaterializationOnce();
+        showToast('Permite acceso a la cámara para usar AR · Vista 3D activa');
       }
     }
 
     async function exitActiveARMode() {
+      if (isRecordingVideo) stopVideoRecording();
       const xrSession = renderer.xr.getSession();
       if (xrSession) {
         await xrSession.end().catch(() => {});
@@ -2335,22 +2381,17 @@
         stopCameraStream();
         disableGyroscope();
         applyTransparentARVisuals(false);
-        arHudOverlay.classList.remove('active');
-        btnArSwitchCam.classList.add('hidden');
-        hudOverlay.classList.add('active');
         resetViewerPosition(false);
         if (!hasMaterializedOnce) triggerMaterializationOnce();
-        showToast('Modo AR finalizado');
+        showToast('Vista 3D activa');
       }
     }
 
-    // =========================================================================
-    // 🥽 LANZADOR INTELIGENTE VR / AR (QUEST 3 + ARCORE + CELULAR CÁMARA)
-    // =========================================================================
     async function startARExperience() {
       unlockAndPlayAudio();
       const gyroPromise = enableGyroscopeIfAvailable();
       loadingModal.classList.add('hidden');
+      experienceHud.classList.add('active');
 
       if (navigator.xr) {
         const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
@@ -2360,7 +2401,6 @@
           return;
         }
       }
-
       await gyroPromise;
       await startMobileCameraARMode();
     }
@@ -2368,6 +2408,7 @@
     async function startXRSession(requestedMode = 'immersive-vr') {
       unlockAndPlayAudio();
       loadingModal.classList.add('hidden');
+      experienceHud.classList.add('active');
 
       if (isCameraARActive) {
         isCameraARActive = false;
@@ -2380,190 +2421,251 @@
           await startMobileCameraARMode();
           return;
         }
-        hudOverlay.classList.add('active');
+        setARPlacementMode(false);
         triggerMaterializationOnce();
-        showToast('WebXR no disponible · Modo 3D activo');
+        showToast('WebXR VR requiere navegador Quest 3 · Vista 3D activa');
         return;
       }
 
       try {
-        let mode = requestedMode;
-        let supported = await navigator.xr.isSessionSupported(mode).catch(() => false);
-
-        if (!supported && mode === 'immersive-ar') {
+        const supported = await navigator.xr.isSessionSupported(requestedMode).catch(() => false);
+        if (!supported && requestedMode === 'immersive-ar') {
           await enableGyroscopeIfAvailable();
           await startMobileCameraARMode();
           return;
         }
-
         if (!supported) {
-          hudOverlay.classList.add('active');
+          setARPlacementMode(false);
           triggerMaterializationOnce();
-          showToast('Abre este enlace desde Meta Quest Browser para VR');
+          showToast('Abre este enlace en Meta Quest 3 para modo VR');
           return;
         }
 
         const sessionInit = {
           optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
         };
-
-        if (mode === 'immersive-ar') {
+        if (requestedMode === 'immersive-ar') {
           sessionInit.optionalFeatures.push('hit-test', 'plane-detection', 'dom-overlay');
-          sessionInit.domOverlay = { root: arHudOverlay };
+          sessionInit.domOverlay = { root: experienceHud };
         }
 
-        const session = await navigator.xr.requestSession(mode, sessionInit);
-
+        const session = await navigator.xr.requestSession(requestedMode, sessionInit);
         renderer.xr.setReferenceSpaceType('local-floor');
         camera.position.set(0, 0, 0);
         camera.rotation.set(0, 0, 0);
-        cameraRig.position.set(SCULPTURE_CONFIG.positionX, 0, SCULPTURE_CONFIG.positionZ + spawnDistance);
+        cameraRig.position.set(0, 0, spawnDistance);
         cameraRig.rotation.set(0, 0, 0);
 
         xrHitTestSource = null;
-        xrHitTestRequested = false;
         xrRefSpace = null;
         xrNoHitElapsed = 0;
 
         await renderer.xr.setSession(session);
-        hudOverlay.classList.remove('active');
 
-        const isPassthrough = mode === 'immersive-ar' || session.environmentBlendMode === 'alpha-blend';
+        const isPassthrough = requestedMode === 'immersive-ar' || session.environmentBlendMode === 'alpha-blend';
         isARModeActive = isPassthrough;
         applyTransparentARVisuals(isPassthrough);
 
         if (isPassthrough) {
-          // Solicitar hit-test para detección simultánea de planos horizontales y verticales
           xrRefSpace = renderer.xr.getReferenceSpace();
           if (typeof session.requestHitTestSource === 'function') {
-            session.requestReferenceSpace('viewer').then((viewerSpace) => {
-              return session.requestHitTestSource({ space: viewerSpace });
-            }).then((source) => {
-              xrHitTestSource = source;
-            }).catch((err) => {
-              console.warn('Hit-test no disponible, usando respaldo:', err);
-            });
-            xrHitTestRequested = true;
+            session.requestReferenceSpace('viewer')
+              .then((viewerSpace) => session.requestHitTestSource({ space: viewerSpace }))
+              .then((source) => { xrHitTestSource = source; })
+              .catch(() => {});
           }
-
-          arAnchorScale = IS_QUEST ? 0.82 : 0.72;
+          arAnchorScale = IS_QUEST ? 0.80 : 0.72;
           barcaAnchorGroup.scale.setScalar(arAnchorScale);
+          scaleReadout.textContent = `${Math.round(arAnchorScale * 100)}%`;
           barcaAnchorGroup.visible = hasMaterializedOnce || hasPlacedInAR;
-
-          if (session.domOverlayState) {
-            arHudOverlay.classList.add('active');
-            btnArSwitchCam.classList.add('hidden');
-          }
+          experienceHud.classList.toggle('active', !!session.domOverlayState);
           setARPlacementMode(true);
         } else {
-          arHudOverlay.classList.remove('active');
+          experienceHud.classList.remove('active');
           setARPlacementMode(false);
           barcaAnchorGroup.visible = true;
-          // En VR, materializar SOLO la primera vez
           triggerMaterializationOnce();
         }
 
         session.addEventListener('end', () => {
-          if (xrHitTestSource) {
-            try { xrHitTestSource.cancel(); } catch (e) {}
-            xrHitTestSource = null;
-          }
-          xrHitTestRequested = false;
+          if (isRecordingVideo) stopVideoRecording();
+          if (xrHitTestSource) { try { xrHitTestSource.cancel(); } catch (e) {} xrHitTestSource = null; }
           xrRefSpace = null;
           clearDetectedPlaneMeshes();
           isARModeActive = false;
           setARPlacementMode(false);
           applyTransparentARVisuals(false);
-          arHudOverlay.classList.remove('active');
-          hudOverlay.classList.add('active');
+          experienceHud.classList.add('active');
           resetViewerPosition(false);
           if (!hasMaterializedOnce) triggerMaterializationOnce();
         });
       } catch (err) {
-        console.warn('Error al iniciar WebXR:', err);
         if (requestedMode === 'immersive-ar') {
           await enableGyroscopeIfAvailable();
           await startMobileCameraARMode();
         } else {
-          hudOverlay.classList.add('active');
+          setARPlacementMode(false);
           triggerMaterializationOnce();
-          showToast('No se pudo iniciar XR · Modo 3D activo');
+          showToast('No se pudo iniciar XR · Vista 3D activa');
         }
       }
     }
 
-    function setupUIAndDesktopControls() {
-      btnLaunchVRDirect.addEventListener('click', () => startXRSession('immersive-vr'));
+    function resetViewerPosition(notify = true) {
+      if (!isARModeActive) {
+        barcaAnchorGroup.position.set(0, 0, 0);
+        barcaAnchorGroup.rotation.set(0, 0, 0);
+      }
+      cameraRig.position.set(0, 0, spawnDistance);
+      cameraRig.rotation.set(0, 0, 0);
+      barcaAnchorGroup.scale.setScalar(arAnchorScale);
+      if (!renderer.xr.isPresenting) {
+        yaw = 0; pitch = 0; gyroBaseYaw = null;
+        camera.position.set(0, 1.65, 0);
+        camera.rotation.set(0, 0, 0, 'YXZ');
+      }
+      if (notify) showToast('Vista centrada hacia la travesía');
+    }
+
+    function adjustScale(delta) {
+      arAnchorScale = THREE.MathUtils.clamp(arAnchorScale + delta, 0.30, 1.80);
+      barcaAnchorGroup.scale.setScalar(arAnchorScale);
+      scaleReadout.textContent = `${Math.round(arAnchorScale * 100)}%`;
+    }
+
+    function toggleToolsDrawer(forceState) {
+      toolsDrawerOpen = typeof forceState === 'boolean' ? forceState : !toolsDrawerOpen;
+      quickToolsDrawer.classList.toggle('drawer-closed', !toolsDrawerOpen);
+    }
+
+    function rotateRigAroundHead(angle) {
+      renderer.xr.getCamera().getWorldPosition(_headBefore);
+      cameraRig.rotation.y += angle;
+      cameraRig.updateMatrixWorld(true);
+      renderer.xr.getCamera().getWorldPosition(_headAfter);
+      cameraRig.position.x += _headBefore.x - _headAfter.x;
+      cameraRig.position.z += _headBefore.z - _headAfter.z;
+    }
+
+    // =========================================================================
+    // 🎛️ EVENTOS DE INTERFAZ Y GESTOS TÁCTILES
+    // =========================================================================
+    function setupUIAndControls() {
       btnLaunchARDirect.addEventListener('click', startARExperience);
+      btnLaunchVRDirect.addEventListener('click', () => startXRSession('immersive-vr'));
       btnStartPreview.addEventListener('click', () => {
         unlockAndPlayAudio();
         loadingModal.classList.add('hidden');
-        hudOverlay.classList.add('active');
+        experienceHud.classList.add('active');
+        setARPlacementMode(false);
         barcaAnchorGroup.visible = true;
         triggerMaterializationOnce();
       });
 
-      btnToggleAudio.addEventListener('click', toggleAudioMute);
+      btnAudio.addEventListener('click', toggleAudioMute);
       btnFullscreen.addEventListener('click', toggleFullscreen);
-      btnEnterVR.addEventListener('click', () => startXRSession('immersive-vr'));
-      btnEnterAR.addEventListener('click', startARExperience);
-      btnResetView.addEventListener('click', () => resetViewerPosition(true));
-
-      // Controles AR (ninguno dispara rematerialización)
-      btnArPlace.addEventListener('click', () => {
-        unlockAndPlayAudio();
-        placeSceneAtDetectedSurface();
-      });
-      btnArToggleScan.addEventListener('click', () => {
-        setARPlacementMode(!isARPlacementMode);
-      });
-      btnArAudio.addEventListener('click', toggleAudioMute);
-      btnArFullscreen.addEventListener('click', toggleFullscreen);
       btnExitAr.addEventListener('click', exitActiveARMode);
-      btnArScaleDown.addEventListener('click', () => adjustARScale(-0.12));
-      btnArScaleUp.addEventListener('click', () => adjustARScale(0.12));
-      btnArSwitchCam.addEventListener('click', async () => {
+
+      btnSwitchCam.addEventListener('click', async () => {
         if (!isCameraARActive) return;
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
         try {
           await startCameraStream(currentFacingMode);
-          showToast(currentFacingMode === 'environment' ? 'Cámara trasera activa' : 'Cámara frontal activa');
+          showToast(currentFacingMode === 'environment' ? 'Cámara trasera' : 'Cámara frontal');
         } catch (err) {
           showToast('No se pudo cambiar de cámara');
         }
       });
 
-      const bindZoomButton = (btn, dir) => {
+      btnArPlace.addEventListener('click', () => {
+        unlockAndPlayAudio();
+        placeSceneAtDetectedSurface();
+      });
+      btnArCancelPlace.addEventListener('click', () => setARPlacementMode(false));
+
+      btnLeftContext.addEventListener('click', () => {
+        if (isARModeActive) setARPlacementMode(!isARPlacementMode);
+        else startARExperience();
+      });
+
+      modePhotoBtn.addEventListener('click', () => setCaptureMode('photo'));
+      modeVideoBtn.addEventListener('click', () => setCaptureMode('video'));
+      shutterBtn.addEventListener('click', () => {
+        if (captureMode === 'photo') capturePhoto();
+        else if (isRecordingVideo) stopVideoRecording();
+        else startVideoRecording();
+      });
+
+      btnToggleTools.addEventListener('click', () => toggleToolsDrawer());
+      btnScaleDown.addEventListener('click', () => adjustScale(-0.10));
+      btnScaleUp.addEventListener('click', () => adjustScale(0.10));
+      btnRecenter.addEventListener('click', () => resetViewerPosition(true));
+      btnSwitchVr.addEventListener('click', () => startXRSession('immersive-vr'));
+
+      btnLastCapture.addEventListener('click', () => {
+        if (lastCapture) captureModal.classList.remove('hidden');
+      });
+      btnCloseCapture.addEventListener('click', () => {
+        captureModal.classList.add('hidden');
+        previewVideo.pause();
+      });
+      btnSaveDevice.addEventListener('click', saveCaptureToPhone);
+      btnShareDevice.addEventListener('click', shareCaptureToGallery);
+
+      const bindMoveBtn = (btn, dir) => {
         btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.classList.add('pressing'); moveButtonDir = dir; });
-        const stopPress = () => { btn.classList.remove('pressing'); moveButtonDir = 0; };
-        btn.addEventListener('pointerup', stopPress);
-        btn.addEventListener('pointerleave', stopPress);
-        btn.addEventListener('pointercancel', stopPress);
+        const stop = () => { btn.classList.remove('pressing'); moveButtonDir = 0; };
+        btn.addEventListener('pointerup', stop);
+        btn.addEventListener('pointerleave', stop);
+        btn.addEventListener('pointercancel', stop);
       };
-      bindZoomButton(btnStepForward, 1);
-      bindZoomButton(btnStepBack, -1);
-      bindZoomButton(btnArForward, 1);
-      bindZoomButton(btnArBack, -1);
+      bindMoveBtn(btnMoveForward, 1);
+      bindMoveBtn(btnMoveBack, -1);
 
       window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = true; });
       window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k in keysPressed) keysPressed[k] = false; });
 
+      // Arrastre 1 dedo + Pellizco 2 dedos para escala natural
       const viewport = document.getElementById('webgl-viewport');
       viewport.addEventListener('pointerdown', (e) => {
-        isPointerDown = true;
-        prevPointerX = e.clientX;
-        prevPointerY = e.clientY;
+        isPointerDown = true; prevPointerX = e.clientX; prevPointerY = e.clientY;
         if (!audioStarted && !isAudioMuted) unlockAndPlayAudio();
+        if (toolsDrawerOpen) toggleToolsDrawer(false);
       });
       window.addEventListener('pointermove', (e) => {
         if (!isPointerDown || renderer.xr.isPresenting) return;
         const dx = e.clientX - prevPointerX, dy = e.clientY - prevPointerY;
         prevPointerX = e.clientX; prevPointerY = e.clientY;
         yaw -= dx * 0.0045;
-        pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -1.0, 1.0);
+        pitch = THREE.MathUtils.clamp(pitch - dy * 0.0045, -0.95, 0.95);
         if (!gyroEnabled) camera.rotation.set(pitch, yaw, 0, 'YXZ');
       });
       window.addEventListener('pointerup', () => { isPointerDown = false; });
+
+      viewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          isPointerDown = false;
+          pinchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          pinchStartScale = arAnchorScale;
+        }
+      }, { passive: true });
+
+      viewport.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && pinchStartDist > 0) {
+          const d = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          arAnchorScale = THREE.MathUtils.clamp(pinchStartScale * (d / pinchStartDist), 0.30, 1.80);
+          barcaAnchorGroup.scale.setScalar(arAnchorScale);
+          scaleReadout.textContent = `${Math.round(arAnchorScale * 100)}%`;
+        }
+      }, { passive: true });
+
+      viewport.addEventListener('touchend', () => { pinchStartDist = 0; }, { passive: true });
     }
 
     function updateVRLocomotion(dt) {
@@ -2584,17 +2686,14 @@
         const stickY = axes.length >= 4 ? axes[3] : (axes[1] || 0);
 
         if (source.handedness === 'left') {
-          const speed = 2.4;
-          if (Math.abs(stickY) > 0.15) cameraRig.position.addScaledVector(_xrForward, -stickY * speed * dt);
-          if (Math.abs(stickX) > 0.15) cameraRig.position.addScaledVector(_xrRight, stickX * speed * dt);
+          if (Math.abs(stickY) > 0.15) cameraRig.position.addScaledVector(_xrForward, -stickY * 2.4 * dt);
+          if (Math.abs(stickX) > 0.15) cameraRig.position.addScaledVector(_xrRight, stickX * 2.4 * dt);
           const xP = !!(buttons[4] && buttons[4].pressed);
           const yP = !!(buttons[5] && buttons[5].pressed);
-          // Botón X: en AR activa/desactiva reubicación en plano (nunca rematerializa)
           if (xP && !prevButtons.leftX && isARModeActive) setARPlacementMode(!isARPlacementMode);
           if (yP && !prevButtons.leftY) resetViewerPosition(false);
           prevButtons.leftX = xP; prevButtons.leftY = yP;
         }
-
         if (source.handedness === 'right') {
           if (Math.abs(stickX) > 0.65 && snapTurnReady) {
             rotateRigAroundHead(stickX > 0 ? -THREE.MathUtils.degToRad(30) : THREE.MathUtils.degToRad(30));
@@ -2631,57 +2730,83 @@
       if (keysPressed.a) cameraRig.position.addScaledVector(_xrRight, -speed * dt);
     }
 
-    function applyWaterBobbingToGroup(group, bx, by, bz, timeSec, phaseOffset) {
-      sampleRiverHeightAndSlopeJS(bx, bz, timeSec, _waveSample);
-      group.position.set(
-        bx + Math.sin(timeSec * 0.44 + phaseOffset) * 0.04,
-        by + _waveSample.h * 0.72 + Math.sin(timeSec * 0.82 + phaseOffset) * 0.02,
-        bz + Math.cos(timeSec * 0.38 + phaseOffset) * 0.04
-      );
-      group.rotation.z = THREE.MathUtils.clamp(-_waveSample.sx * 0.28, -0.075, 0.075);
-      group.rotation.x = THREE.MathUtils.clamp(_waveSample.sz * 0.28, -0.075, 0.075);
-    }
+    // =========================================================================
+    // 🚣 ACTUALIZACIÓN DE TRAVESÍA DE LAS 9 BARCAS (CERO ALLOCS POR FRAME)
+    // =========================================================================
+    const headingOffsetRad = THREE.MathUtils.degToRad(SCULPTURE_CONFIG.headingOffsetDeg);
 
-    // Actualiza todas las 12 barcas en InstancedMesh con 0 asignaciones de memoria
-    function updateInstancedFleetBobbing(timeSec) {
+    function updateConvoyNavigation(dt, timeSec) {
+      if (convoyBoats.length === 0) return;
+      convoyElapsedTime += dt;
+
       const primCount = fleetInstancedPrimitives.length;
-      if (primCount === 0) return;
 
-      for (let i = 0; i < fleetData.length; i++) {
-        const d = fleetData[i];
-        sampleRiverHeightAndSlopeJS(d.baseX, d.baseZ, timeSec, _waveSample);
+      for (let i = 0; i < convoyBoats.length; i++) {
+        const b = convoyBoats[i];
+        const cfg = b.cfg;
 
-        // Transformación de bobbing (equivalente a bobGroup)
-        _dummyObj.position.set(
-          d.baseX + Math.sin(timeSec * 0.44 + d.phase) * 0.04,
-          d.baseY + _waveSample.h * 0.72 + Math.sin(timeSec * 0.82 + d.phase) * 0.02,
-          d.baseZ + Math.cos(timeSec * 0.38 + d.phase) * 0.04
-        );
-        _dummyObj.rotation.set(
-          THREE.MathUtils.clamp(_waveSample.sz * 0.28, -0.075, 0.075),
-          0,
-          THREE.MathUtils.clamp(-_waveSample.sx * 0.28, -0.075, 0.075)
-        );
-        _dummyObj.scale.set(1, 1, 1);
-        _dummyObj.updateMatrix();
-        _boatMat.copy(_dummyObj.matrix);
+        // Progreso cíclico suave de un extremo al otro del escenario
+        const u = (cfg.uStart + convoyElapsedTime * cfg.speed) % 1.0;
+        const uNext = Math.min(0.9995, u + 0.003);
 
-        // Transformación de pivote (giro + escala relativa)
-        _dummyObj.position.set(0, 0, 0);
-        _dummyObj.rotation.set(0, d.yawRad, 0);
-        _dummyObj.scale.setScalar(d.scaleMul);
-        _dummyObj.updateMatrix();
-        _pivotMat.multiplyMatrices(_boatMat, _dummyObj.matrix);
+        evaluateConvoyPosition(u, cfg, _pathSampleA);
+        evaluateConvoyPosition(uNext, cfg, _pathSampleB);
 
-        for (let p = 0; p < primCount; p++) {
-          const prim = fleetInstancedPrimitives[p];
-          _instanceMat.multiplyMatrices(_pivotMat, prim.localMatrix);
-          prim.instancedMesh.setMatrixAt(i, _instanceMat);
+        const dx = _pathSampleB.x - _pathSampleA.x;
+        const dz = _pathSampleB.z - _pathSampleA.z;
+        const heading = Math.atan2(dx, dz) + headingOffsetRad;
+
+        // Aparición y desaparición suave en los bordes lejanos del río
+        const edgeFade = smoothstepJS(0.0, 0.08, u) * smoothstepJS(1.0, 0.92, u);
+        const finalScale = Math.max(0.0001, cfg.scaleMul * edgeFade);
+
+        // Oscilación hidrodinámica sincronizada con el agua
+        sampleRiverHeightAndSlopeJS(_pathSampleA.x, _pathSampleA.z, timeSec, _waveSample);
+        const by = _waveSample.h * 0.72 + Math.sin(timeSec * 0.85 + b.phase) * 0.022;
+        const roll = THREE.MathUtils.clamp(-_waveSample.sx * 0.26, -0.07, 0.07);
+        const pitchBoat = THREE.MathUtils.clamp(_waveSample.sz * 0.26, -0.07, 0.07);
+
+        b.curX = _pathSampleA.x;
+        b.curY = by;
+        b.curZ = _pathSampleA.z;
+        b.curYaw = heading;
+        b.curPitch = pitchBoat;
+        b.curRoll = roll;
+        b.curScale = finalScale;
+
+        // Pasar posición y visibilidad al shader del agua para estelas dinámicas
+        _boatWakeArray[i].set(b.curX, b.curZ, edgeFade * (hasMaterializedOnce ? 1.0 : b.progress));
+
+        if (usingInstancedFleet && primCount > 0) {
+          _dummyObj.position.set(b.curX, b.curY, b.curZ);
+          _dummyObj.rotation.set(b.curPitch, 0, b.curRoll);
+          _dummyObj.scale.set(1, 1, 1);
+          _dummyObj.updateMatrix();
+          _boatMat.copy(_dummyObj.matrix);
+
+          _dummyObj.position.set(0, 0, 0);
+          _dummyObj.rotation.set(0, b.curYaw, 0);
+          _dummyObj.scale.setScalar(b.curScale);
+          _dummyObj.updateMatrix();
+          _pivotMat.multiplyMatrices(_boatMat, _dummyObj.matrix);
+
+          for (let p = 0; p < primCount; p++) {
+            const prim = fleetInstancedPrimitives[p];
+            _instanceMat.multiplyMatrices(_pivotMat, prim.localMatrix);
+            prim.instancedMesh.setMatrixAt(i, _instanceMat);
+          }
+        } else {
+          b.group.position.set(b.curX, b.curY, b.curZ);
+          b.group.rotation.set(b.curPitch, 0, b.curRoll);
+          b.pivot.rotation.y = b.curYaw;
+          b.pivot.scale.setScalar(b.curScale);
         }
       }
 
-      for (let p = 0; p < primCount; p++) {
-        fleetInstancedPrimitives[p].instancedMesh.instanceMatrix.needsUpdate = true;
+      if (usingInstancedFleet && primCount > 0) {
+        for (let p = 0; p < primCount; p++) {
+          fleetInstancedPrimitives[p].instancedMesh.instanceMatrix.needsUpdate = true;
+        }
       }
     }
 
@@ -2696,55 +2821,35 @@
       } else {
         if (gyroEnabled) updateCameraFromGyro();
         updateDesktopMovement(dt);
-        if (isCameraARActive && isARPlacementMode) {
-          updateFallbackSurfaceEstimate(false);
-        }
+        if (isCameraARActive && isARPlacementMode) updateFallbackSurfaceEstimate(false);
       }
 
       if (waterUniforms) waterUniforms.uTime.value = timeSec;
       if (firefliesMaterial) firefliesMaterial.uniforms.uTime.value = timeSec;
 
-      // Oscilación de barcas: InstancedMesh optimizado tras materialización o grupos individuales durante la materialización inicial
-      if (usingInstancedFleet) {
-        if (boatControllers.length > 0) {
-          const mainB = boatControllers[0];
-          applyWaterBobbingToGroup(mainB.group, mainB.baseX, mainB.baseY, mainB.baseZ, timeSec, mainB.phase);
-        }
-        updateInstancedFleetBobbing(timeSec);
-      } else {
-        for (let i = 0; i < boatControllers.length; i++) {
-          const b = boatControllers[i];
-          applyWaterBobbingToGroup(b.group, b.baseX, b.baseY, b.baseZ, timeSec, b.phase);
-        }
-      }
+      updateConvoyNavigation(dt, timeSec);
 
-      // Materialización única con partículas (cuando termina, libera recursos y no vuelve a ejecutarse)
+      // Materialización única mientras las 9 barcas ya navegan
       if (isMaterializing) {
         materializationElapsed += dt;
         let allDone = true;
-        let mainProg = 0;
-        let fleetProgSum = 0;
-        let fleetCount = 0;
-
-        const anchorY = barcaAnchorGroup.position.y;
+        let progSum = 0;
         const anchorScaleY = barcaAnchorGroup.scale.y;
 
-        for (let i = 0; i < boatControllers.length; i++) {
-          const b = boatControllers[i];
-          if (b.done) {
-            if (b.isMain) mainProg = 1.0;
-            else { fleetProgSum += 1.0; fleetCount++; }
-            continue;
-          }
+        for (let i = 0; i < convoyBoats.length; i++) {
+          const b = convoyBoats[i];
+          if (b.done) { progSum += 1.0; continue; }
 
           const localT = (materializationElapsed - b.delay) / b.duration;
+          b.group.getWorldPosition(_tmpWorldPos);
+          const effScale = b.curScale * anchorScaleY;
+
           if (localT <= 0) {
             allDone = false;
             b.progress = 0.0;
-            b.clippingPlane.constant = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY - 0.1;
+            b.clippingPlane.constant = _tmpWorldPos.y + localBoundsMinY * effScale - 0.1;
             b.particleMat.uniforms.uTime.value = timeSec;
             b.particleMat.uniforms.uProgress.value = 0.0;
-            if (!b.isMain) fleetCount++;
             continue;
           }
 
@@ -2754,56 +2859,35 @@
             b.clippingPlane.constant = 1000;
             b.particleMat.uniforms.uProgress.value = 1.0;
             b.particles.visible = false;
-            if (b.isMain) {
-              mainProg = 1.0;
-              magicWaveLight.intensity = 0;
-            } else {
-              fleetProgSum += 1.0;
-              fleetCount++;
-            }
+            progSum += 1.0;
             continue;
           }
 
           allDone = false;
           const eased = localT * localT * (3.0 - 2.0 * localT);
           b.progress = eased;
+          progSum += eased;
 
-          const worldMinY = anchorY + (b.group.position.y + localBoundsMinY * b.scaleMul) * anchorScaleY;
-          const worldMaxY = anchorY + (b.group.position.y + (localBoundsMaxY + 0.18) * b.scaleMul) * anchorScaleY;
-          const currentRevealY = THREE.MathUtils.lerp(worldMinY, worldMaxY, eased);
-
-          b.clippingPlane.constant = currentRevealY;
+          const worldMinY = _tmpWorldPos.y + localBoundsMinY * effScale;
+          const worldMaxY = _tmpWorldPos.y + (localBoundsMaxY + 0.18) * effScale;
+          b.clippingPlane.constant = THREE.MathUtils.lerp(worldMinY, worldMaxY, eased);
           b.particleMat.uniforms.uTime.value = timeSec;
           b.particleMat.uniforms.uProgress.value = eased;
-
-          if (b.isMain) {
-            mainProg = eased;
-            magicWaveLight.position.set(
-              b.group.position.x,
-              b.group.position.y + THREE.MathUtils.lerp(localBoundsMinY, localBoundsMaxY, eased),
-              b.group.position.z
-            );
-            magicWaveLight.intensity = Math.sin(localT * Math.PI) * 2.6;
-          } else {
-            fleetProgSum += eased;
-            fleetCount++;
-          }
         }
 
-        const fleetAvg = fleetCount > 0 ? (fleetProgSum / fleetCount) : 1.0;
-        currentRevealAudioFactor = mainProg * 0.48 + fleetAvg * 0.52;
+        currentRevealAudioFactor = progSum / Math.max(1, convoyBoats.length);
 
         if (allDone) {
           isMaterializing = false;
           hasMaterializedOnce = true;
           currentRevealAudioFactor = 1.0;
-          finalizeAndOptimizeFleet();
+          finalizeAndOptimizeConvoy();
         }
       } else if (hasMaterializedOnce) {
         currentRevealAudioFactor = 1.0;
       }
 
-      // Envolvente de audio sincronizada
+      // Envolvente de audio sincronizada con las barcas
       if (ambientAudioEl) {
         const targetGain = isAudioMuted
           ? 0.0
@@ -2819,6 +2903,11 @@
       }
 
       renderer.render(scene, camera);
+
+      // Si está grabando video, componer cada cuadro (cámara real + WebGL) justo después del render
+      if (isRecordingVideo) {
+        compositeCurrentFrameToCaptureCanvas();
+      }
     }
   </script>
 </body>

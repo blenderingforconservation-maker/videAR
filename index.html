@@ -9,12 +9,13 @@
   <style>
     :root {
       --bg-deep: #02060e;
-      --glass-bg: rgba(5, 13, 25, 0.56);
+      --glass-bg: rgba(5, 13, 25, 0.62);
+      --glass-border: rgba(114, 212, 255, 0.28);
       --blue-core: #2eb4ff;
       --blue-bright: #8ee0ff;
       --gold: #f0d08a;
       --text-main: #eef6ff;
-      --text-soft: rgba(196, 224, 248, 0.68);
+      --text-soft: rgba(196, 224, 248, 0.72);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,8 +49,7 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: clamp(26px, 5vh, 52px) 20px clamp(30px, 6vh, 58px);
-      /* Viñeta translúcida: deja ver el wireframe azul 2D en el centro y lo desvanece en los bordes */
+      padding: clamp(24px, 5vh, 52px) 20px clamp(28px, 6vh, 56px);
       background:
         radial-gradient(ellipse 68% 54% at 50% 48%,
           rgba(6, 20, 42, 0.08) 0%,
@@ -64,7 +64,6 @@
       pointer-events: none;
     }
 
-    /* Encabezado minimalista */
     .intro-header {
       display: flex;
       flex-direction: column;
@@ -79,7 +78,7 @@
       letter-spacing: 0.34em;
       text-transform: uppercase;
       color: var(--blue-bright);
-      opacity: 0.78;
+      opacity: 0.8;
     }
 
     .hero-title {
@@ -97,7 +96,7 @@
       width: 140px;
       height: 1px;
       position: relative;
-      background: linear-gradient(90deg, transparent, rgba(110, 212, 255, 0.7), transparent);
+      background: linear-gradient(90deg, transparent, rgba(110, 212, 255, 0.72), transparent);
       margin-top: 2px;
     }
 
@@ -113,7 +112,6 @@
       box-shadow: 0 0 10px var(--gold);
     }
 
-    /* Hilo de carga ultralimpio mientras llega barcagrullas.glb */
     .load-track {
       width: 140px;
       height: 2px;
@@ -124,9 +122,7 @@
       transition: opacity 0.5s ease;
     }
 
-    .load-track.done {
-      opacity: 0;
-    }
+    .load-track.done { opacity: 0; }
 
     .load-fill {
       width: 18%;
@@ -136,7 +132,7 @@
       transition: width 0.25s ease;
     }
 
-    /* Contenedor de los 3 botones flotantes modernos y místicos */
+    /* 3 botones circulares flotantes modernos y místicos */
     .orbs-dock {
       display: flex;
       align-items: center;
@@ -152,7 +148,7 @@
       border-radius: 50%;
       border: 1px solid rgba(114, 212, 255, 0.34);
       background:
-        radial-gradient(circle at 32% 24%, rgba(56, 188, 255, 0.20) 0%, rgba(5, 14, 30, 0.72) 64%, rgba(3, 8, 18, 0.88) 100%);
+        radial-gradient(circle at 32% 24%, rgba(56, 188, 255, 0.22) 0%, rgba(5, 14, 30, 0.74) 64%, rgba(3, 8, 18, 0.90) 100%);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       color: var(--text-main);
@@ -168,14 +164,9 @@
         0 0 26px rgba(46, 180, 255, 0.14),
         inset 0 0 18px rgba(46, 180, 255, 0.12);
       animation: levitate 5.4s ease-in-out infinite;
-      transition:
-        border-color 0.35s ease,
-        box-shadow 0.35s ease,
-        opacity 0.35s ease,
-        filter 0.35s ease;
+      transition: border-color 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease, filter 0.35s ease;
     }
 
-    /* Flotación asíncrona sutil */
     .mystic-orb:nth-child(1) { animation-delay: 0s; }
     .mystic-orb:nth-child(2) { animation-delay: -1.8s; }
     .mystic-orb:nth-child(3) { animation-delay: -3.5s; }
@@ -185,7 +176,6 @@
       50%      { transform: translateY(-8px); }
     }
 
-    /* Aro astral exterior giratorio */
     .mystic-orb::before {
       content: "";
       position: absolute;
@@ -194,10 +184,9 @@
       border: 1px dashed rgba(124, 216, 255, 0.32);
       pointer-events: none;
       animation: orbitRotate 22s linear infinite;
-      transition: border-color 0.35s ease, transform 0.35s ease;
+      transition: border-color 0.35s ease;
     }
 
-    /* Halo interior dorado/azul sutil */
     .mystic-orb::after {
       content: "";
       position: absolute;
@@ -213,7 +202,6 @@
       to   { transform: rotate(360deg); }
     }
 
-    /* Destello en hover / foco */
     .mystic-orb:not(:disabled):hover,
     .mystic-orb:not(:disabled):focus-visible {
       border-color: rgba(142, 224, 255, 0.92);
@@ -224,7 +212,7 @@
     }
 
     .mystic-orb:not(:disabled):hover::before {
-      border-color: rgba(240, 208, 138, 0.62);
+      border-color: rgba(240, 208, 138, 0.64);
       animation-duration: 9s;
     }
 
@@ -232,9 +220,7 @@
       border-color: rgba(240, 208, 138, 0.55);
     }
 
-    .mystic-orb:not(:disabled):active {
-      filter: brightness(1.22);
-    }
+    .mystic-orb:not(:disabled):active { filter: brightness(1.22); }
 
     .mystic-orb:disabled {
       opacity: 0.34;
@@ -265,7 +251,7 @@
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: #f4f7fb;
-      padding-left: 0.22em; /* Compensa el letter-spacing para centrado óptico */
+      padding-left: 0.22em;
     }
 
     .orb-dot {
@@ -274,7 +260,6 @@
       border-radius: 50%;
       background: var(--gold);
       box-shadow: 0 0 8px var(--gold);
-      opacity: 0.9;
     }
 
     .mystic-orb:disabled .orb-dot {
@@ -283,7 +268,7 @@
     }
 
     /* =====================================================================
-       HUD MINIMALISTA DENTRO DE LA EXPERIENCIA (Compatible AR dom-overlay)
+       HUD EN EXPERIENCIA + PANEL DE CALIBRACIÓN DEL CIELO GALÁCTICO
        ===================================================================== */
     #hud {
       position: fixed;
@@ -310,19 +295,28 @@
       align-items: flex-start;
       gap: 10px;
       flex-wrap: wrap;
+      position: relative;
+    }
+
+    .top-right-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      pointer-events: auto;
     }
 
     .top-actions {
       display: flex;
       gap: 8px;
-      pointer-events: auto;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .status-pill {
       pointer-events: auto;
       background: var(--glass-bg);
-      border: 1px solid rgba(114, 212, 255, 0.28);
+      border: 1px solid var(--glass-border);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-radius: 999px;
@@ -356,6 +350,134 @@
       50%      { transform: scale(1.28); opacity: 1.0; }
     }
 
+    .xr-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+    }
+
+    .xr-btn:hover {
+      background: rgba(46, 180, 255, 0.18);
+      border-color: var(--blue-bright);
+    }
+
+    .xr-btn:active { transform: scale(0.96); }
+    .xr-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* Panel flotante discreto de calibración del cielo */
+    #sky-panel {
+      width: min(268px, 86vw);
+      background: rgba(4, 11, 23, 0.78);
+      border: 1px solid rgba(114, 212, 255, 0.34);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55), 0 0 22px rgba(46, 180, 255, 0.12);
+      transform-origin: top right;
+      transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+    }
+
+    #sky-panel.closed {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(-6px) scale(0.97);
+    }
+
+    .sky-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(114, 212, 255, 0.16);
+    }
+
+    .sky-panel-title {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .sky-reset-btn {
+      background: none;
+      border: none;
+      color: var(--blue-bright);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    .sky-reset-btn:hover { opacity: 1; text-decoration: underline; }
+
+    .sky-control {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .sky-control-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .sky-control-val {
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+    }
+
+    .sky-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(114, 212, 255, 0.22);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .sky-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue-bright);
+      border: 2px solid #040c18;
+      box-shadow: 0 0 10px var(--blue-core);
+      cursor: pointer;
+    }
+
+    .sky-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue-bright);
+      border: 2px solid #040c18;
+      box-shadow: 0 0 10px var(--blue-core);
+      cursor: pointer;
+    }
+
     .hud-bottom {
       display: flex;
       flex-direction: column;
@@ -373,36 +495,11 @@
       letter-spacing: 0.03em;
       color: var(--text-soft);
       text-align: center;
-      max-width: 90vw;
-    }
-
-    .xr-btn {
-      background: var(--glass-bg);
-      border: 1px solid rgba(114, 212, 255, 0.28);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: var(--text-main);
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-    }
-
-    .xr-btn:hover {
-      background: rgba(46, 180, 255, 0.18);
-      border-color: var(--blue-bright);
-    }
-
-    .xr-btn:active { transform: scale(0.96); }
-    .xr-btn.active {
-      border-color: var(--gold);
-      color: var(--gold);
+      max-width: 92vw;
     }
   </style>
 
+  <!-- Three.js r160 vía jsdelivr -->
   <script type="importmap">
     {
       "imports": {
@@ -415,7 +512,7 @@
 <body>
 
   <!-- =====================================================================
-       PORTADA GRÁFICA MINIMALISTA (SIN TEXTOS ABRUMADORES)
+       1. PORTADA GRÁFICA MINIMALISTA (WIREFRAME 2D + 3 MEDALLONES MÍSTICOS)
        ===================================================================== -->
   <section id="intro-screen" aria-label="Inicio — La Barca de las Grullas">
     <header class="intro-header">
@@ -428,7 +525,6 @@
     </header>
 
     <nav class="orbs-dock" aria-label="Modos de experiencia">
-      <!-- Botón flotante AR -->
       <button id="orb-ar" class="mystic-orb" disabled aria-label="Entrar en Realidad Aumentada" title="Realidad Aumentada">
         <svg class="orb-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M4 8V6a2 2 0 0 1 2-2h2M20 8V6a2 2 0 0 0-2-2h-2M4 16v2a2 2 0 0 0 2 2h2M20 16v2a2 2 0 0 1-2 2h-2"/>
@@ -439,7 +535,6 @@
         <span class="orb-dot" aria-hidden="true"></span>
       </button>
 
-      <!-- Botón flotante VR -->
       <button id="orb-vr" class="mystic-orb" disabled aria-label="Entrar en Realidad Virtual" title="Realidad Virtual">
         <svg class="orb-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="2.5" y="7" width="19" height="10" rx="3.4"/>
@@ -451,7 +546,6 @@
         <span class="orb-dot" aria-hidden="true"></span>
       </button>
 
-      <!-- Botón flotante 3D Web -->
       <button id="orb-web" class="mystic-orb" disabled aria-label="Entrar en 3D Web" title="3D Web">
         <svg class="orb-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="8.8"/>
@@ -465,7 +559,7 @@
   </section>
 
   <!-- =====================================================================
-       HUD EN EXPERIENCIA
+       HUD EN EXPERIENCIA + CALIBRADOR EN VIVO DEL CIELO GALÁCTICO
        ===================================================================== -->
   <div id="hud">
     <div class="hud-top">
@@ -473,15 +567,51 @@
         <span id="status-dot" class="status-dot"></span>
         <span id="state-label">Materializando...</span>
       </div>
-      <div class="top-actions">
-        <button id="btn-modes" class="xr-btn">Inicio</button>
-        <button id="btn-audio" class="xr-btn active">Audio: ON</button>
-        <button id="btn-fullscreen" class="xr-btn">Pantalla completa</button>
+
+      <div class="top-right-wrap">
+        <div class="top-actions">
+          <button id="btn-modes" class="xr-btn">Inicio</button>
+          <button id="btn-sky" class="xr-btn">Cielo</button>
+          <button id="btn-audio" class="xr-btn active">Audio: ON</button>
+          <button id="btn-fullscreen" class="xr-btn">Pantalla completa</button>
+        </div>
+
+        <!-- Panel compacto de prueba para calibrar el cielo galáctico procedural -->
+        <aside id="sky-panel" class="closed" aria-label="Calibración del cielo galáctico">
+          <div class="sky-panel-head">
+            <span class="sky-panel-title">Cielo Procedural GLSL</span>
+            <button id="btn-sky-reset" class="sky-reset-btn">Restablecer</button>
+          </div>
+
+          <label class="sky-control">
+            <div class="sky-control-row">
+              <span>Brillo Galaxias</span>
+              <span id="val-galaxy" class="sky-control-val">1.15</span>
+            </div>
+            <input id="slider-galaxy" class="sky-slider" type="range" min="0.30" max="2.40" step="0.05" value="1.15" />
+          </label>
+
+          <label class="sky-control">
+            <div class="sky-control-row">
+              <span>Densidad Nebulosa</span>
+              <span id="val-nebula" class="sky-control-val">1.10</span>
+            </div>
+            <input id="slider-nebula" class="sky-slider" type="range" min="0.20" max="2.20" step="0.05" value="1.10" />
+          </label>
+
+          <label class="sky-control">
+            <div class="sky-control-row">
+              <span>Rotación del Cielo</span>
+              <span id="val-rot" class="sky-control-val">0.35×</span>
+            </div>
+            <input id="slider-rot" class="sky-slider" type="range" min="0.00" max="3.00" step="0.05" value="0.35" />
+          </label>
+        </aside>
       </div>
     </div>
 
     <div class="hud-bottom">
-      <div id="hint">Toca una barca para abordar</div>
+      <div id="hint">Arrastra 360° (mira arriba para ver las galaxias) · Toca una barca para abordar</div>
     </div>
   </div>
 
@@ -492,7 +622,7 @@
     import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
     // =========================================================================
-    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + CONFIGURACIÓN CALIBRADA
+    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + PARÁMETROS CALIBRADOS
     // =========================================================================
     const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main';
 
@@ -533,6 +663,12 @@
       flashPeakDuration: 0.55
     };
 
+    const SKY_DEFAULTS = {
+      galaxyIntensity: 1.15,
+      nebulaRichness: 1.10,
+      rotationSpeed: 0.35
+    };
+
     // =========================================================================
     // BLOQUE 2: RENDERIZADOR, ESCENA E ILUMINACIÓN
     // =========================================================================
@@ -544,15 +680,15 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.10;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const INTRO_BG = new THREE.Color(0x020712);
-    const NIGHT_BG = new THREE.Color(0x040a13);
-    const NIGHT_FOG = new THREE.FogExp2(0x050e1a, 0.0085);
+    const INTRO_BG = new THREE.Color(0x02060e);
+    const NIGHT_BG = new THREE.Color(0x020610);
+    const NIGHT_FOG = new THREE.FogExp2(0x050e1c, 0.0072);
     scene.background = INTRO_BG;
     scene.fog = null;
 
@@ -560,11 +696,12 @@
     playerRig.position.copy(CONFIG.originPosition);
     scene.add(playerRig);
 
+    // Far ampliado a 340 para alojar el domo galáctico de radio 210 sin recortes
     const camera = new THREE.PerspectiveCamera(
       62,
       window.innerWidth / window.innerHeight,
       0.1,
-      260
+      340
     );
     camera.position.set(0, CONFIG.defaultEyeHeight, 0);
     playerRig.add(camera);
@@ -583,14 +720,15 @@
     portalFlashMesh.visible = false;
     camera.add(portalFlashMesh);
 
-    const hemiLight = new THREE.HemisphereLight(0x8bb6dd, 0x1c2e42, 1.38);
+    // Iluminación complementaria al entorno IBL procedural del cielo galáctico
+    const hemiLight = new THREE.HemisphereLight(0x88b4e0, 0x162438, 0.95);
     scene.add(hemiLight);
 
-    const moonLight = new THREE.DirectionalLight(0xd9ecff, 1.48);
+    const moonLight = new THREE.DirectionalLight(0xd9ecff, 1.25);
     moonLight.position.set(16, 28, 14);
     scene.add(moonLight);
 
-    const fillLight = new THREE.DirectionalLight(0x86aec8, 0.58);
+    const fillLight = new THREE.DirectionalLight(0x7aa4cc, 0.48);
     fillLight.position.set(-16, 12, 18);
     scene.add(fillLight);
 
@@ -603,7 +741,355 @@
     scene.add(portalGlowLight);
 
     // =========================================================================
-    // BLOQUE 2B: FONDO GRÁFICO WIREFRAME AZUL 2D DE barcagrullas.glb (SOLO EN INTRO)
+    // BLOQUE 2B: CIELO PROCEDURAL CON GALAXIAS (GLSL PURO + EMULACIÓN HDRI PMREM)
+    // =========================================================================
+    const galaxySkyUniforms = {
+      uTime:            { value: 0.0 },
+      uReveal:          { value: 0.0 },
+      uGalaxyIntensity: { value: SKY_DEFAULTS.galaxyIntensity },
+      uNebulaRichness:  { value: SKY_DEFAULTS.nebulaRichness },
+      uSkyRotation:     { value: 0.0 },
+      uBakeBoost:       { value: 1.0 }
+    };
+
+    const galaxySkyVertexShader = /* glsl */ `
+      varying vec3 vLocalDir;
+      void main() {
+        vLocalDir = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const galaxySkyFragmentShader = /* glsl */ `
+      precision highp float;
+
+      uniform float uTime;
+      uniform float uReveal;
+      uniform float uGalaxyIntensity;
+      uniform float uNebulaRichness;
+      uniform float uSkyRotation;
+      uniform float uBakeBoost;
+
+      varying vec3 vLocalDir;
+
+      // --- Funciones hash 3D libres de patrones periódicos ---
+      float hash31(vec3 p) {
+        p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return fract((p.x + p.y) * p.z);
+      }
+
+      vec3 hash33(vec3 p) {
+        p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return fract((p.xxy + p.yxx) * p.zyx);
+      }
+
+      // --- Ruido suave 3D y FBM multicapa (cero costuras en esfera) ---
+      float noise3D(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        vec3 u = f * f * (3.0 - 2.0 * f);
+
+        float n000 = hash31(i + vec3(0.0, 0.0, 0.0));
+        float n100 = hash31(i + vec3(1.0, 0.0, 0.0));
+        float n010 = hash31(i + vec3(0.0, 1.0, 0.0));
+        float n110 = hash31(i + vec3(1.0, 1.0, 0.0));
+        float n001 = hash31(i + vec3(0.0, 0.0, 1.0));
+        float n101 = hash31(i + vec3(1.0, 0.0, 1.0));
+        float n011 = hash31(i + vec3(0.0, 1.0, 1.0));
+        float n111 = hash31(i + vec3(1.0, 1.0, 1.0));
+
+        float nx00 = mix(n000, n100, u.x);
+        float nx10 = mix(n010, n110, u.x);
+        float nx01 = mix(n001, n101, u.x);
+        float nx11 = mix(n011, n111, u.x);
+
+        float nxy0 = mix(nx00, nx10, u.y);
+        float nxy1 = mix(nx01, nx11, u.y);
+        return mix(nxy0, nxy1, u.z);
+      }
+
+      float fbm(vec3 p) {
+        float val = 0.0;
+        float amp = 0.5;
+        for (int i = 0; i < 5; i++) {
+          val += amp * noise3D(p);
+          p = p * 2.04 + vec3(13.1, 7.7, 5.3);
+          amp *= 0.5;
+        }
+        return val;
+      }
+
+      // Rotación suave alrededor del eje celeste
+      vec3 rotY(vec3 v, float a) {
+        float c = cos(a);
+        float s = sin(a);
+        return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
+      }
+
+      // --- Campo estelar 3D isotrópico (nítido, sin pixelado ni pinzamiento polar) ---
+      vec3 starLayer(vec3 dir, float scale, float threshold, float sizeScale, float twinkleRate) {
+        vec3 p = dir * scale;
+        vec3 id = floor(p);
+        vec3 f = fract(p);
+
+        vec3 rnd = hash33(id);
+        // Solo poblamos una fracción de celdas para distribución orgánica realista
+        if (rnd.x < threshold) return vec3(0.0);
+
+        vec3 starPos = vec3(0.18) + rnd * 0.64;
+        float d = length(f - starPos);
+
+        float brightness = smoothstep(threshold, 1.0, rnd.x);
+        float radius = (0.045 + 0.085 * brightness) * sizeScale;
+
+        float core = smoothstep(radius, 0.0, d);
+        core = pow(core, 2.2);
+        float halo = exp(-d * (10.5 / max(sizeScale, 0.4))) * brightness * 0.24;
+
+        // Centelleo orgánico individual
+        float twinkle = 0.72 + 0.28 * sin(uTime * twinkleRate * (0.7 + rnd.y * 1.4) + rnd.z * 62.83);
+
+        // Temperatura espectral realista: azul-blanco, cian, blanco, dorado suave y ámbar
+        vec3 specCol;
+        if (rnd.y < 0.30) {
+          specCol = vec3(0.68, 0.84, 1.00);
+        } else if (rnd.y < 0.55) {
+          specCol = vec3(0.96, 0.98, 1.00);
+        } else if (rnd.y < 0.78) {
+          specCol = vec3(1.00, 0.89, 0.70);
+        } else if (rnd.y < 0.90) {
+          specCol = vec3(0.56, 0.92, 1.00);
+        } else {
+          specCol = vec3(1.00, 0.70, 0.46);
+        }
+
+        return specCol * (core * 1.35 + halo) * (0.45 + 0.95 * brightness) * twinkle;
+      }
+
+      // --- Galaxia espiral distante analítica proyectada en plano tangente ---
+      vec3 renderSpiralGalaxy(
+        vec3 dir,
+        vec3 centerDir,
+        float angRadius,
+        float tiltRatio,
+        float tiltAngle,
+        float spinSpeed,
+        vec3 coreColor,
+        vec3 armColor
+      ) {
+        float alignment = dot(dir, centerDir);
+        if (alignment < 0.82) return vec3(0.0);
+
+        vec3 upRef = abs(centerDir.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+        vec3 uAxis = normalize(cross(upRef, centerDir));
+        vec3 vAxis = normalize(cross(centerDir, uAxis));
+
+        vec2 uv = vec2(dot(dir, uAxis), dot(dir, vAxis)) / angRadius;
+
+        // Rotación de orientación en el cielo + inclinación en perspectiva
+        float ct = cos(tiltAngle);
+        float st = sin(tiltAngle);
+        uv = mat2(ct, -st, st, ct) * uv;
+        uv.y /= tiltRatio;
+
+        float r = length(uv);
+        if (r > 1.35) return vec3(0.0);
+
+        // Rotación lenta interna de los brazos espirales
+        float angle = atan(uv.y, uv.x) + uTime * spinSpeed;
+        float logSpiral = angle * 2.0 - log(r + 0.065) * 5.6;
+        float mainArms = 0.5 + 0.5 * sin(logSpiral);
+        float subArms  = 0.5 + 0.5 * sin(logSpiral * 2.0 + 1.4);
+
+        // Nudos grumosos de polvo y cúmulos estelares en los brazos
+        float clumps = noise3D(vec3(uv * 5.2, 2.4)) * 0.65 + noise3D(vec3(uv * 11.5, 6.1)) * 0.35;
+        float armMask = pow(mainArms, 2.3) * (0.55 + 0.75 * clumps) + pow(subArms, 3.2) * 0.25;
+        armMask *= smoothstep(0.04, 0.22, r) * exp(-r * 2.35);
+
+        // Bulbo central cálido y disco difuso
+        float core = exp(-r * 7.8) * 1.45;
+        float innerGlow = exp(-r * 3.1) * 0.42;
+        float outerFade = smoothstep(1.30, 0.55, r);
+
+        vec3 col = coreColor * (core + innerGlow * 0.65)
+                 + armColor * (armMask * 0.95 + innerGlow * 0.45);
+        return col * outerFade;
+      }
+
+      void main() {
+        vec3 rawDir = normalize(vLocalDir);
+        vec3 dir = rotY(rawDir, uSkyRotation);
+
+        // 1. Base nocturna profunda con leve gradiente hacia el cenit
+        float elev = clamp(rawDir.y, 0.0, 1.0);
+        vec3 voidCol = mix(vec3(0.012, 0.028, 0.058), vec3(0.004, 0.009, 0.022), pow(elev, 0.6));
+
+        // 2. Sistema de coordenadas galácticas inclinado (Vía Láctea cruzando sobre el portal)
+        vec3 galUp    = normalize(vec3(0.56, 0.74, -0.37));
+        vec3 galFwd   = normalize(vec3(-0.22, 0.52, -0.82));
+        vec3 galRight = normalize(cross(galUp, galFwd));
+        galFwd        = normalize(cross(galRight, galUp));
+
+        vec3 g = vec3(dot(dir, galRight), dot(dir, galUp), dot(dir, galFwd));
+
+        // Distorsión orgánica de la banda con FBM 3D
+        float warp = (fbm(g * 2.6 + vec3(1.2, -0.8, 3.1)) - 0.5) * 0.24;
+        float lat = g.y + warp;
+
+        float bandTight = exp(-abs(lat) * 6.0);
+        float bandWide  = exp(-abs(lat) * 2.15);
+
+        // Ruido nebular multicapa + filamentos oscuros de polvo interestelar
+        float nebA = fbm(g * 3.4 + vec3(0.0, 1.5, -2.2));
+        float nebB = fbm(g * 7.2 + vec3(4.1, -2.3, 1.7));
+        float dustNoise = fbm(g * 5.6 + vec3(-3.2, 0.6, 5.4));
+
+        // Filamento oscuro central (Great Rift) que parte la Vía Láctea con profundidad real
+        float riftBand = exp(-abs(lat + (dustNoise - 0.5) * 0.14) * 14.5);
+        float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.78;
+
+        // Núcleo galáctico cálido dorado-ámbar elevado frente al usuario
+        vec3 coreDir = normalize(vec3(-0.16, 0.30, -0.94));
+        float coreAlign = pow(max(dot(dir, coreDir), 0.0), 4.2);
+        float coreTight = pow(max(dot(dir, coreDir), 0.0), 14.0);
+
+        // Paleta nebular rica (índigo profundo, azul zafiro, violeta cósmico y ámbar)
+        vec3 colIndigo = vec3(0.045, 0.115, 0.295);
+        vec3 colSapph  = vec3(0.095, 0.285, 0.560);
+        vec3 colViolet = vec3(0.245, 0.125, 0.390);
+        vec3 colAmber  = vec3(0.960, 0.660, 0.350);
+
+        vec3 milkyWay = vec3(0.0);
+        milkyWay += colIndigo * bandWide * (0.45 + 0.85 * nebA);
+        milkyWay += colSapph  * bandTight * smoothstep(0.28, 0.82, nebA * 0.65 + nebB * 0.45) * 1.15;
+        milkyWay += colViolet * bandWide  * smoothstep(0.42, 0.86, nebB) * 0.72;
+        milkyWay += colAmber  * (coreAlign * 0.65 + coreTight * 0.85) * (0.55 + 0.65 * nebA);
+
+        // Nubes nebulares sutiles fuera de la banda principal para que todo el cielo respire
+        float cosmicMist = smoothstep(0.45, 0.86, fbm(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
+        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.24;
+
+        vec3 skyCol = voidCol + (milkyWay * dustAbsorption + outerNebula) * uNebulaRichness * uGalaxyIntensity;
+
+        // 3. Tres galaxias espirales distantes en direcciones fijas
+        vec3 g1 = renderSpiralGalaxy(
+          dir,
+          normalize(vec3(0.34, 0.46, -0.82)),  // Arriba-derecha sobre el portal
+          0.165, 0.46, 0.58, 0.025,
+          vec3(1.00, 0.86, 0.62),
+          vec3(0.36, 0.68, 1.00)
+        );
+        vec3 g2 = renderSpiralGalaxy(
+          dir,
+          normalize(vec3(-0.46, 0.64, -0.61)), // Arriba-izquierda hacia el cenit (casi frontal)
+          0.120, 0.82, -0.40, -0.032,
+          vec3(0.88, 0.96, 1.00),
+          vec3(0.26, 0.80, 1.00)
+        );
+        vec3 g3 = renderSpiralGalaxy(
+          dir,
+          normalize(vec3(0.54, 0.52, 0.66)),   // Cuadrante posterior para exploración 360°
+          0.135, 0.56, 1.12, 0.022,
+          vec3(1.00, 0.78, 0.56),
+          vec3(0.58, 0.40, 0.92)
+        );
+        skyCol += (g1 + g2 + g3) * 0.95 * uGalaxyIntensity;
+
+        // 4. Campo estelar procedural multicapa de alta precisión
+        vec3 stars = vec3(0.0);
+        // Capa fina densa (se enriquece a lo largo de la Vía Láctea)
+        float bandBoost = 1.0 + bandTight * 1.15 * dustAbsorption;
+        stars += starLayer(dir, 118.0, 0.925, 0.88, 1.6) * 0.68 * bandBoost;
+        // Capa media
+        stars += starLayer(dir,  64.0, 0.952, 1.00, 2.1) * 1.05;
+        // Estrellas protagónicas brillantes
+        stars += starLayer(dir,  29.0, 0.974, 1.18, 2.7) * 1.45;
+        skyCol += stars * (0.65 + 0.45 * uGalaxyIntensity);
+
+        // 5. Dispersión atmosférica en el horizonte (fusión sin costuras con el agua)
+        float horizonBand = exp(-abs(rawDir.y) * 9.5);
+        vec3 horizonGlow = vec3(0.026, 0.072, 0.135) * horizonBand * 1.15;
+        // Reflejo atmosférico dorado sutil detrás del portal lejano (-Z)
+        float portalAzimuth = pow(max(dot(normalize(vec3(rawDir.x, 0.0, rawDir.z)), vec3(0.0, 0.0, -1.0)), 0.0), 8.0);
+        horizonGlow += vec3(0.24, 0.16, 0.07) * horizonBand * portalAzimuth * 0.55;
+
+        // Ocultar suavemente estrellas bajo la línea del agua
+        float aboveWater = smoothstep(-0.08, 0.08, rawDir.y);
+        skyCol = mix(vec3(0.015, 0.044, 0.084), skyCol, aboveWater) + horizonGlow;
+
+        // 6. Revelación sincronizada con la materialización azul
+        float rev = clamp(uReveal, 0.0, 1.0);
+        vec3 birthTint = vec3(0.04, 0.18, 0.36) * sin(rev * 3.14159) * 0.42;
+        vec3 finalCol = mix(vec3(0.008, 0.016, 0.032), skyCol, rev) + birthTint;
+
+        gl_FragColor = vec4(finalCol * uBakeBoost, 1.0);
+      }
+    `;
+
+    const galaxySkyMaterial = new THREE.ShaderMaterial({
+      uniforms: galaxySkyUniforms,
+      vertexShader: galaxySkyVertexShader,
+      fragmentShader: galaxySkyFragmentShader,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false
+    });
+
+    const galaxySkyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(210, 64, 40),
+      galaxySkyMaterial
+    );
+    galaxySkyDome.visible = false;
+    galaxySkyDome.renderOrder = -10;
+    scene.add(galaxySkyDome);
+
+    // Emulación HDRI real: horneamos el cielo galáctico GLSL en un cubemap PMREM para scene.environment
+    let galaxyEnvTexture = null;
+    function bakeProceduralHDRIEnvironment() {
+      try {
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        const bakeScene = new THREE.Scene();
+        // Clonamos el shader a radio 48 (dentro del frustum near=0.1, far=120 de PMREM)
+        const bakeMat = galaxySkyMaterial.clone();
+        bakeMat.uniforms = THREE.UniformsUtils.clone(galaxySkyUniforms);
+        bakeMat.uniforms.uReveal.value = 1.0;
+        bakeMat.uniforms.uGalaxyIntensity.value = 1.35;
+        bakeMat.uniforms.uNebulaRichness.value = 1.25;
+        bakeMat.uniforms.uBakeBoost.value = 1.85; // Rango dinámico elevado para reflejos metálicos ricos
+
+        const bakeGeo = new THREE.SphereGeometry(48, 48, 32);
+        const bakeDome = new THREE.Mesh(bakeGeo, bakeMat);
+        bakeScene.add(bakeDome);
+
+        // Luz cálida suave en dirección del portal para que el bronce refleje su destello
+        const bakePortalSpot = new THREE.Mesh(
+          new THREE.SphereGeometry(5.5, 16, 16),
+          new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 1.85, 1.0) })
+        );
+        bakePortalSpot.position.set(0, 6, -42);
+        bakeScene.add(bakePortalSpot);
+
+        const rt = pmremGenerator.fromScene(bakeScene, 0.025, 0.1, 120);
+        galaxyEnvTexture = rt.texture;
+        scene.environment = galaxyEnvTexture;
+
+        bakeGeo.dispose();
+        bakeMat.dispose();
+        bakePortalSpot.geometry.dispose();
+        bakePortalSpot.material.dispose();
+        pmremGenerator.dispose();
+      } catch (err) {
+        console.warn('No se pudo hornear PMREM procedural; se usa iluminación directa:', err);
+      }
+    }
+    bakeProceduralHDRIEnvironment();
+
+    // =========================================================================
+    // BLOQUE 2C: FONDO GRÁFICO WIREFRAME AZUL 2D DE barcagrullas.glb (PORTADA)
     // =========================================================================
     const introStage = new THREE.Group();
     scene.add(introStage);
@@ -615,7 +1101,6 @@
     let introParallaxX = 0;
     let introParallaxY = 0;
 
-    // Aura radial azul suave detrás del wireframe 2D
     const introAuraUniforms = { uTime: { value: 0 }, uFade: { value: 0 } };
     const introAuraPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(9.2, 6.2),
@@ -639,7 +1124,6 @@
             float d = length(vUv * vec2(0.88, 1.15));
             float pulse = 0.84 + 0.16 * sin(uTime * 1.9);
             float halo = exp(-d * d * 2.8) * 0.34 * pulse * uFade;
-            // Sutil línea de horizonte azul tenue estilo plano gráfico
             float horizon = exp(-abs(vUv.y + 0.26) * 48.0) * smoothstep(1.0, 0.15, abs(vUv.x)) * 0.14 * uFade;
             vec3 col = vec3(0.14, 0.62, 1.0) * halo + vec3(0.35, 0.82, 1.0) * horizon;
             gl_FragColor = vec4(col, halo + horizon);
@@ -650,7 +1134,7 @@
     introAuraPlane.position.z = -1.2;
     introStage.add(introAuraPlane);
 
-    // Polvo azul brillante levitando suavemente en la portada
+    // Polvo luminoso azul levitando en la portada
     const introDustUniforms = {
       uTime:  { value: 0 },
       uFade:  { value: 1 },
@@ -712,7 +1196,6 @@
       introWireframePivot = new THREE.Group();
       normalizedWrapper.updateMatrixWorld(true);
 
-      // Material principal: aristas luminosas azul cian estilo plano gráfico 2D
       introEdgeMat = new THREE.LineBasicMaterial({
         color: 0x3ec6ff,
         transparent: true,
@@ -721,7 +1204,6 @@
         depthWrite: false
       });
 
-      // Material secundario: malla wireframe muy tenue para dar volumen holográfico sutil
       introMeshWireMat = new THREE.MeshBasicMaterial({
         color: 0x1578ff,
         wireframe: true,
@@ -737,28 +1219,21 @@
       normalizedWrapper.traverse((obj) => {
         if (obj.isMesh && obj.geometry) {
           relMatrix.multiplyMatrices(invRoot, obj.matrixWorld);
-
-          // 1. Aristas escultóricas limpias (threshold 16° elimina ruido de triángulos planos)
           const edgesGeo = new THREE.EdgesGeometry(obj.geometry, 16);
           const lineSegs = new THREE.LineSegments(edgesGeo, introEdgeMat);
           lineSegs.applyMatrix4(relMatrix);
           introWireframePivot.add(lineSegs);
 
-          // 2. Malla wireframe etérea complementaria
           const wireMesh = new THREE.Mesh(obj.geometry, introMeshWireMat);
           wireMesh.applyMatrix4(relMatrix);
           introWireframePivot.add(wireMesh);
         }
       });
 
-      // Centrar verticalmente la silueta dentro del encuadre gráfico 2D
       const wfBox = new THREE.Box3().setFromObject(introWireframePivot);
       const wfCenter = wfBox.getCenter(new THREE.Vector3());
-      introWireframePivot.children.forEach((child) => {
-        child.position.sub(wfCenter);
-      });
+      introWireframePivot.children.forEach((child) => child.position.sub(wfCenter));
 
-      // Perfil lateral limpio en 2D (eslora horizontal de izquierda a derecha)
       introWireframePivot.rotation.set(0.04, Math.PI / 2 - 0.10, 0);
       introStage.add(introWireframePivot);
       introFadeIn = 0.0;
@@ -770,7 +1245,6 @@
       const aspect = window.innerWidth / window.innerHeight;
       const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * aspect);
 
-      // En móvil portrait ocupa ~86% del ancho; en escritorio ~56% para lucir elegante y respirado
       const targetWidthFraction = aspect < 0.85 ? 0.88 : (aspect < 1.3 ? 0.72 : 0.56);
       const boatSpan = CONFIG.targetBoatLength * 1.08;
       const distForWidth = (boatSpan / targetWidthFraction) / (2 * Math.tan(hFovRad / 2));
@@ -780,35 +1254,6 @@
     }
     positionIntroStage();
 
-    // Bóveda estrellada del escenario nocturno (oculta en INTRO y en WebAR)
-    const skyGroup = new THREE.Group();
-    skyGroup.visible = false;
-    scene.add(skyGroup);
-    let starMat = null;
-    {
-      const starCount = 420;
-      const starPos = new Float32Array(starCount * 3);
-      for (let i = 0; i < starCount; i++) {
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(0.12 + Math.random() * 0.88);
-        const r = 135 + Math.random() * 30;
-        starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-        starPos[i * 3 + 1] = r * Math.cos(phi);
-        starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-      }
-      const starGeo = new THREE.BufferGeometry();
-      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      starMat = new THREE.PointsMaterial({
-        color: 0xe4f0ff,
-        size: 0.45,
-        transparent: true,
-        opacity: 0.0,
-        depthWrite: false,
-        fog: false
-      });
-      skyGroup.add(new THREE.Points(starGeo, starMat));
-    }
-
     // =========================================================================
     // BLOQUE 3: SHADERS GLSL (AGUA DENSA DINÁMICA + PORTAL + PARTÍCULAS AZULES)
     // =========================================================================
@@ -817,15 +1262,16 @@
     const WATER_STEP = WATER_SIZE / WATER_SEGMENTS;
 
     const waterUniforms = {
-      uTime:         { value: 0 },
-      uWaterReveal:  { value: 0 },
-      uBoatPos:      { value: new THREE.Vector3(0, 0, -999) },
-      uBoatDir:      { value: new THREE.Vector2(0, -1) },
-      uBoatSpeed:    { value: 0 },
-      uMotionFactor: { value: 0 },
-      uFlowOffset:   { value: new THREE.Vector2(0, 0) },
-      uPortalPos:    { value: CONFIG.portalPosition.clone() },
-      uIsAR:         { value: 0 }
+      uTime:            { value: 0 },
+      uWaterReveal:     { value: 0 },
+      uBoatPos:         { value: new THREE.Vector3(0, 0, -999) },
+      uBoatDir:         { value: new THREE.Vector2(0, -1) },
+      uBoatSpeed:       { value: 0 },
+      uMotionFactor:    { value: 0 },
+      uFlowOffset:      { value: new THREE.Vector2(0, 0) },
+      uPortalPos:       { value: CONFIG.portalPosition.clone() },
+      uGalaxyIntensity: { value: SKY_DEFAULTS.galaxyIntensity },
+      uIsAR:            { value: 0 }
     };
 
     const waterMaterial = new THREE.ShaderMaterial({
@@ -866,9 +1312,11 @@
             float along = dot(toVert, fwd);
             float across = abs(dot(toVert, right));
 
+            // Ola de proa
             float bowCrest = exp(-pow((along - 1.85) * 0.95, 2.0)) * exp(-pow(across * 0.78, 2.0));
             wakeLift += bowCrest * 0.14 * uMotionFactor;
 
+            // Estela tridimensional en V (~30°)
             if (along < 1.2 && along > -24.0) {
               float spread = max(0.0, -along) * 0.56 + 0.65;
               float distToArm = abs(across - spread);
@@ -893,6 +1341,7 @@
         uniform float uMotionFactor;
         uniform vec2 uFlowOffset;
         uniform vec3 uPortalPos;
+        uniform float uGalaxyIntensity;
         uniform float uIsAR;
 
         varying vec3 vWorldPos;
@@ -903,7 +1352,7 @@
 
           vec2 p = vWorldPos.xz;
 
-          // Expansión radial de materialización con onda de brillo azul pulsante
+          // Expansión radial con onda luminosa azul pulsante
           float revealMask = 1.0;
           float blueEdgeGlow = 0.0;
           if (uWaterReveal < 0.999) {
@@ -927,25 +1376,30 @@
 
           vec3 N = normalize(vec3(-nx, 1.0, -nz));
           vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 R = reflect(-V, N);
 
           // Agua densa y profunda
-          vec3 deepColor  = vec3(0.018, 0.056, 0.098);
-          vec3 midColor   = vec3(0.042, 0.125, 0.188);
-          vec3 crestColor = vec3(0.088, 0.215, 0.285);
+          vec3 deepColor  = vec3(0.014, 0.044, 0.084);
+          vec3 midColor   = vec3(0.036, 0.106, 0.172);
+          vec3 crestColor = vec3(0.080, 0.195, 0.275);
 
           float heightFactor = clamp(vElevation * 4.2 + 0.48, 0.0, 1.0);
           vec3 col = mix(deepColor, midColor, smoothstep(0.0, 0.65, heightFactor));
           col = mix(col, crestColor, smoothstep(0.55, 1.0, heightFactor));
 
-          float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.8);
-          col += vec3(0.15, 0.27, 0.38) * fresnel * 0.82;
+          // Reflejo atmosférico del cielo galáctico (índigo, zafiro y violeta suave)
+          float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.7);
+          float galRefBand = exp(-abs(dot(R, normalize(vec3(0.56, 0.74, -0.37)))) * 4.2);
+          vec3 galaxyRefCol = mix(vec3(0.09, 0.20, 0.36), vec3(0.24, 0.22, 0.46), galRefBand);
+          col += galaxyRefCol * fresnel * (0.55 + 0.45 * uGalaxyIntensity);
 
-          vec3 moonDir = normalize(vec3(0.35, 0.72, 0.28));
+          // Brillo estelar reflejado sobre las crestas
+          vec3 moonDir = normalize(vec3(0.32, 0.72, 0.26));
           vec3 moonHalf = normalize(moonDir + V);
-          float moonSpec = pow(max(dot(N, moonHalf), 0.0), 42.0);
-          col += vec3(0.55, 0.72, 0.88) * moonSpec * 0.42;
+          float moonSpec = pow(max(dot(N, moonHalf), 0.0), 46.0);
+          col += vec3(0.60, 0.78, 0.95) * moonSpec * 0.42;
 
-          // Reflejo dorado del portal lejano
+          // Largo sendero dorado del portal lejano sobre las olas
           vec3 toPortal = uPortalPos - vWorldPos;
           float portalDist = length(toPortal.xz);
           vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y, 2.5), toPortal.z));
@@ -955,7 +1409,7 @@
           col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.45 + 0.35 * uMotionFactor);
           col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.042) * 0.34;
 
-          // Espuma dinámica de proa, estela en V (~30°) y estela central al navegar
+          // Espuma dinámica de proa, estela en V (~30°) y estela trasera turbulenta
           if (uMotionFactor > 0.01) {
             vec2 toFrag = p - uBoatPos.xz;
             vec2 fwd = normalize(uBoatDir + vec2(0.0001));
@@ -989,13 +1443,14 @@
 
           col += vec3(0.24, 0.76, 1.0) * blueEdgeGlow * 1.35;
 
+          // Opacidad densa calibrada (0.99 en 3D Web/VR, 0.94 en AR)
           float camDist = length(vWorldPos.xz - cameraPosition.xz);
           float alpha = 0.99;
           if (uIsAR > 0.5) {
             alpha = smoothstep(82.0, 26.0, camDist) * 0.94;
           } else {
-            float fogFactor = 1.0 - exp(-pow(camDist * 0.0085, 2.0));
-            col = mix(col, vec3(0.020, 0.055, 0.102), clamp(fogFactor, 0.0, 1.0));
+            float fogFactor = 1.0 - exp(-pow(camDist * 0.0072, 2.0));
+            col = mix(col, vec3(0.020, 0.056, 0.110), clamp(fogFactor, 0.0, 1.0));
           }
 
           gl_FragColor = vec4(col, alpha * revealMask);
@@ -1011,7 +1466,7 @@
     waterMesh.visible = false;
     scene.add(waterMesh);
 
-    // --- Rocío de agua al navegar ---
+    // --- Rocío de agua alrededor del casco al navegar ---
     const SPRAY_COUNT = 54;
     const sprayPositions = new Float32Array(SPRAY_COUNT * 3);
     const sprayVelocities = [];
@@ -1069,7 +1524,7 @@
       posAttr.needsUpdate = true;
     }
 
-    // --- Gran Portal Redondo Luminoso ---
+    // --- Gran Portal Redondo Luminoso (a 78 m, sin UnrealBloomPass) ---
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalPosition);
     portalGroup.visible = false;
@@ -1085,8 +1540,8 @@
       color: 0xd4a456,
       emissive: 0x3cb8ff,
       emissiveIntensity: 1.4,
-      metalness: 0.76,
-      roughness: 0.24,
+      metalness: 0.78,
+      roughness: 0.22,
       transparent: true,
       opacity: 0.0,
       fog: false
@@ -1187,7 +1642,7 @@
     haloPlane.position.z = -0.10;
     portalGroup.add(haloPlane);
 
-    // --- Partículas de Materialización con Brillo Azul Pulsante (1 draw call GPU) ---
+    // --- Partículas de Materialización con Brillo Azul Pulsante (GPU, 1 draw call) ---
     let materializePoints = null;
     const matParticleUniforms = {
       uTime:    { value: 0 },
@@ -1334,8 +1789,8 @@
             float halo = exp(-d * 5.6);
             float core = exp(-d * 14.5);
 
-            vec3 deepBlue = vec3(0.08, 0.46, 1.00);
-            vec3 cyanBlue = vec3(0.36, 0.84, 1.00);
+            vec3 deepBlue  = vec3(0.08, 0.46, 1.00);
+            vec3 cyanBlue  = vec3(0.36, 0.84, 1.00);
             vec3 coreWhite = vec3(0.88, 0.97, 1.00);
 
             vec3 col = mix(deepBlue, cyanBlue, vPulse);
@@ -1352,7 +1807,7 @@
       scene.add(materializePoints);
     }
 
-    // --- Partículas ambientales (luciérnagas doradas + motas azules pulsantes) ---
+    // --- Partículas ambientales sutiles (luciérnagas doradas + motas azules pulsantes) ---
     const ambientParticleUniforms = {
       uTime:   { value: 0 },
       uReveal: { value: 0 },
@@ -1425,7 +1880,7 @@
     })();
 
     // =========================================================================
-    // BLOQUE 4: CARGA, NORMALIZACIÓN Y WIREFRAME DE models/barcagrullas.glb
+    // BLOQUE 4: CARGA, NORMALIZACIÓN (PROA AL FRENTE) Y RESPALDO ESCULTÓRICO
     // =========================================================================
     const boats = [];
     const boatHitboxes = [];
@@ -1486,7 +1941,7 @@
         rawScene.rotation.y = Math.PI / 2;
       }
 
-      // Corrección 180° validada: todas las barcas ven y navegan de frente hacia el portal
+      // Corrección 180° validada: TODAS las barcas miran y navegan de frente al portal
       rawScene.rotation.y += Math.PI;
 
       rawScene.updateMatrixWorld(true);
@@ -1515,7 +1970,8 @@
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
           mats.forEach((m) => {
             if (m.isMeshStandardMaterial) {
-              m.roughness = Math.min(m.roughness ?? 0.6, 0.78);
+              m.roughness = Math.min(m.roughness ?? 0.55, 0.72);
+              m.envMapIntensity = 1.25; // Aprovecha el HDRI galáctico horneado
             }
           });
         }
@@ -1525,17 +1981,67 @@
       return { wrapper, finalSize, sampledVerts };
     }
 
-    function createEmergencyBoat() {
+    // Barca escultórica procedural de respaldo (orientada con proa en +Z local)
+    function createSculpturalFallbackBoat() {
       const wrapper = new THREE.Group();
-      const mat = new THREE.MeshStandardMaterial({ color: 0x5c4b36, metalness: 0.55, roughness: 0.42 });
-      const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 2.2, 6, 14), mat);
-      hull.rotation.x = Math.PI / 2;
-      hull.scale.set(1.0, 0.55, 1.1);
-      hull.position.y = 0.2;
+      const bronzeDark = new THREE.MeshStandardMaterial({
+        color: 0x4b3f32,
+        metalness: 0.74,
+        roughness: 0.34,
+        envMapIntensity: 1.35
+      });
+      const bronzeGold = new THREE.MeshStandardMaterial({
+        color: 0x997c52,
+        metalness: 0.80,
+        roughness: 0.28,
+        envMapIntensity: 1.4
+      });
+
+      // Casco estilizado
+      const hullGeo = new THREE.CapsuleGeometry(0.56, 2.3, 8, 18);
+      hullGeo.rotateX(Math.PI / 2);
+      hullGeo.scale(1.12, 0.52, 1.15);
+      const hull = new THREE.Mesh(hullGeo, bronzeDark);
+      hull.position.y = 0.20;
       wrapper.add(hull);
+
+      // Borda escultórica
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.06, 10, 28), bronzeGold);
+      rim.rotation.x = Math.PI / 2;
+      rim.scale.set(0.64, 1.72, 1.0);
+      rim.position.y = 0.38;
+      wrapper.add(rim);
+
+      // Cuello y cabeza de grulla en la proa (+Z)
+      const neckCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.36, 1.20),
+        new THREE.Vector3(0, 0.96, 1.56),
+        new THREE.Vector3(0, 1.56, 1.44),
+        new THREE.Vector3(0, 1.66, 1.66)
+      ]);
+      const neck = new THREE.Mesh(new THREE.TubeGeometry(neckCurve, 22, 0.07, 10, false), bronzeGold);
+      wrapper.add(neck);
+
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.42, 8), bronzeGold);
+      beak.rotation.x = Math.PI / 2 + 0.12;
+      beak.position.set(0, 1.64, 1.92);
+      wrapper.add(beak);
+
+      // Dos alas estilizadas en bronce en los costados
+      [-1, 1].forEach((side) => {
+        const wingCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.48, 0.36, 0.55),
+          new THREE.Vector3(side * 0.68, 0.72, -0.10),
+          new THREE.Vector3(side * 0.50, 0.92, -0.95),
+          new THREE.Vector3(side * 0.24, 0.62, -1.52)
+        ]);
+        const wing = new THREE.Mesh(new THREE.TubeGeometry(wingCurve, 18, 0.055, 8, false), bronzeDark);
+        wrapper.add(wing);
+      });
+
       return {
         wrapper,
-        finalSize: new THREE.Vector3(1.4, 1.4, 3.6),
+        finalSize: new THREE.Vector3(1.4, 1.85, 3.8),
         sampledVerts: sampleVerticesFromTemplate(wrapper, 145)
       };
     }
@@ -1549,7 +2055,7 @@
       const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
       const centerIndex = Math.floor(CONFIG.boatsLayout.length / 2);
 
-      // Genera inmediatamente el wireframe azul 2D de fondo con el modelo real
+      // Genera inmediatamente el wireframe azul 2D de portada con el modelo real
       buildIntroWireframe(wrapper);
 
       CONFIG.boatsLayout.forEach((cfg, index) => {
@@ -1739,8 +2245,8 @@
             if (!isFallback) {
               attemptLoad(ASSETS.boatFallback, true);
             } else {
-              console.warn('No se pudo cargar barcagrullas.glb:', err);
-              populateBoats(createEmergencyBoat());
+              console.warn('Usando barca escultórica procedural de respaldo:', err);
+              populateBoats(createSculpturalFallbackBoat());
               modelReady = true;
               refreshIntroOrbs();
             }
@@ -1753,9 +2259,10 @@
     loadBoatAsset();
 
     // =========================================================================
-    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + MATERIALIZACIÓN + PORTAL)
+    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + SÍNTESIS WEB AUDIO API)
     // =========================================================================
     const forestAudio = new Audio();
+    forestAudio.crossOrigin = 'anonymous';
     forestAudio.src = ASSETS.audioPrimary;
     forestAudio.loop = true;
     forestAudio.preload = 'auto';
@@ -1924,6 +2431,9 @@
 
     let stateTimer = 0;
     let matElapsed = -1.0;
+    let skyRotationSpeed = SKY_DEFAULTS.rotationSpeed;
+    let skyAngle = 0.0;
+
     const boardStartRigPos = new THREE.Vector3();
     let navCurve = null;
     let navProgress = 0;
@@ -1938,8 +2448,17 @@
     const stateLabel    = document.getElementById('state-label');
     const hintEl        = document.getElementById('hint');
     const btnModes      = document.getElementById('btn-modes');
+    const btnSky        = document.getElementById('btn-sky');
     const btnAudio      = document.getElementById('btn-audio');
     const btnFullscreen = document.getElementById('btn-fullscreen');
+    const skyPanel      = document.getElementById('sky-panel');
+    const btnSkyReset   = document.getElementById('btn-sky-reset');
+    const sliderGalaxy  = document.getElementById('slider-galaxy');
+    const sliderNebula  = document.getElementById('slider-nebula');
+    const sliderRot     = document.getElementById('slider-rot');
+    const valGalaxy     = document.getElementById('val-galaxy');
+    const valNebula     = document.getElementById('val-nebula');
+    const valRot        = document.getElementById('val-rot');
 
     function setHUD(status, hint, blueDot = false) {
       stateLabel.textContent = status;
@@ -1962,6 +2481,9 @@
       matElapsed = -1.0;
       matParticleUniforms.uMatTime.value = -1.0;
 
+      galaxySkyDome.visible = false;
+      galaxySkyUniforms.uReveal.value = 0.0;
+
       waterMesh.visible = false;
       waterUniforms.uWaterReveal.value = 0.0;
       waterUniforms.uBoatSpeed.value = 0.0;
@@ -1976,8 +2498,6 @@
       portalGlowLight.intensity = 0.0;
       materializeBlueLight.intensity = 0.0;
 
-      skyGroup.visible = false;
-      starMat.opacity = 0.0;
       ambientPoints.visible = false;
       ambientParticleUniforms.uReveal.value = 0.0;
       sprayMat.opacity = 0.0;
@@ -1998,16 +2518,21 @@
       activeMode = modeName;
       resetSceneToHidden();
 
-      // Oculta el wireframe 2D de portada y enciende la escena espacial
       introStage.visible = false;
       introScreen.classList.add('hidden');
       hudEl.classList.add('visible');
       btnFullscreen.style.display = (modeName === 'web') ? '' : 'none';
+      btnSky.style.display = isARMode ? 'none' : '';
+      if (isARMode) {
+        skyPanel.classList.add('closed');
+        btnSky.classList.remove('active');
+      }
 
       waterMesh.visible = true;
       portalGroup.visible = true;
       ambientPoints.visible = true;
-      skyGroup.visible = !isARMode;
+      // Cielo galáctico procedural activo en 3D Web y VR; oculto en AR
+      galaxySkyDome.visible = !isARMode;
 
       currentState = STATE.MATERIALIZING;
       stateTimer = 0;
@@ -2015,12 +2540,14 @@
       matParticleUniforms.uMatTime.value = 0;
 
       audioEngine.playMaterializeSwell();
-      setHUD('Materializando...', 'Las esculturas están emergiendo', true);
+      setHUD('Materializando...', 'El cielo, el agua y las esculturas emergen', true);
     }
 
     function showIntroState() {
       currentState = STATE.INTRO;
       resetSceneToHidden();
+      skyPanel.classList.add('closed');
+      btnSky.classList.remove('active');
 
       scene.background = INTRO_BG;
       scene.fog = null;
@@ -2064,6 +2591,7 @@
       return new THREE.CatmullRomCurve3([startPos.clone(), p1, p2, endPos]);
     }
 
+    // Perfil C1 continuo: 4s de aceleración orgánica + 16s de navegación fluida = 20.0s
     function voyageEaseC1(u) {
       const a = 0.20;
       const k = 1.0 / (2.0 * a - a * a);
@@ -2084,11 +2612,13 @@
       navProgress = 0;
       prevBoatPos.copy(boat.group.position);
 
-      setHUD('Abordando barca...', 'La corriente está por iniciar', false);
+      setHUD('Abordando barca...', 'La corriente hacia el portal está por iniciar', false);
     }
 
     /**
-     * DESTINO DEL PORTAL (Aislado para evolucionarlo fácilmente después)
+     * =========================================================================
+     * DESTINO DEL PORTAL (Aislado para futuros mundos o escenas)
+     * =========================================================================
      */
     function onPortalCrossed(context) {
       playerRig.position.copy(CONFIG.originPosition);
@@ -2118,7 +2648,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 7: INTERACCIÓN MULTIPLATAFORMA + LANZADORES AR / VR / 3D WEB
+    // BLOQUE 7: INTERACCIÓN 360° + CALIBRACIÓN EN VIVO DEL CIELO + WEBXR
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
@@ -2139,7 +2669,6 @@
     }
     updateDesktopCameraLook();
 
-    // Micro-paralaje sutil del wireframe 2D en la portada al mover el cursor
     window.addEventListener('pointermove', (e) => {
       if (currentState !== STATE.INTRO) return;
       introParallaxX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -2169,7 +2698,8 @@
         lastPointerX = e.clientX;
         lastPointerY = e.clientY;
         camYaw += dx * 0.0042;
-        camPitch = THREE.MathUtils.clamp(camPitch + dy * 0.0036, -1.05, 1.05);
+        // Permite mirar libremente hasta el cenit (+1.48 rad) para contemplar las galaxias
+        camPitch = THREE.MathUtils.clamp(camPitch + dy * 0.0038, -0.95, 1.48);
         updateDesktopCameraLook();
       } else if (currentState === STATE.IDLE && !renderer.xr.isPresenting) {
         const b = pickBoatFromPointer(e.clientX, e.clientY);
@@ -2188,6 +2718,7 @@
       }
     });
 
+    // Controladores WebXR (Quest 3 + toque pantalla WebAR)
     const tempMatrix = new THREE.Matrix4();
     const controllers = [];
     const vrLasers = [];
@@ -2228,8 +2759,40 @@
     setupXRController(0);
     setupXRController(1);
 
+    // Controles HUD y calibrador del cielo
     btnAudio.addEventListener('click', () => audioEngine.toggle());
     btnModes.addEventListener('click', () => returnToIntroMenu());
+
+    btnSky.addEventListener('click', () => {
+      const isClosed = skyPanel.classList.toggle('closed');
+      btnSky.classList.toggle('active', !isClosed);
+    });
+
+    function applySkySliders() {
+      const gal = parseFloat(sliderGalaxy.value);
+      const neb = parseFloat(sliderNebula.value);
+      const rot = parseFloat(sliderRot.value);
+
+      galaxySkyUniforms.uGalaxyIntensity.value = gal;
+      galaxySkyUniforms.uNebulaRichness.value  = neb;
+      waterUniforms.uGalaxyIntensity.value     = gal;
+      skyRotationSpeed = rot;
+
+      valGalaxy.textContent = gal.toFixed(2);
+      valNebula.textContent = neb.toFixed(2);
+      valRot.textContent    = `${rot.toFixed(2)}×`;
+    }
+
+    sliderGalaxy.addEventListener('input', applySkySliders);
+    sliderNebula.addEventListener('input', applySkySliders);
+    sliderRot.addEventListener('input', applySkySliders);
+
+    btnSkyReset.addEventListener('click', () => {
+      sliderGalaxy.value = SKY_DEFAULTS.galaxyIntensity;
+      sliderNebula.value = SKY_DEFAULTS.nebulaRichness;
+      sliderRot.value    = SKY_DEFAULTS.rotationSpeed;
+      applySkySliders();
+    });
 
     btnFullscreen.addEventListener('click', () => {
       if (!document.fullscreenElement) {
@@ -2262,7 +2825,7 @@
       vrLasers.forEach(l => l.visible = false);
       camera.position.set(0, CONFIG.defaultEyeHeight, 0);
       camYaw = 0;
-      camPitch = -0.02;
+      camPitch = 0.06; // Leve elevación inicial para lucir el cielo galáctico y el portal
       updateDesktopCameraLook();
 
       audioEngine.toggle(true);
@@ -2332,13 +2895,14 @@
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.getElapsedTime();
 
+      galaxySkyUniforms.uTime.value = t;
       waterUniforms.uTime.value = t;
       portalUniforms.uTime.value = t;
       matParticleUniforms.uTime.value = t;
       ambientParticleUniforms.uTime.value = t;
 
       // =====================================================================
-      // ESTADO: INTRO (Render del Wireframe Azul 2D de barcagrullas.glb)
+      // ESTADO: INTRO (Wireframe azul 2D desvanecido)
       // =====================================================================
       if (currentState === STATE.INTRO) {
         introAuraUniforms.uTime.value = t;
@@ -2349,10 +2913,9 @@
           const pulse = 0.78 + 0.22 * Math.sin(t * 2.1);
 
           introAuraUniforms.uFade.value = introFadeIn;
-          if (introEdgeMat)     introEdgeMat.opacity     = 0.34 * introFadeIn * pulse;
+          if (introEdgeMat)     introEdgeMat.opacity     = 0.36 * introFadeIn * pulse;
           if (introMeshWireMat) introMeshWireMat.opacity = 0.055 * introFadeIn * pulse;
 
-          // Flotación gráfica sutil + micro-paralaje 2D
           introWireframePivot.position.y = Math.sin(t * 0.95) * 0.07;
           const targetRotY = (Math.PI / 2 - 0.10) + introParallaxX * 0.10;
           const targetRotX = 0.04 + introParallaxY * 0.05;
@@ -2364,7 +2927,12 @@
         return;
       }
 
-      // Grid snapping del agua para cero parpadeo de vértices
+      // Rotación celeste ultra lenta del cielo galáctico + seguimiento de posición para paralaje infinito
+      skyAngle += dt * 0.012 * skyRotationSpeed;
+      galaxySkyUniforms.uSkyRotation.value = skyAngle;
+      galaxySkyDome.position.copy(playerRig.position);
+
+      // Grid snapping del plano de agua para cero temblor de vértices
       waterMesh.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
       waterMesh.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
 
@@ -2376,18 +2944,18 @@
       }
 
       // =====================================================================
-      // ESTADO: MATERIALIZING (Partículas azules pulsantes + escenario + barcas)
+      // ESTADO: MATERIALIZING (Cielo galáctico + agua + partículas azules + barcas)
       // =====================================================================
       if (currentState === STATE.MATERIALIZING) {
         stateTimer += dt;
         const u = Math.min(stateTimer / CONFIG.materializeDuration, 1.0);
 
+        const skyP = smoothstepJS(0.02, 0.86, u);
+        galaxySkyUniforms.uReveal.value = skyP;
+
         const waterP = smoothstepJS(0.0, 0.72, u);
         waterUniforms.uWaterReveal.value = waterP;
 
-        if (!isARMode) {
-          starMat.opacity = smoothstepJS(0.10, 0.85, u) * 0.80;
-        }
         ambientParticleUniforms.uReveal.value = smoothstepJS(0.45, 1.0, u);
 
         const blueBell = Math.sin(u * Math.PI);
@@ -2408,6 +2976,7 @@
         portalGlowLight.intensity = portalP * 8.5;
 
         if (u >= 1.0) {
+          galaxySkyUniforms.uReveal.value = 1.0;
           waterUniforms.uWaterReveal.value = 1.0;
           portalUniforms.uReveal.value = 1.0;
           portalGroup.scale.setScalar(1.0);
@@ -2427,7 +2996,7 @@
           } else if (activeMode === 'vr') {
             setHUD('VR · Barcas en calma', 'Apunta o camina hacia una barca para abordar', false);
           } else {
-            setHUD('Embarcadero · En calma', 'Arrastra para mirar · Toca una barca para abordar', false);
+            setHUD('Embarcadero · Cielo galáctico', 'Arrastra 360° (mira arriba) · Toca una barca para navegar', false);
           }
         }
 
@@ -2499,7 +3068,7 @@
         if (u >= 1.0) {
           currentState = STATE.NAVIGATING;
           stateTimer = 0;
-          setHUD('Navegando hacia el portal', 'Observa libremente a tu alrededor', false);
+          setHUD('Navegando hacia el portal', 'Observa las galaxias y el agua libremente', false);
         }
       }
 

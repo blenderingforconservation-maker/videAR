@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>La Barca de las Grullas — Travesía al Portal (VR / AR)</title>
+  <title>La Barca de las Grullas — Experiencia AR · VR · 3D</title>
   <link rel="icon" type="image/png" href="./image_c713d6.png" />
 
   <style>
     :root {
-      --glass-bg: rgba(7, 15, 25, 0.58);
-      --glass-border: rgba(236, 206, 146, 0.30);
-      --accent: #f4d694;
-      --text-main: #eef3f8;
-      --text-muted: rgba(238, 243, 248, 0.78);
+      --bg-deep: #030811;
+      --glass-bg: rgba(7, 15, 26, 0.62);
+      --glass-card: rgba(9, 20, 36, 0.58);
+      --glass-border: rgba(120, 198, 255, 0.24);
+      --gold: #f2d38e;
+      --blue-glow: #42b8ff;
+      --blue-soft: #9ce0ff;
+      --text-main: #eef5fc;
+      --text-muted: rgba(214, 229, 245, 0.72);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,7 +25,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #040911;
+      background: var(--bg-deep);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text-main);
       touch-action: none;
@@ -35,52 +39,286 @@
       height: 100%;
     }
 
-    #loader {
+    /* =====================================================================
+       PÁGINA DE PRESENTACIÓN MUSEOGRÁFICA
+       ===================================================================== */
+    #intro-screen {
       position: fixed;
       inset: 0;
-      z-index: 30;
-      background: radial-gradient(circle at 50% 42%, #0c1c2e 0%, #040911 72%);
+      z-index: 40;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      padding: 24px;
-      transition: opacity 0.7s ease, visibility 0.7s ease;
+      padding: 24px 18px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(36, 118, 196, 0.22) 0%, transparent 52%),
+        radial-gradient(circle at 50% 82%, rgba(212, 166, 84, 0.10) 0%, transparent 48%),
+        linear-gradient(180deg, #040a15 0%, #02060e 100%);
+      transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease;
     }
 
-    #loader.hidden {
+    #intro-screen.hidden {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
 
-    .loader-ring {
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      border: 2px solid rgba(244, 214, 148, 0.2);
-      border-top-color: var(--accent);
-      animation: spin 1.1s linear infinite;
+    /* Geometría orbital surrealista en el fondo */
+    .intro-cosmos {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .orbit-svg {
+      width: min(920px, 130vw);
+      height: min(920px, 130vw);
+      opacity: 0.32;
+      animation: slowSpin 75s linear infinite;
+    }
 
-    .loader-title {
-      font-size: 16px;
+    @keyframes slowSpin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .intro-panel {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 22px;
+      padding: 12px 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--blue-soft);
+      opacity: 0.9;
+    }
+
+    .eyebrow::before,
+    .eyebrow::after {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(110, 198, 255, 0.65), transparent);
+    }
+
+    .hero-title {
+      font-family: Georgia, "Times New Roman", "Palatino Linotype", serif;
+      font-size: clamp(30px, 5.4vw, 56px);
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      line-height: 1.1;
+      color: #f7f4ec;
+      text-shadow: 0 0 38px rgba(66, 184, 255, 0.28);
+    }
+
+    .hero-subtitle {
+      max-width: 560px;
+      font-size: clamp(14px, 1.9vw, 16px);
+      line-height: 1.55;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    /* Indicador de carga integrado con pulso azul */
+    .asset-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(8, 22, 40, 0.72);
+      border: 1px solid rgba(66, 184, 255, 0.30);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: var(--blue-soft);
+      transition: border-color 0.4s ease, color 0.4s ease;
+    }
+
+    .asset-status.ready {
+      border-color: rgba(242, 211, 142, 0.35);
+      color: var(--gold);
+    }
+
+    .pulse-orb {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue-glow);
+      box-shadow: 0 0 12px var(--blue-glow);
+      animation: bluePulse 1.5s ease-in-out infinite;
+    }
+
+    .asset-status.ready .pulse-orb {
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+      animation: none;
+    }
+
+    @keyframes bluePulse {
+      0%, 100% { transform: scale(0.85); opacity: 0.55; }
+      50%      { transform: scale(1.25); opacity: 1.0; }
+    }
+
+    /* Tarjetas de selección de modo: AR · VR · 3D Web */
+    .mode-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .mode-grid {
+        grid-template-columns: 1fr;
+        max-width: 380px;
+        gap: 12px;
+      }
+      #intro-screen {
+        align-items: flex-start;
+        padding-top: 28px;
+      }
+    }
+
+    .mode-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+      gap: 12px;
+      padding: 22px 20px;
+      border-radius: 18px;
+      background: var(--glass-card);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--text-main);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    }
+
+    .mode-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 0%, rgba(66, 184, 255, 0.18), transparent 62%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .mode-card:not(:disabled):hover {
+      transform: translateY(-4px);
+      border-color: rgba(110, 206, 255, 0.72);
+      box-shadow: 0 14px 36px rgba(10, 62, 122, 0.35), 0 0 24px rgba(66, 184, 255, 0.18);
+    }
+
+    .mode-card:not(:disabled):hover::before { opacity: 1; }
+    .mode-card:not(:disabled):active { transform: translateY(-1px) scale(0.99); }
+
+    .mode-card:disabled {
+      opacity: 0.44;
+      cursor: not-allowed;
+    }
+
+    .mode-card-head {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .mode-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(66, 184, 255, 0.12);
+      border: 1px solid rgba(66, 184, 255, 0.30);
+      color: var(--blue-soft);
+      flex-shrink: 0;
+    }
+
+    .mode-badge {
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(66, 184, 255, 0.12);
+      border: 1px solid rgba(66, 184, 255, 0.28);
+      color: var(--blue-soft);
+    }
+
+    .mode-card.unavailable .mode-badge {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: rgba(214, 229, 245, 0.55);
+    }
+
+    .mode-name {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: #f8f6f0;
+    }
+
+    .mode-desc {
+      font-size: 13px;
+      line-height: 1.48;
+      color: var(--text-muted);
+    }
+
+    .mode-cta {
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 12px;
       font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--accent);
-      text-align: center;
+      color: var(--gold);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .loader-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-      text-align: center;
+    .mode-card:disabled .mode-cta {
+      color: rgba(214, 229, 245, 0.45);
     }
 
+    .intro-footnote {
+      font-size: 12px;
+      color: rgba(196, 216, 238, 0.52);
+      letter-spacing: 0.03em;
+    }
+
+    /* =====================================================================
+       HUD MINIMALISTA DENTRO DE LA EXPERIENCIA (Compatible AR dom-overlay)
+       ===================================================================== */
     #hud {
       position: fixed;
       inset: 0;
@@ -89,7 +327,15 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 16px;
-      z-index: 10;
+      z-index: 15;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.65s ease, visibility 0.65s ease;
+    }
+
+    #hud.visible {
+      opacity: 1;
+      visibility: visible;
     }
 
     .hud-top {
@@ -104,12 +350,13 @@
       display: flex;
       gap: 8px;
       pointer-events: auto;
+      flex-wrap: wrap;
     }
 
     .status-pill {
       pointer-events: auto;
       background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
+      border: 1px solid rgba(120, 198, 255, 0.28);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-radius: 999px;
@@ -126,21 +373,28 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
       flex-shrink: 0;
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .status-dot.blue {
+      background: var(--blue-glow);
+      box-shadow: 0 0 12px var(--blue-glow);
+      animation: bluePulse 1.1s ease-in-out infinite;
     }
 
     .hud-bottom {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     #hint {
       background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
+      border: 1px solid rgba(120, 198, 255, 0.24);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       padding: 8px 16px;
@@ -149,41 +403,33 @@
       color: var(--text-muted);
       text-align: center;
       max-width: 92vw;
-    }
-
-    .controls-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      pointer-events: auto;
+      transition: opacity 0.4s ease;
     }
 
     .xr-btn {
       background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
+      border: 1px solid rgba(120, 198, 255, 0.28);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       color: var(--text-main);
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
       cursor: pointer;
       transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
     }
 
     .xr-btn:hover {
-      background: rgba(244, 214, 148, 0.16);
-      border-color: var(--accent);
+      background: rgba(66, 184, 255, 0.16);
+      border-color: var(--blue-soft);
     }
 
     .xr-btn:active { transform: scale(0.96); }
-    .xr-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .xr-btn.active {
-      border-color: var(--accent);
-      color: var(--accent);
+      border-color: var(--gold);
+      color: var(--gold);
     }
   </style>
 
@@ -198,30 +444,128 @@
 </head>
 <body>
 
-  <div id="loader">
-    <div class="loader-ring"></div>
-    <div class="loader-title">La Barca de las Grullas</div>
-    <div id="loader-status" class="loader-sub">Preparando embarcaciones...</div>
-  </div>
+  <!-- =====================================================================
+       PORTADA DE PRESENTACIÓN (AR · VR · 3D WEB)
+       ===================================================================== -->
+  <section id="intro-screen" aria-label="Selector de experiencia">
+    <div class="intro-cosmos" aria-hidden="true">
+      <svg class="orbit-svg" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="400" cy="400" rx="340" ry="225" stroke="url(#gradBlue)" stroke-width="1" stroke-dasharray="6 10" />
+        <ellipse cx="400" cy="400" rx="225" ry="340" stroke="url(#gradGold)" stroke-width="0.9" stroke-opacity="0.7" />
+        <circle cx="400" cy="400" r="285" stroke="url(#gradBlue)" stroke-width="0.7" stroke-opacity="0.55" />
+        <circle cx="400" cy="400" r="145" stroke="url(#gradGold)" stroke-width="0.8" stroke-dasharray="2 8" />
+        <circle cx="685" cy="400" r="4" fill="#7cd2ff" />
+        <circle cx="115" cy="400" r="3" fill="#f2d38e" />
+        <circle cx="400" cy="60"  r="3.5" fill="#7cd2ff" />
+        <defs>
+          <linearGradient id="gradBlue" x1="60" y1="60" x2="740" y2="740" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#38b6ff" />
+            <stop offset="0.5" stop-color="#a2e3ff" stop-opacity="0.3" />
+            <stop offset="1" stop-color="#38b6ff" />
+          </linearGradient>
+          <linearGradient id="gradGold" x1="150" y1="60" x2="650" y2="740" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#f2d38e" />
+            <stop offset="1" stop-color="#38b6ff" stop-opacity="0.4" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
 
+    <div class="intro-panel">
+      <div class="eyebrow">Museo Leonora Carrington · Experiencia Espacial</div>
+      <h1 class="hero-title">La Barca de las Grullas</h1>
+      <p class="hero-subtitle">
+        Elige cómo deseas cruzar el umbral. Al seleccionar un modo, el espejo de agua,
+        las esculturas y el portal se materializarán ante ti.
+      </p>
+
+      <div id="asset-status" class="asset-status">
+        <span class="pulse-orb"></span>
+        <span id="asset-status-text">Preparando barcagrullas.glb...</span>
+      </div>
+
+      <div class="mode-grid">
+        <!-- Opción 1: AR -->
+        <button id="card-ar" class="mode-card" disabled>
+          <div class="mode-card-head">
+            <div class="mode-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8V6a2 2 0 0 1 2-2h2M20 8V6a2 2 0 0 0-2-2h-2M4 16v2a2 2 0 0 0 2 2h2M20 16v2a2 2 0 0 1-2 2h-2"/>
+                <path d="M12 7.5 16.5 10v5L12 17.5 7.5 15v-5L12 7.5Z"/>
+                <path d="M12 12.5V17.5M12 12.5 16.5 10M12 12.5 7.5 10"/>
+              </svg>
+            </div>
+            <span id="badge-ar" class="mode-badge">Verificando</span>
+          </div>
+          <div class="mode-name">Realidad Aumentada</div>
+          <p class="mode-desc">
+            Materializa el agua nocturna y las barcas directamente sobre tu espacio físico a través de la cámara.
+          </p>
+          <span id="cta-ar" class="mode-cta">Esperando escena...</span>
+        </button>
+
+        <!-- Opción 2: VR -->
+        <button id="card-vr" class="mode-card" disabled>
+          <div class="mode-card-head">
+            <div class="mode-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="7" width="19" height="10" rx="3.2"/>
+                <path d="M9.5 17 11 14.5a1.2 1.2 0 0 1 2 0L14.5 17"/>
+                <circle cx="8" cy="12" r="1.4"/>
+                <circle cx="16" cy="12" r="1.4"/>
+              </svg>
+            </div>
+            <span id="badge-vr" class="mode-badge">Verificando</span>
+          </div>
+          <div class="mode-name">Realidad Virtual</div>
+          <p class="mode-desc">
+            Inmersión total a escala real en visor VR. Camina o apunta con tu control para subir a una barca.
+          </p>
+          <span id="cta-vr" class="mode-cta">Esperando escena...</span>
+        </button>
+
+        <!-- Opción 3: 3D Web -->
+        <button id="card-web" class="mode-card" disabled>
+          <div class="mode-card-head">
+            <div class="mode-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <ellipse cx="12" cy="12" rx="4.2" ry="9"/>
+                <path d="M3.5 9.5h17M3.5 14.5h17"/>
+              </svg>
+            </div>
+            <span id="badge-web" class="mode-badge">Disponible</span>
+          </div>
+          <div class="mode-name">3D Web</div>
+          <p class="mode-desc">
+            Explora en 360° desde celular o computadora. Toca cualquier barca para iniciar la travesía al portal.
+          </p>
+          <span id="cta-web" class="mode-cta">Esperando escena...</span>
+        </button>
+      </div>
+
+      <p class="intro-footnote">Recomendado usar audífonos para la atmósfera nocturna y resonancia del portal</p>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       HUD EN EXPERIENCIA
+       ===================================================================== -->
   <div id="hud">
     <div class="hud-top">
       <div class="status-pill">
-        <span class="status-dot"></span>
-        <span id="state-label">Embarcadero — Barcas en calma</span>
+        <span id="status-dot" class="status-dot"></span>
+        <span id="state-label">Materializando escenario...</span>
       </div>
       <div class="top-actions">
-        <button id="btn-audio" class="xr-btn">Audio: OFF</button>
+        <button id="btn-modes" class="xr-btn">Modos</button>
+        <button id="btn-audio" class="xr-btn active">Audio: ON</button>
         <button id="btn-fullscreen" class="xr-btn">Pantalla completa</button>
       </div>
     </div>
 
     <div class="hud-bottom">
-      <div id="hint">Arrastra para mirar · Toca una barca para abordar y navegar</div>
-      <div class="controls-row">
-        <button id="btn-vr" class="xr-btn" disabled>VR no disponible</button>
-        <button id="btn-ar" class="xr-btn" disabled>AR no disponible</button>
-      </div>
+      <div id="hint">Las esculturas están emergiendo...</div>
     </div>
   </div>
 
@@ -232,7 +576,7 @@
     import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
     // =========================================================================
-    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + PARÁMETROS CALIBRADOS
+    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + CONFIGURACIÓN CALIBRADA
     // =========================================================================
     const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main';
 
@@ -251,7 +595,7 @@
 
       originPosition: new THREE.Vector3(0, 0, 0),
 
-      // 7 barcas estáticas esperando al visitante, todas orientadas de frente al portal
+      // 7 barcas estáticas orientadas de frente hacia el portal
       boatsLayout: [
         { pos: new THREE.Vector3(-8.6, 0, -8.0), yaw:  0.22 },
         { pos: new THREE.Vector3(-5.6, 0, -6.0), yaw:  0.14 },
@@ -266,7 +610,8 @@
       portalPosition: new THREE.Vector3(0, 6.5, -78),
       portalRadius: 6.2,
 
-      // Tiempos de experiencia
+      // Duraciones clave
+      materializeDuration: 3.8, // Secuencia completa de materialización con partículas azules
       boardingDuration: 1.15,
       voyageDuration: 20.0,     // Recorrido exacto de 20 segundos
       proximityBoardDist: 1.65,
@@ -291,7 +636,6 @@
 
     const scene = new THREE.Scene();
     const NIGHT_BG = new THREE.Color(0x040a13);
-    // Niebla calibrada para dejar visible el portal lejano a 78 m con profundidad atmosférica
     const NIGHT_FOG = new THREE.FogExp2(0x050e1a, 0.0085);
     scene.background = NIGHT_BG;
     scene.fog = NIGHT_FOG;
@@ -309,7 +653,7 @@
     camera.position.set(0, CONFIG.defaultEyeHeight, 0);
     playerRig.add(camera);
 
-    // Malla de destello 3D pegada a la cámara (idéntica en Desktop, AR y VR)
+    // Malla de destello 3D pegada a la cámara (idéntica en 3D Web, AR y VR)
     const portalFlashMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(0xfff4d8),
       transparent: true,
@@ -323,6 +667,7 @@
     portalFlashMesh.visible = false;
     camera.add(portalFlashMesh);
 
+    // Iluminación balanceada + pulso de luz azul durante la materialización
     const hemiLight = new THREE.HemisphereLight(0x8bb6dd, 0x1c2e42, 1.38);
     scene.add(hemiLight);
 
@@ -334,13 +679,19 @@
     fillLight.position.set(-16, 12, 18);
     scene.add(fillLight);
 
-    const portalGlowLight = new THREE.PointLight(0xffd27d, 8.5, 115, 1.25);
+    const materializeBlueLight = new THREE.PointLight(0x3cb8ff, 0.0, 42, 1.5);
+    materializeBlueLight.position.set(0, 3.2, -6.0);
+    scene.add(materializeBlueLight);
+
+    const portalGlowLight = new THREE.PointLight(0xffd27d, 0.0, 115, 1.25);
     portalGlowLight.position.copy(CONFIG.portalPosition).add(new THREE.Vector3(0, 0.5, 5.0));
     scene.add(portalGlowLight);
 
-    // Bóveda estrellada amplia (se oculta en WebAR)
+    // Bóveda estrellada (se oculta en WebAR y aparece progresivamente al materializar)
     const skyGroup = new THREE.Group();
+    skyGroup.visible = false;
     scene.add(skyGroup);
+    let starMat = null;
     {
       const starCount = 420;
       const starPos = new Float32Array(starCount * 3);
@@ -354,11 +705,11 @@
       }
       const starGeo = new THREE.BufferGeometry();
       starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      const starMat = new THREE.PointsMaterial({
+      starMat = new THREE.PointsMaterial({
         color: 0xe4f0ff,
         size: 0.45,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.0,
         depthWrite: false,
         fog: false
       });
@@ -366,7 +717,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 3: SHADERS GLSL (AGUA DENSA DINÁMICA + PORTAL LEJANO + PARTÍCULAS)
+    // BLOQUE 3: SHADERS GLSL (AGUA DENSA DINÁMICA + PORTAL + PARTÍCULAS AZULES)
     // =========================================================================
     const WATER_SIZE = 180;
     const WATER_SEGMENTS = 108;
@@ -374,10 +725,11 @@
 
     const waterUniforms = {
       uTime:         { value: 0 },
+      uWaterReveal:  { value: 0 }, // 0 -> 1 expansión radial con frente luminoso azul
       uBoatPos:      { value: new THREE.Vector3(0, 0, -999) },
       uBoatDir:      { value: new THREE.Vector2(0, -1) },
       uBoatSpeed:    { value: 0 },
-      uMotionFactor: { value: 0 }, // 0 en reposo -> 1 en plena navegación
+      uMotionFactor: { value: 0 },
       uFlowOffset:   { value: new THREE.Vector2(0, 0) },
       uPortalPos:    { value: CONFIG.portalPosition.clone() },
       uIsAR:         { value: 0 }
@@ -396,7 +748,6 @@
 
         varying vec3 vWorldPos;
         varying float vElevation;
-        varying float vWakeDisp;
 
         float baseWave(vec2 p, float t, float motion) {
           vec2 pf = p - uFlowOffset * 0.55;
@@ -404,7 +755,6 @@
           float w1 = sin(pf.x * 0.34 + t * 0.90) * 0.055;
           float w2 = cos(pf.y * 0.42 - t * 0.85) * 0.050;
           float w3 = sin((pf.x * 0.25 + pf.y * 0.34) + t * 1.35) * 0.036;
-          // Oleaje dinámico adicional cuando la barca entra en corriente
           float surge = sin(pf.y * 0.72 + t * 2.4) * cos(pf.x * 0.48 - t * 1.4) * 0.055 * motion;
           return (w1 + w2 + w3) * amp + surge;
         }
@@ -416,7 +766,6 @@
           float h = baseWave(p, uTime, uMotionFactor);
           float wakeLift = 0.0;
 
-          // Deformación 3D dinámica alrededor de la barca mientras navega
           if (uMotionFactor > 0.01) {
             vec2 toVert = p - uBoatPos.xz;
             vec2 fwd = normalize(uBoatDir + vec2(0.0001));
@@ -424,11 +773,9 @@
             float along = dot(toVert, fwd);
             float across = abs(dot(toVert, right));
 
-            // Ola de proa que empuja el agua al frente del casco
             float bowCrest = exp(-pow((along - 1.85) * 0.95, 2.0)) * exp(-pow(across * 0.78, 2.0));
             wakeLift += bowCrest * 0.14 * uMotionFactor;
 
-            // Estela tridimensional en V (~30 grados) detrás del casco
             if (along < 1.2 && along > -24.0) {
               float spread = max(0.0, -along) * 0.56 + 0.65;
               float distToArm = abs(across - spread);
@@ -441,13 +788,12 @@
           worldPos.y += h + wakeLift;
           vWorldPos = worldPos.xyz;
           vElevation = h + wakeLift;
-          vWakeDisp = wakeLift;
-
           gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
       `,
       fragmentShader: /* glsl */ `
         uniform float uTime;
+        uniform float uWaterReveal;
         uniform vec3 uBoatPos;
         uniform vec2 uBoatDir;
         uniform float uBoatSpeed;
@@ -458,14 +804,27 @@
 
         varying vec3 vWorldPos;
         varying float vElevation;
-        varying float vWakeDisp;
 
         void main() {
+          if (uWaterReveal <= 0.001) discard;
+
           vec2 p = vWorldPos.xz;
-          // Coordenadas arrastradas por la corriente para ver el agua deslizarse al navegar
+
+          // Expansión radial de materialización con onda de brillo azul pulsante
+          float revealMask = 1.0;
+          float blueEdgeGlow = 0.0;
+          if (uWaterReveal < 0.999) {
+            float distOrigin = length(p);
+            float revealRadius = uWaterReveal * 135.0;
+            float edgeDist = revealRadius - distOrigin;
+            revealMask = smoothstep(-5.0, 5.5, edgeDist);
+            if (revealMask <= 0.005) discard;
+            float pulse = 0.62 + 0.38 * sin(uTime * 7.5 - distOrigin * 0.45);
+            blueEdgeGlow = exp(-abs(edgeDist) * 0.32) * pulse * (1.0 - smoothstep(0.88, 1.0, uWaterReveal));
+          }
+
           vec2 pf = p - uFlowOffset;
 
-          // Normales multicapa (olas principales + micro-ondas dinámicas)
           float nx = cos(pf.x * 0.36 + uTime * 0.95) * 0.14
                    + cos((pf.x * 0.28 + pf.y * 0.35) + uTime * 1.35) * 0.09
                    + cos(pf.x * 1.45 - pf.y * 0.92 + uTime * 2.6) * (0.045 + 0.055 * uMotionFactor);
@@ -476,16 +835,15 @@
           vec3 N = normalize(vec3(-nx, 1.0, -nz));
           vec3 V = normalize(cameraPosition - vWorldPos);
 
-          // Agua densa y profunda (cuerpo líquido sólido, no cristalino)
-          vec3 deepColor   = vec3(0.018, 0.056, 0.098);
-          vec3 midColor    = vec3(0.042, 0.125, 0.188);
-          vec3 crestColor  = vec3(0.088, 0.215, 0.285);
+          // Agua densa y profunda
+          vec3 deepColor  = vec3(0.018, 0.056, 0.098);
+          vec3 midColor   = vec3(0.042, 0.125, 0.188);
+          vec3 crestColor = vec3(0.088, 0.215, 0.285);
 
           float heightFactor = clamp(vElevation * 4.2 + 0.48, 0.0, 1.0);
           vec3 col = mix(deepColor, midColor, smoothstep(0.0, 0.65, heightFactor));
           col = mix(col, crestColor, smoothstep(0.55, 1.0, heightFactor));
 
-          // Fresnel nocturno + brillo lunar
           float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.8);
           col += vec3(0.15, 0.27, 0.38) * fresnel * 0.82;
 
@@ -494,7 +852,7 @@
           float moonSpec = pow(max(dot(N, moonHalf), 0.0), 42.0);
           col += vec3(0.55, 0.72, 0.88) * moonSpec * 0.42;
 
-          // Largo sendero de reflejo dorado del portal lejano sobre las olas
+          // Reflejo dorado del portal lejano
           vec3 toPortal = uPortalPos - vWorldPos;
           float portalDist = length(toPortal.xz);
           vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y, 2.5), toPortal.z));
@@ -504,7 +862,7 @@
           col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.45 + 0.35 * uMotionFactor);
           col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.042) * 0.34;
 
-          // Espuma dinámica de proa, brazos en V (~30°) y estela central turbulenta
+          // Espuma dinámica de proa, estela en V (~30°) y estela central al navegar
           if (uMotionFactor > 0.01) {
             vec2 toFrag = p - uBoatPos.xz;
             vec2 fwd = normalize(uBoatDir + vec2(0.0001));
@@ -513,11 +871,9 @@
             float along = dot(toFrag, fwd);
             float across = abs(dot(toFrag, right));
 
-            // 1. Espuma blanca-turquesa rompiendo en la proa
             float bowFoam = exp(-pow((along - 1.75) * 1.4, 2.0)) * exp(-pow(across * 1.25, 2.0));
             bowFoam *= 0.65 + 0.35 * sin(across * 8.0 - uTime * 9.0);
 
-            // 2. Brazos de estela en V (~30 grados: tan 30° ≈ 0.577)
             float wakeArms = 0.0;
             float sternTrail = 0.0;
             if (along < 1.5 && along > -26.0) {
@@ -527,7 +883,6 @@
               float armFade = smoothstep(-26.0, -2.5, along) * smoothstep(1.5, -0.3, along);
               wakeArms = exp(-distToArm * 2.1) * chevron * armFade;
 
-              // 3. Estela central espumosa detrás de la popa
               float swirl = 0.5 + 0.5 * sin(along * 4.5 - uTime * 9.5 + sin(across * 6.0));
               float centerWidth = 0.55 + max(0.0, -along) * 0.045;
               float centerMask = exp(-pow(across / centerWidth, 2.0));
@@ -536,11 +891,12 @@
             }
 
             float totalFoam = clamp((bowFoam * 0.85 + wakeArms * 0.92 + sternTrail) * uMotionFactor, 0.0, 1.0);
-            vec3 foamColor = vec3(0.80, 0.91, 0.96);
-            col = mix(col, foamColor, totalFoam * 0.72);
+            col = mix(col, vec3(0.80, 0.91, 0.96), totalFoam * 0.72);
           }
 
-          // Opacidad sólida: agua densa en VR/Desktop y muy consistente en AR
+          // Borde de materialización azul eléctrico pulsante
+          col += vec3(0.24, 0.76, 1.0) * blueEdgeGlow * 1.35;
+
           float camDist = length(vWorldPos.xz - cameraPosition.xz);
           float alpha = 0.99;
           if (uIsAR > 0.5) {
@@ -550,7 +906,7 @@
             col = mix(col, vec3(0.020, 0.055, 0.102), clamp(fogFactor, 0.0, 1.0));
           }
 
-          gl_FragColor = vec4(col, alpha);
+          gl_FragColor = vec4(col, alpha * revealMask);
         }
       `
     });
@@ -560,9 +916,10 @@
       waterMaterial
     );
     waterMesh.rotation.x = -Math.PI / 2;
+    waterMesh.visible = false;
     scene.add(waterMesh);
 
-    // --- Partículas ligeras de rocío de agua alrededor del casco al navegar (1 draw call) ---
+    // --- Partículas de rocío del agua alrededor del casco durante la navegación ---
     const SPRAY_COUNT = 54;
     const sprayPositions = new Float32Array(SPRAY_COUNT * 3);
     const sprayVelocities = [];
@@ -620,26 +977,31 @@
       posAttr.needsUpdate = true;
     }
 
-    // --- Gran Portal Redondo y Brillante (Visible a 78 m, sin post-procesado pesado) ---
+    // --- Gran Portal Redondo Luminoso (Materializa de azul ionizado a oro cálido) ---
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalPosition);
+    portalGroup.visible = false;
     scene.add(portalGroup);
 
     const portalUniforms = {
       uTime:      { value: 0 },
-      uProximity: { value: 0 }
+      uProximity: { value: 0 },
+      uReveal:    { value: 0 }
     };
 
+    const portalRingMat = new THREE.MeshStandardMaterial({
+      color: 0xd4a456,
+      emissive: 0x3cb8ff,
+      emissiveIntensity: 1.4,
+      metalness: 0.76,
+      roughness: 0.24,
+      transparent: true,
+      opacity: 0.0,
+      fog: false
+    });
     const portalRing = new THREE.Mesh(
       new THREE.TorusGeometry(CONFIG.portalRadius, 0.24, 20, 80),
-      new THREE.MeshStandardMaterial({
-        color: 0xd4a456,
-        emissive: 0xffc870,
-        emissiveIntensity: 1.15,
-        metalness: 0.76,
-        roughness: 0.24,
-        fog: false
-      })
+      portalRingMat
     );
     portalGroup.add(portalRing);
 
@@ -660,27 +1022,32 @@
         fragmentShader: /* glsl */ `
           uniform float uTime;
           uniform float uProximity;
+          uniform float uReveal;
           varying vec2 vUv;
 
           void main() {
+            if (uReveal <= 0.005) discard;
             float r = length(vUv);
             if (r > 1.0) discard;
 
             float angle = atan(vUv.y, vUv.x);
-            float speed = 0.65 + uProximity * 2.1;
+            float speed = 0.65 + uProximity * 2.1 + (1.0 - uReveal) * 2.2;
             float swirl1 = sin(angle * 4.0 + r * 7.0 - uTime * speed * 1.45);
             float swirl2 = cos(angle * 7.0 - r * 11.0 + uTime * speed * 0.95);
             float waves = 0.5 + 0.5 * (swirl1 * 0.6 + swirl2 * 0.4);
 
-            vec3 coreDark = vec3(0.09, 0.18, 0.34);
-            vec3 midGold  = vec3(0.96, 0.78, 0.42);
-            vec3 rimLight = vec3(1.00, 0.97, 0.86);
+            vec3 coreDark  = vec3(0.09, 0.18, 0.34);
+            vec3 midGold   = vec3(0.96, 0.78, 0.42);
+            vec3 rimLight  = vec3(1.00, 0.97, 0.86);
+            vec3 blueBirth = vec3(0.26, 0.78, 1.00);
 
             vec3 col = mix(coreDark, midGold, smoothstep(0.12, 0.90, r) * (0.68 + 0.32 * waves));
             col = mix(col, rimLight, smoothstep(0.70, 0.99, r));
             col = mix(col, rimLight, uProximity * 0.72 * (1.0 - r * 0.28));
+            // Transición de nacimiento azul pulsante a oro
+            col = mix(blueBirth, col, smoothstep(0.25, 0.95, uReveal));
 
-            float alpha = smoothstep(1.0, 0.88, r) * (0.84 + 0.16 * waves);
+            float alpha = smoothstep(1.0, 0.88, r) * (0.84 + 0.16 * waves) * uReveal;
             gl_FragColor = vec4(col, alpha);
           }
         `
@@ -706,17 +1073,21 @@
         fragmentShader: /* glsl */ `
           uniform float uTime;
           uniform float uProximity;
+          uniform float uReveal;
           varying vec2 vUv;
 
           void main() {
+            if (uReveal <= 0.005) discard;
             float r = length(vUv);
             float pulse = 0.92 + 0.08 * sin(uTime * 1.7);
             float ringGlow = exp(-pow((r - 0.50) * 5.0, 2.0));
             float softAura = exp(-r * 2.25) * 0.54;
-            float intensity = (ringGlow * 0.92 + softAura) * pulse * (1.0 + uProximity * 1.0);
+            float intensity = (ringGlow * 0.92 + softAura) * pulse * (1.0 + uProximity * 1.0) * uReveal;
             intensity *= smoothstep(1.0, 0.58, r);
 
-            vec3 glowCol = mix(vec3(1.0, 0.78, 0.38), vec3(1.0, 0.96, 0.86), ringGlow);
+            vec3 goldGlow = mix(vec3(1.0, 0.78, 0.38), vec3(1.0, 0.96, 0.86), ringGlow);
+            vec3 blueGlow = vec3(0.28, 0.80, 1.0);
+            vec3 glowCol = mix(blueGlow, goldGlow, smoothstep(0.25, 0.95, uReveal));
             gl_FragColor = vec4(glowCol * intensity, intensity);
           }
         `
@@ -725,91 +1096,327 @@
     haloPlane.position.z = -0.10;
     portalGroup.add(haloPlane);
 
-    // --- Luciérnagas distribuidas a lo largo de los 78 metros de travesía ---
-    const fireflyUniforms = { uTime: { value: 0 } };
-    {
-      const count = 150;
+    // --- Sistema de Partículas de Materialización con Brillo Azul Pulsante (1 draw call GPU) ---
+    let materializePoints = null;
+    const matParticleUniforms = {
+      uTime:    { value: 0 },
+      uMatTime: { value: -1.0 }, // < 0 desactivado; >= 0 segundos desde el inicio de materialización
+      uRatio:   { value: Math.min(window.devicePixelRatio, 2) }
+    };
+
+    function buildMaterializeParticles(sampledBoatVerts) {
+      if (materializePoints) {
+        scene.remove(materializePoints);
+        materializePoints.geometry.dispose();
+        materializePoints.material.dispose();
+        materializePoints = null;
+      }
+
+      const perBoatCount = sampledBoatVerts.length;
+      const sceneExtraCount = 340; // Partículas azules ascendentes sobre agua y ruta al portal
+      const total = boats.length * perBoatCount + sceneExtraCount;
+
+      const positions = new Float32Array(total * 3);
+      const delays    = new Float32Array(total);
+      const seeds     = new Float32Array(total);
+      const kinds     = new Float32Array(total); // 0 = escultura barca, 1 = escenario/agua/portal
+
+      const tmpVec = new THREE.Vector3();
+      let ptr = 0;
+
+      // 1. Partículas exactas sobre la silueta 3D de las 7 barcas (desde el centro hacia los lados)
+      boats.forEach((b) => {
+        b.group.updateMatrixWorld(true);
+        const boatDelay = b.matDelay;
+        for (let i = 0; i < perBoatCount; i++) {
+          tmpVec.copy(sampledBoatVerts[i]).applyMatrix4(b.group.matrixWorld);
+          positions[ptr * 3]     = tmpVec.x;
+          positions[ptr * 3 + 1] = tmpVec.y;
+          positions[ptr * 3 + 2] = tmpVec.z;
+          delays[ptr] = boatDelay + Math.random() * 0.28;
+          seeds[ptr]  = Math.random();
+          kinds[ptr]  = 0.0;
+          ptr++;
+        }
+      });
+
+      // 2. Partículas azules pulsantes en el agua y el corredor hacia el portal
+      for (let i = 0; i < sceneExtraCount; i++) {
+        const isPortalCloud = i > sceneExtraCount * 0.72;
+        if (isPortalCloud) {
+          const ang = Math.random() * Math.PI * 2;
+          const rad = CONFIG.portalRadius * (0.45 + Math.random() * 0.85);
+          positions[ptr * 3]     = CONFIG.portalPosition.x + Math.cos(ang) * rad;
+          positions[ptr * 3 + 1] = CONFIG.portalPosition.y + Math.sin(ang) * rad;
+          positions[ptr * 3 + 2] = CONFIG.portalPosition.z + (Math.random() - 0.5) * 4.5;
+          delays[ptr] = 0.85 + Math.random() * 0.65;
+        } else {
+          positions[ptr * 3]     = (Math.random() - 0.5) * 34;
+          positions[ptr * 3 + 1] = 0.08 + Math.random() * 0.6;
+          positions[ptr * 3 + 2] = 2.0 - Math.random() * 68;
+          delays[ptr] = Math.random() * 1.1;
+        }
+        seeds[ptr] = Math.random();
+        kinds[ptr] = 1.0;
+        ptr++;
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('aDelay',   new THREE.BufferAttribute(delays, 1));
+      geo.setAttribute('aSeed',    new THREE.BufferAttribute(seeds, 1));
+      geo.setAttribute('aKind',    new THREE.BufferAttribute(kinds, 1));
+
+      const mat = new THREE.ShaderMaterial({
+        uniforms: matParticleUniforms,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        vertexShader: /* glsl */ `
+          attribute float aDelay;
+          attribute float aSeed;
+          attribute float aKind;
+
+          uniform float uTime;
+          uniform float uMatTime;
+          uniform float uRatio;
+
+          varying float vAlpha;
+          varying float vPulse;
+
+          void main() {
+            if (uMatTime < 0.0) {
+              vAlpha = 0.0;
+              gl_PointSize = 0.0;
+              gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+              return;
+            }
+
+            float localT = uMatTime - aDelay;
+            if (localT < 0.0) {
+              vAlpha = 0.0;
+              gl_PointSize = 0.0;
+              gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+              return;
+            }
+
+            float dur = aKind < 0.5 ? 3.2 : 3.6;
+            float p = clamp(localT / dur, 0.0, 1.0);
+            vec3 pos = position;
+
+            // Pulso azul vivo y rítmico por partícula
+            float freq = 5.2 + fract(aSeed * 7.13) * 4.8;
+            float pulse = 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * freq + aSeed * 31.4));
+            vPulse = pulse;
+
+            if (aKind < 0.5) {
+              // Partículas de escultura: convergen en espiral formando la silueta y luego ascienden
+              float gather = smoothstep(0.0, 0.44, p);
+              float driftUp = smoothstep(0.66, 1.0, p);
+              float angle = (1.0 - gather) * 4.2 + aSeed * 6.28318;
+              float swirlR = (1.0 - gather) * (0.38 + fract(aSeed * 13.7) * 0.95);
+
+              pos.x += cos(angle) * swirlR;
+              pos.z += sin(angle) * swirlR;
+              pos.y += -(1.0 - gather) * (0.30 + fract(aSeed * 5.9) * 0.45)
+                     + driftUp * (1.15 + fract(aSeed * 19.3) * 1.65);
+
+              vAlpha = smoothstep(0.0, 0.14, p) * (1.0 - smoothstep(0.68, 1.0, p));
+            } else {
+              // Partículas de escenario/agua/portal: brotan y flotan
+              pos.y += p * (2.4 + fract(aSeed * 11.1) * 2.8);
+              pos.x += sin(uTime * 1.4 + aSeed * 12.0) * 0.55;
+              pos.z += cos(uTime * 1.1 + aSeed * 9.0) * 0.55;
+              vAlpha = smoothstep(0.0, 0.18, p) * (1.0 - smoothstep(0.68, 1.0, p));
+            }
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            float baseSize = (aKind < 0.5 ? 36.0 : 52.0) * uRatio;
+            gl_PointSize = clamp((baseSize / max(-mvPosition.z, 1.0)) * (0.65 + 0.65 * pulse), 2.0, 48.0);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying float vAlpha;
+          varying float vPulse;
+
+          void main() {
+            if (vAlpha <= 0.005) discard;
+            float d = length(gl_PointCoord - 0.5);
+            if (d > 0.5) discard;
+
+            float halo = exp(-d * 5.6);
+            float core = exp(-d * 14.5);
+
+            vec3 deepBlue = vec3(0.08, 0.46, 1.00);
+            vec3 cyanBlue = vec3(0.36, 0.84, 1.00);
+            vec3 coreWhite = vec3(0.88, 0.97, 1.00);
+
+            vec3 col = mix(deepBlue, cyanBlue, vPulse);
+            col = mix(col, coreWhite, core * 0.85);
+
+            float finalAlpha = (halo * 0.78 + core * 0.65) * vAlpha * (0.55 + 0.45 * vPulse);
+            gl_FragColor = vec4(col * (1.0 + 0.35 * vPulse), finalAlpha);
+          }
+        `
+      });
+
+      materializePoints = new THREE.Points(geo, mat);
+      materializePoints.frustumCulled = false;
+      scene.add(materializePoints);
+    }
+
+    // --- Partículas ambientales sutiles (luciérnagas doradas + motas azules pulsantes en el agua) ---
+    const ambientParticleUniforms = {
+      uTime:   { value: 0 },
+      uReveal: { value: 0 },
+      uRatio:  { value: Math.min(window.devicePixelRatio, 2) }
+    };
+    const ambientPoints = (() => {
+      const count = 175;
       const positions = new Float32Array(count * 3);
       const phases = new Float32Array(count);
+      const isBlue = new Float32Array(count);
       for (let i = 0; i < count; i++) {
+        const blueMote = i < 70;
         positions[i * 3]     = (Math.random() - 0.5) * 38;
-        positions[i * 3 + 1] = 0.45 + Math.random() * 8.5;
+        positions[i * 3 + 1] = blueMote ? (0.25 + Math.random() * 2.8) : (0.8 + Math.random() * 8.0);
         positions[i * 3 + 2] = 4 - Math.random() * 90;
         phases[i] = Math.random() * Math.PI * 2;
+        isBlue[i] = blueMote ? 1.0 : 0.0;
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+      geo.setAttribute('aPhase',   new THREE.BufferAttribute(phases, 1));
+      geo.setAttribute('aIsBlue',  new THREE.BufferAttribute(isBlue, 1));
 
       const mat = new THREE.ShaderMaterial({
-        uniforms: fireflyUniforms,
+        uniforms: ambientParticleUniforms,
         transparent: true,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         vertexShader: /* glsl */ `
           attribute float aPhase;
+          attribute float aIsBlue;
           uniform float uTime;
+          uniform float uReveal;
+          uniform float uRatio;
           varying float vPulse;
+          varying float vIsBlue;
+          varying float vReveal;
+
           void main() {
             vec3 pos = position;
-            pos.y += sin(uTime * 0.68 + aPhase) * 0.38;
-            pos.x += cos(uTime * 0.42 + aPhase * 1.3) * 0.40;
-            vPulse = 0.32 + 0.68 * (0.5 + 0.5 * sin(uTime * 1.85 + aPhase * 2.2));
+            pos.y += sin(uTime * 0.72 + aPhase) * 0.36;
+            pos.x += cos(uTime * 0.44 + aPhase * 1.3) * 0.40;
+            vPulse = 0.28 + 0.72 * (0.5 + 0.5 * sin(uTime * (aIsBlue > 0.5 ? 2.6 : 1.7) + aPhase * 2.1));
+            vIsBlue = aIsBlue;
+            vReveal = uReveal;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = (30.0 / max(-mvPosition.z, 1.0)) * (0.7 + 0.5 * vPulse);
+            gl_PointSize = clamp((26.0 * uRatio / max(-mvPosition.z, 1.0)) * (0.65 + 0.55 * vPulse), 1.5, 28.0);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: /* glsl */ `
           varying float vPulse;
+          varying float vIsBlue;
+          varying float vReveal;
+
           void main() {
+            if (vReveal <= 0.005) discard;
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
-            float glow = exp(-d * 6.2) * vPulse;
-            gl_FragColor = vec4(1.0, 0.88, 0.54, glow);
+            float glow = exp(-d * 6.2) * vPulse * vReveal;
+            vec3 col = mix(vec3(1.0, 0.88, 0.54), vec3(0.32, 0.80, 1.0), vIsBlue);
+            gl_FragColor = vec4(col, glow);
           }
         `
       });
-      scene.add(new THREE.Points(geo, mat));
-    }
+      const pts = new THREE.Points(geo, mat);
+      pts.visible = false;
+      scene.add(pts);
+      return pts;
+    })();
 
     // =========================================================================
-    // BLOQUE 4: CARGA DE models/barcagrullas.glb CON ORIENTACIÓN CORREGIDA (PROA AL FRENTE)
+    // BLOQUE 4: CARGA, NORMALIZACIÓN (PROA AL FRENTE) Y MUESTREO DE barcagrullas.glb
     // =========================================================================
     const boats = [];
     const boatHitboxes = [];
-    const loaderEl = document.getElementById('loader');
-    const loaderStatus = document.getElementById('loader-status');
+    let modelReady = false;
+    let vrSupported = false;
+    let arSupported = false;
+
+    const introScreen = document.getElementById('intro-screen');
+    const assetStatusEl = document.getElementById('asset-status');
+    const assetStatusText = document.getElementById('asset-status-text');
+    const cardAR  = document.getElementById('card-ar');
+    const cardVR  = document.getElementById('card-vr');
+    const cardWeb = document.getElementById('card-web');
+    const badgeAR = document.getElementById('badge-ar');
+    const badgeVR = document.getElementById('badge-vr');
+    const ctaAR   = document.getElementById('cta-ar');
+    const ctaVR   = document.getElementById('cta-vr');
+    const ctaWeb  = document.getElementById('cta-web');
+
+    function sampleVerticesFromTemplate(wrapper, maxSamples = 145) {
+      wrapper.updateMatrixWorld(true);
+      const rawVerts = [];
+      const v = new THREE.Vector3();
+
+      wrapper.traverse((obj) => {
+        if (obj.isMesh && obj.geometry && obj.geometry.attributes.position) {
+          const pos = obj.geometry.attributes.position;
+          const stride = Math.max(1, Math.floor(pos.count / 90));
+          for (let i = 0; i < pos.count; i += stride) {
+            v.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+            rawVerts.push(v.clone());
+          }
+        }
+      });
+
+      if (rawVerts.length === 0) {
+        for (let i = 0; i < maxSamples; i++) {
+          rawVerts.push(new THREE.Vector3(
+            (Math.random() - 0.5) * 1.4,
+            Math.random() * 1.4,
+            (Math.random() - 0.5) * 3.6
+          ));
+        }
+      }
+
+      const sampled = [];
+      for (let i = 0; i < maxSamples; i++) {
+        const idx = Math.floor((i / maxSamples) * rawVerts.length);
+        sampled.push(rawVerts[idx]);
+      }
+      return sampled;
+    }
 
     function normalizeBoatTemplate(rawScene) {
       const wrapper = new THREE.Group();
       wrapper.add(rawScene);
 
-      // 1. Medir geometría original del .glb
       rawScene.updateMatrixWorld(true);
       let box = new THREE.Box3().setFromObject(rawScene);
       let size = box.getSize(new THREE.Vector3());
 
-      // 2. Si la eslora vino en eje X, alinearla al eje Z
       if (size.x > size.z * 1.15) {
         rawScene.rotation.y = Math.PI / 2;
       }
 
-      // 3. CORRECCIÓN 180°: garantiza que la proa apunte a +Z local
-      // (al orientar boatGroup hacia el portal en -Z mundo, la barca mira y avanza de frente)
+      // Corrección 180° validada: todas las barcas miran y navegan de frente al portal
       rawScene.rotation.y += Math.PI;
 
       rawScene.updateMatrixWorld(true);
       box = new THREE.Box3().setFromObject(rawScene);
       size = box.getSize(new THREE.Vector3());
 
-      // 4. Escala física uniforme (3.8 m de eslora)
       const longestHoriz = Math.max(size.x, size.z, 0.001);
       const scale = CONFIG.targetBoatLength / longestHoriz;
       rawScene.scale.setScalar(scale);
       rawScene.updateMatrixWorld(true);
 
-      // 5. Centrar en X/Z y asentar quilla en la línea de flotación
       box = new THREE.Box3().setFromObject(rawScene);
       const center = box.getCenter(new THREE.Vector3());
       rawScene.position.x -= center.x;
@@ -833,18 +1440,23 @@
         }
       });
 
-      return { wrapper, finalSize };
+      const sampledVerts = sampleVerticesFromTemplate(wrapper, 145);
+      return { wrapper, finalSize, sampledVerts };
     }
 
     function createEmergencyBoat() {
-      const g = new THREE.Group();
+      const wrapper = new THREE.Group();
       const mat = new THREE.MeshStandardMaterial({ color: 0x5c4b36, metalness: 0.55, roughness: 0.42 });
       const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 2.2, 6, 14), mat);
       hull.rotation.x = Math.PI / 2;
       hull.scale.set(1.0, 0.55, 1.1);
       hull.position.y = 0.2;
-      g.add(hull);
-      return { wrapper: g, finalSize: new THREE.Vector3(1.4, 1.4, 3.6) };
+      wrapper.add(hull);
+      return {
+        wrapper,
+        finalSize: new THREE.Vector3(1.4, 1.4, 3.6),
+        sampledVerts: sampleVerticesFromTemplate(wrapper, 145)
+      };
     }
 
     function populateBoats(normalizedData) {
@@ -852,18 +1464,42 @@
       boats.length = 0;
       boatHitboxes.length = 0;
 
-      const { wrapper, finalSize } = normalizedData;
+      const { wrapper, finalSize, sampledVerts } = normalizedData;
       const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
+      const centerIndex = Math.floor(CONFIG.boatsLayout.length / 2);
 
       CONFIG.boatsLayout.forEach((cfg, index) => {
         const boatGroup = new THREE.Group();
         boatGroup.position.copy(cfg.pos);
-
-        // Orientación natural hacia el portal (-Z => Math.PI) con abanico armónico
         const initialYaw = Math.PI + cfg.yaw;
         boatGroup.rotation.y = initialYaw;
+        boatGroup.visible = false; // Ocultas hasta elegir modo en la portada
 
         const visual = wrapper.clone(true);
+
+        // Clonamos materiales por barca (las texturas se comparten en memoria GPU)
+        // para animar su materialización individual sin artefactos de transparencia final
+        const matRecords = [];
+        visual.traverse((obj) => {
+          if (obj.isMesh && obj.material) {
+            const isArray = Array.isArray(obj.material);
+            const clonedList = (isArray ? obj.material : [obj.material]).map((orig) => {
+              const m = orig.clone();
+              matRecords.push({
+                mat: m,
+                origTransparent: !!m.transparent,
+                origDepthWrite: m.depthWrite !== undefined ? m.depthWrite : true,
+                origOpacity: m.opacity !== undefined ? m.opacity : 1.0,
+                hasEmissive: !!m.emissive,
+                origEmissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
+                origEmissiveIntensity: m.emissiveIntensity !== undefined ? m.emissiveIntensity : 0.0
+              });
+              return m;
+            });
+            obj.material = isArray ? clonedList : clonedList[0];
+          }
+        });
+
         boatGroup.add(visual);
 
         const beaconRing = new THREE.Mesh(
@@ -871,7 +1507,7 @@
           new THREE.MeshBasicMaterial({
             color: 0xf4d694,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.0,
             side: THREE.DoubleSide,
             depthWrite: false
           })
@@ -895,16 +1531,130 @@
 
         scene.add(boatGroup);
 
+        // Desfase orgánico: la barca central se materializa primero y se propaga a los flancos
+        const radialStep = Math.abs(index - centerIndex);
         boats.push({
           index,
           group: boatGroup,
           visual,
           beaconRing,
+          matRecords,
+          matDelay: 0.25 + radialStep * 0.24,
+          materialized: false,
           homePos: cfg.pos.clone(),
           homeYaw: initialYaw,
           phaseOffset: index * 1.41 + Math.random() * 0.5
         });
       });
+
+      buildMaterializeParticles(sampledVerts);
+    }
+
+    const BLUE_MAT_COLOR = new THREE.Color(0x28a4ff);
+    const GOLD_PORTAL_EMISSIVE = new THREE.Color(0xffc870);
+    const BLUE_PORTAL_EMISSIVE = new THREE.Color(0x38b6ff);
+
+    function setBoatMaterialization(boat, progress, timeSec) {
+      const p = THREE.MathUtils.clamp(progress, 0, 1);
+      if (p <= 0.001) {
+        boat.group.visible = false;
+        boat.materialized = false;
+        return;
+      }
+
+      boat.group.visible = true;
+      const easeOut = 1.0 - Math.pow(1.0 - p, 3.0);
+
+      // Leve ascenso etéreo desde el agua mientras se solidifica
+      boat.group.position.set(
+        boat.homePos.x,
+        boat.homePos.y - (1.0 - easeOut) * 0.34,
+        boat.homePos.z
+      );
+      boat.visual.scale.setScalar(THREE.MathUtils.lerp(0.93, 1.0, easeOut));
+
+      if (p >= 0.999) {
+        if (!boat.materialized) {
+          boat.materialized = true;
+          boat.visual.scale.setScalar(1.0);
+          for (const rec of boat.matRecords) {
+            rec.mat.transparent = rec.origTransparent;
+            rec.mat.depthWrite  = rec.origDepthWrite;
+            rec.mat.opacity     = rec.origOpacity;
+            if (rec.hasEmissive) {
+              rec.mat.emissive.copy(rec.origEmissive);
+              rec.mat.emissiveIntensity = rec.origEmissiveIntensity;
+            }
+            rec.mat.needsUpdate = true;
+          }
+        }
+        return;
+      }
+
+      boat.materialized = false;
+      // Pulso azul eléctrico sobre la escultura durante su nacimiento
+      const glowBell = Math.sin(p * Math.PI);
+      const bluePulse = 0.58 + 0.42 * Math.sin(timeSec * 8.5 + boat.phaseOffset);
+
+      for (const rec of boat.matRecords) {
+        if (!rec.mat.transparent) {
+          rec.mat.transparent = true;
+          rec.mat.needsUpdate = true;
+        }
+        rec.mat.depthWrite = p > 0.58 ? rec.origDepthWrite : false;
+        rec.mat.opacity = rec.origOpacity * smoothstepJS(0.05, 0.86, p);
+
+        if (rec.hasEmissive) {
+          rec.mat.emissive.lerpColors(BLUE_MAT_COLOR, rec.origEmissive, smoothstepJS(0.45, 1.0, p));
+          rec.mat.emissiveIntensity = THREE.MathUtils.lerp(
+            rec.origEmissiveIntensity,
+            1.75 * bluePulse,
+            glowBell
+          );
+        }
+      }
+    }
+
+    function smoothstepJS(edge0, edge1, x) {
+      const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    function refreshIntroCards() {
+      if (!modelReady) return;
+
+      assetStatusEl.classList.add('ready');
+      assetStatusText.textContent = 'Escenario listo · Elige un modo para materializar';
+
+      // 3D Web siempre listo
+      cardWeb.disabled = false;
+      ctaWeb.textContent = 'Iniciar en 3D Web →';
+
+      // AR
+      if (arSupported) {
+        cardAR.disabled = false;
+        cardAR.classList.remove('unavailable');
+        badgeAR.textContent = 'Disponible';
+        ctaAR.textContent = 'Materializar en AR →';
+      } else {
+        cardAR.disabled = true;
+        cardAR.classList.add('unavailable');
+        badgeAR.textContent = 'No detectado';
+        ctaAR.textContent = 'Abre en móvil compatible WebAR';
+      }
+
+      // VR
+      if (vrSupported) {
+        cardVR.disabled = false;
+        cardVR.classList.remove('unavailable');
+        badgeVR.textContent = 'Disponible';
+        ctaVR.textContent = 'Materializar en VR →';
+      } else {
+        cardVR.disabled = true;
+        cardVR.classList.add('unavailable');
+        badgeVR.textContent = 'No detectado';
+        ctaVR.textContent = 'Abre desde navegador de visor VR';
+      }
     }
 
     function loadBoatAsset() {
@@ -921,22 +1671,24 @@
           (gltf) => {
             const normalized = normalizeBoatTemplate(gltf.scene);
             populateBoats(normalized);
-            loaderEl.classList.add('hidden');
+            modelReady = true;
+            refreshIntroCards();
           },
           (xhr) => {
             if (xhr.lengthComputable) {
               const pct = Math.min(Math.round((xhr.loaded / xhr.total) * 100), 100);
-              loaderStatus.textContent = `Cargando barcagrullas.glb (${pct}%)...`;
+              assetStatusText.textContent = `Preparando barcagrullas.glb (${pct}%)...`;
             }
           },
           (err) => {
             if (!isFallback) {
-              loaderStatus.textContent = 'Conectando con respaldo de repositorio...';
+              assetStatusText.textContent = 'Conectando con respaldo del repositorio...';
               attemptLoad(ASSETS.boatFallback, true);
             } else {
               console.warn('No se pudo cargar barcagrullas.glb:', err);
               populateBoats(createEmergencyBoat());
-              loaderEl.classList.add('hidden');
+              modelReady = true;
+              refreshIntroCards();
             }
           }
         );
@@ -947,7 +1699,7 @@
     loadBoatAsset();
 
     // =========================================================================
-    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + CORRIENTE + PORTAL)
+    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + MATERIALIZACIÓN + PORTAL)
     // =========================================================================
     const forestAudio = new Audio();
     forestAudio.src = ASSETS.audioPrimary;
@@ -1040,6 +1792,35 @@
         btnAudio.classList.toggle('active', this.enabled);
       },
 
+      // Acorde cristalino ascendente para acompañar la materialización azul
+      playMaterializeSwell() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [196.0, 293.66, 369.99, 587.33]; // Sol3, Re4, Fa#4, Re5
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq * 0.985, now);
+          osc.frequency.exponentialRampToValueAtTime(freq, now + 2.2);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(320, now);
+          filter.frequency.exponentialRampToValueAtTime(1600, now + 1.8);
+          filter.frequency.exponentialRampToValueAtTime(480, now + 3.8);
+
+          const start = now + idx * 0.14;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.linearRampToValueAtTime(0.065, start + 1.2);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 3.6);
+
+          osc.connect(filter).connect(gain).connect(this.masterGain);
+          osc.start(start);
+          osc.stop(start + 3.7);
+        });
+      },
+
       playBoardChime() {
         if (!this.enabled || !this.ctx) return;
         const now = this.ctx.currentTime;
@@ -1070,22 +1851,26 @@
     };
 
     // =========================================================================
-    // BLOQUE 6: MÁQUINA DE ESTADOS + TRAVESÍA DE 20s + GANCHO DE PORTAL
+    // BLOQUE 6: MÁQUINA DE ESTADOS (INTRO -> MATERIALIZING -> IDLE -> VOYAGE)
     // =========================================================================
     const STATE = {
+      INTRO: 'INTRO',
+      MATERIALIZING: 'MATERIALIZING',
       IDLE: 'IDLE',
       BOARDING: 'BOARDING',
       NAVIGATING: 'NAVIGATING',
       PORTAL_CROSSING: 'PORTAL_CROSSING'
     };
 
-    let currentState = STATE.IDLE;
+    let currentState = STATE.INTRO;
+    let activeMode = 'web'; // 'web' | 'ar' | 'vr'
     let activeBoat = null;
     let hoveredBoatIndex = -1;
     let isARMode = false;
     let voyagesCompleted = 0;
 
     let stateTimer = 0;
+    let matElapsed = -1.0;
     const boardStartRigPos = new THREE.Vector3();
     let navCurve = null;
     let navProgress = 0;
@@ -1095,16 +1880,18 @@
     const currentBoatDir = new THREE.Vector2(0, -1);
     let flashSwapped = false;
 
-    const stateLabel = document.getElementById('state-label');
-    const hintEl = document.getElementById('hint');
-    const btnAudio = document.getElementById('btn-audio');
+    const hudEl         = document.getElementById('hud');
+    const statusDot     = document.getElementById('status-dot');
+    const stateLabel    = document.getElementById('state-label');
+    const hintEl        = document.getElementById('hint');
+    const btnModes      = document.getElementById('btn-modes');
+    const btnAudio      = document.getElementById('btn-audio');
     const btnFullscreen = document.getElementById('btn-fullscreen');
-    const btnVR = document.getElementById('btn-vr');
-    const btnAR = document.getElementById('btn-ar');
 
-    function setHUD(status, hint) {
+    function setHUD(status, hint, blueDot = false) {
       stateLabel.textContent = status;
       if (hint !== undefined) hintEl.textContent = hint;
+      statusDot.classList.toggle('blue', blueDot);
     }
 
     function lerpAngle(a, b, t) {
@@ -1112,7 +1899,82 @@
       return a + diff * t;
     }
 
-    // Curva orgánica en S suave a lo largo de los ~74 metros hasta el portal
+    function resetSceneToHidden() {
+      playerRig.position.copy(CONFIG.originPosition);
+      activeBoat = null;
+      navCurve = null;
+      navProgress = 0;
+      currentBoatSpeed = 0;
+      smoothMotionFactor = 0;
+      matElapsed = -1.0;
+      matParticleUniforms.uMatTime.value = -1.0;
+
+      waterMesh.visible = false;
+      waterUniforms.uWaterReveal.value = 0.0;
+      waterUniforms.uBoatSpeed.value = 0.0;
+      waterUniforms.uMotionFactor.value = 0.0;
+
+      portalGroup.visible = false;
+      portalUniforms.uReveal.value = 0.0;
+      portalUniforms.uProximity.value = 0.0;
+      portalGlowLight.intensity = 0.0;
+      materializeBlueLight.intensity = 0.0;
+
+      skyGroup.visible = false;
+      starMat.opacity = 0.0;
+      ambientPoints.visible = false;
+      ambientParticleUniforms.uReveal.value = 0.0;
+      sprayMat.opacity = 0.0;
+
+      portalFlashMesh.visible = false;
+      portalFlashMat.opacity = 0.0;
+
+      for (const b of boats) {
+        b.group.position.copy(b.homePos);
+        b.group.rotation.set(0, b.homeYaw, 0);
+        b.visual.rotation.set(0, 0, 0);
+        b.beaconRing.material.opacity = 0.0;
+        setBoatMaterialization(b, 0.0, 0.0);
+      }
+    }
+
+    function startMaterialization(modeName) {
+      activeMode = modeName;
+      resetSceneToHidden();
+
+      introScreen.classList.add('hidden');
+      hudEl.classList.add('visible');
+      btnFullscreen.style.display = (modeName === 'web') ? '' : 'none';
+
+      waterMesh.visible = true;
+      portalGroup.visible = true;
+      ambientPoints.visible = true;
+      skyGroup.visible = !isARMode;
+
+      currentState = STATE.MATERIALIZING;
+      stateTimer = 0;
+      matElapsed = 0;
+      matParticleUniforms.uMatTime.value = 0;
+
+      audioEngine.playMaterializeSwell();
+      setHUD(
+        'Materializando escenario y esculturas...',
+        'Observa cómo emergen las barcas y el agua',
+        true
+      );
+    }
+
+    async function returnToIntroMenu() {
+      const session = renderer.xr.getSession();
+      if (session) {
+        await session.end().catch(() => {});
+      }
+      currentState = STATE.INTRO;
+      resetSceneToHidden();
+      hudEl.classList.remove('visible');
+      introScreen.classList.remove('hidden');
+    }
+
     function buildVoyageCurve(startPos) {
       const endPos = new THREE.Vector3(
         CONFIG.portalPosition.x,
@@ -1133,7 +1995,6 @@
       return new THREE.CatmullRomCurve3([startPos.clone(), p1, p2, endPos]);
     }
 
-    // Perfil de avance C1-continuo: 4 segundos de aceleración suave + 16 segundos de crucero fluido
     function voyageEaseC1(u) {
       const a = 0.20;
       const k = 1.0 / (2.0 * a - a * a);
@@ -1154,7 +2015,7 @@
       navProgress = 0;
       prevBoatPos.copy(boat.group.position);
 
-      setHUD('Abordando barca...', 'La corriente hacia el portal está por comenzar');
+      setHUD('Abordando barca...', 'La corriente hacia el portal está por comenzar', false);
     }
 
     /**
@@ -1182,12 +2043,13 @@
 
       setHUD(
         `De regreso en el embarcadero (Travesía #${context.voyagesCompleted})`,
-        'Elige otra barca cuando quieras volver a zarpar'
+        'Elige otra barca cuando quieras volver a zarpar',
+        false
       );
     }
 
     // =========================================================================
-    // BLOQUE 7: INTERACCIÓN MULTIPLATAFORMA (DESKTOP, MÓVIL, WEBAR Y QUEST 3)
+    // BLOQUE 7: INTERACCIÓN MULTIPLATAFORMA + SELECTOR AR / VR / 3D WEB
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
@@ -1217,12 +2079,14 @@
     }
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
+      if (currentState === STATE.INTRO) return;
       isDragging = true;
       pointerDownX = lastPointerX = e.clientX;
       pointerDownY = lastPointerY = e.clientY;
     });
 
     renderer.domElement.addEventListener('pointermove', (e) => {
+      if (currentState === STATE.INTRO) return;
       if (isDragging && !renderer.xr.isPresenting) {
         const dx = e.clientX - lastPointerX;
         const dy = e.clientY - lastPointerY;
@@ -1239,6 +2103,7 @@
     });
 
     renderer.domElement.addEventListener('pointerup', (e) => {
+      if (currentState === STATE.INTRO) return;
       const moved = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
       isDragging = false;
       if (moved < 10 && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
@@ -1247,6 +2112,7 @@
       }
     });
 
+    // Controladores WebXR (gatillo Quest 3 + toque pantalla WebAR)
     const tempMatrix = new THREE.Matrix4();
     const controllers = [];
     const vrLasers = [];
@@ -1287,7 +2153,9 @@
     setupXRController(0);
     setupXRController(1);
 
+    // Eventos de los botones HUD
     btnAudio.addEventListener('click', () => audioEngine.toggle());
+    btnModes.addEventListener('click', () => returnToIntroMenu());
 
     btnFullscreen.addEventListener('click', () => {
       if (!document.fullscreenElement) {
@@ -1300,30 +2168,51 @@
       btnFullscreen.textContent = document.fullscreenElement ? 'Salir pantalla' : 'Pantalla completa';
     });
 
-    async function initXRButtons() {
-      if (!('xr' in navigator)) return;
-
-      const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
-      if (vrSupported) {
-        btnVR.disabled = false;
-        btnVR.textContent = 'Entrar en VR';
-        btnVR.addEventListener('click', () => startXRSession('immersive-vr'));
+    // Detección de capacidades WebXR para las tarjetas de portada
+    async function detectXRCapabilities() {
+      if ('xr' in navigator) {
+        vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+        arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
       }
-
-      const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-      if (arSupported) {
-        btnAR.disabled = false;
-        btnAR.textContent = 'Entrar en AR';
-        btnAR.addEventListener('click', () => startXRSession('immersive-ar'));
+      if (!modelReady) {
+        badgeAR.textContent = arSupported ? 'Disponible' : 'No detectado';
+        badgeVR.textContent = vrSupported ? 'Disponible' : 'No detectado';
+        if (!arSupported) cardAR.classList.add('unavailable');
+        if (!vrSupported) cardVR.classList.add('unavailable');
+      } else {
+        refreshIntroCards();
       }
     }
-    initXRButtons();
+    detectXRCapabilities();
 
-    async function startXRSession(mode) {
+    // Lanzador de 3D Web
+    cardWeb.addEventListener('click', () => {
+      if (!modelReady) return;
+      isARMode = false;
+      scene.background = NIGHT_BG;
+      scene.fog = NIGHT_FOG;
+      waterUniforms.uIsAR.value = 0.0;
+      renderer.setClearAlpha(1);
+      vrLasers.forEach(l => l.visible = false);
+      camera.position.set(0, CONFIG.defaultEyeHeight, 0);
+      camYaw = 0;
+      camPitch = -0.02;
+      updateDesktopCameraLook();
+
+      audioEngine.toggle(true);
+      startMaterialization('web');
+    });
+
+    // Lanzadores de AR y VR (inician sesión XR directo en el gesto y luego materializan)
+    cardAR.addEventListener('click', () => startXRMode('immersive-ar'));
+    cardVR.addEventListener('click', () => startXRMode('immersive-vr'));
+
+    async function startXRMode(xrMode) {
+      if (!modelReady || !('xr' in navigator)) return;
       try {
-        if (!audioEngine.enabled) audioEngine.toggle(true);
+        audioEngine.toggle(true);
 
-        const isAR = (mode === 'immersive-ar');
+        const isAR = (xrMode === 'immersive-ar');
         const sessionInit = isAR
           ? {
               optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'dom-overlay'],
@@ -1333,42 +2222,44 @@
               optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
             };
 
-        const session = await navigator.xr.requestSession(mode, sessionInit);
+        const session = await navigator.xr.requestSession(xrMode, sessionInit);
         isARMode = isAR;
 
         if (isARMode) {
           scene.background = null;
           scene.fog = null;
-          skyGroup.visible = false;
           waterUniforms.uIsAR.value = 1.0;
           renderer.setClearAlpha(0);
           vrLasers.forEach(l => l.visible = false);
-          setHUD('Modo AR — Barcas en calma', 'Camina hacia una barca o tócala para abordar');
         } else {
           scene.background = NIGHT_BG;
           scene.fog = NIGHT_FOG;
-          skyGroup.visible = true;
           waterUniforms.uIsAR.value = 0.0;
           renderer.setClearAlpha(1);
           vrLasers.forEach(l => l.visible = true);
-          setHUD('Modo VR — Barcas en calma', 'Apunta con el gatillo o camina hacia una barca');
         }
 
         if (renderer.xr.setFoveation) renderer.xr.setFoveation(1);
         await renderer.xr.setSession(session);
         camera.position.set(0, 0, 0);
 
+        // Disparamos la materialización ya dentro de la vista AR / VR
+        startMaterialization(isARMode ? 'ar' : 'vr');
+
         session.addEventListener('end', () => {
           isARMode = false;
           scene.background = NIGHT_BG;
           scene.fog = NIGHT_FOG;
-          skyGroup.visible = true;
           waterUniforms.uIsAR.value = 0.0;
           renderer.setClearAlpha(1);
-          vrLasers.forEach(l => l.visible = true);
+          vrLasers.forEach(l => l.visible = false);
           camera.position.set(0, CONFIG.defaultEyeHeight, 0);
           updateDesktopCameraLook();
-          setHUD('Embarcadero — Barcas en calma', 'Arrastra para mirar · Toca una barca para abordar y navegar');
+
+          currentState = STATE.INTRO;
+          resetSceneToHidden();
+          hudEl.classList.remove('visible');
+          introScreen.classList.remove('hidden');
         });
       } catch (err) {
         console.warn('No se pudo iniciar la sesión WebXR:', err);
@@ -1387,15 +2278,96 @@
 
       waterUniforms.uTime.value = t;
       portalUniforms.uTime.value = t;
-      fireflyUniforms.uTime.value = t;
+      matParticleUniforms.uTime.value = t;
+      ambientParticleUniforms.uTime.value = t;
 
-      // Grid snapping del plano de agua: sigue al usuario sin temblor de vértices
+      // Mientras está la portada activa, no cargamos la GPU con el escenario
+      if (currentState === STATE.INTRO) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Grid snapping del agua para cero temblor de vértices
       waterMesh.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
       waterMesh.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
 
       portalRing.rotation.z = t * 0.14;
 
-      // Interacción XR en reposo
+      // Avance del reloj de las partículas azules de materialización hasta que se disipan
+      if (matElapsed >= 0 && matElapsed < 6.5) {
+        matElapsed += dt;
+        matParticleUniforms.uMatTime.value = matElapsed;
+      }
+
+      // =====================================================================
+      // ESTADO: MATERIALIZING (Partículas azules pulsantes + escenario + barcas)
+      // =====================================================================
+      if (currentState === STATE.MATERIALIZING) {
+        stateTimer += dt;
+        const u = Math.min(stateTimer / CONFIG.materializeDuration, 1.0);
+
+        // 1. Expansión radial del espejo de agua con onda azul pulsante
+        const waterP = smoothstepJS(0.0, 0.72, u);
+        waterUniforms.uWaterReveal.value = waterP;
+
+        // 2. Cielo estrellado y partículas ambientales emergen suavemente
+        if (!isARMode) {
+          starMat.opacity = smoothstepJS(0.10, 0.85, u) * 0.80;
+        }
+        ambientParticleUniforms.uReveal.value = smoothstepJS(0.45, 1.0, u);
+
+        // 3. Pulso de luz azul atmosférica que ilumina las esculturas al nacer
+        const blueBell = Math.sin(u * Math.PI);
+        const blueBeat = 0.65 + 0.35 * Math.sin(t * 7.8);
+        materializeBlueLight.intensity = blueBell * blueBeat * 11.5;
+
+        // 4. Materialización escalonada de las 7 esculturas desde el centro hacia los flancos
+        for (const b of boats) {
+          const boatLocal = (stateTimer - b.matDelay) / 2.05;
+          setBoatMaterialization(b, boatLocal, t);
+        }
+
+        // 5. Materialización del portal lejano (pasa de energía azul pulsante a oro cálido)
+        const portalP = smoothstepJS(0.26, 0.96, u);
+        portalUniforms.uReveal.value = portalP;
+        portalGroup.scale.setScalar(THREE.MathUtils.lerp(0.35, 1.0, portalP));
+        portalRingMat.opacity = portalP;
+        portalRingMat.emissive.lerpColors(BLUE_PORTAL_EMISSIVE, GOLD_PORTAL_EMISSIVE, smoothstepJS(0.35, 0.95, portalP));
+        portalRingMat.emissiveIntensity = THREE.MathUtils.lerp(1.9, 1.15, portalP);
+        portalGlowLight.intensity = portalP * 8.5;
+
+        if (u >= 1.0) {
+          // Garantizar restauración exacta de todos los materiales y estado listo
+          waterUniforms.uWaterReveal.value = 1.0;
+          portalUniforms.uReveal.value = 1.0;
+          portalGroup.scale.setScalar(1.0);
+          portalRingMat.opacity = 1.0;
+          portalRingMat.transparent = false;
+          portalRingMat.emissive.copy(GOLD_PORTAL_EMISSIVE);
+          portalRingMat.emissiveIntensity = 1.15;
+          portalGlowLight.intensity = 8.5;
+          materializeBlueLight.intensity = 0.0;
+          ambientParticleUniforms.uReveal.value = 1.0;
+          for (const b of boats) setBoatMaterialization(b, 1.0, t);
+
+          currentState = STATE.IDLE;
+          if (activeMode === 'ar') {
+            setHUD('Modo AR — Barcas en calma', 'Camina hacia una barca o tócala para abordar y zarpar', false);
+          } else if (activeMode === 'vr') {
+            setHUD('Modo VR — Barcas en calma', 'Apunta con tu control o camina hacia una barca para abordar', false);
+          } else {
+            setHUD('Embarcadero — Barcas en calma', 'Arrastra para mirar · Toca una barca para abordar y navegar', false);
+          }
+        }
+
+        audioEngine.update(dt, 0, 0);
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // =====================================================================
+      // INTERACCIÓN XR EN REPOSO + FLOTACIÓN ORGÁNICA
+      // =====================================================================
       if (currentState === STATE.IDLE && renderer.xr.isPresenting) {
         hoveredBoatIndex = -1;
         if (!isARMode) {
@@ -1418,7 +2390,6 @@
         }
       }
 
-      // Flotación suave para barcas en reposo
       for (const b of boats) {
         const isHovered = (b.index === hoveredBoatIndex && currentState === STATE.IDLE);
         const targetRingOpacity = (currentState === STATE.IDLE) ? (isHovered ? 0.85 : 0.18) : 0.0;
@@ -1440,7 +2411,9 @@
         }
       }
 
-      // Máquina de estados
+      // =====================================================================
+      // ESTADOS DE ABORDAJE, NAVEGACIÓN (20s) Y CRUCE DEL PORTAL
+      // =====================================================================
       let targetMotionFactor = 0.0;
 
       if (currentState === STATE.BOARDING && activeBoat) {
@@ -1455,7 +2428,7 @@
         if (u >= 1.0) {
           currentState = STATE.NAVIGATING;
           stateTimer = 0;
-          setHUD('Navegando hacia el portal', 'Observa el agua y el horizonte libremente');
+          setHUD('Navegando hacia el portal', 'Observa el agua y el horizonte libremente', false);
         }
       }
 
@@ -1473,15 +2446,12 @@
 
         targetMotionFactor = THREE.MathUtils.clamp(currentBoatSpeed / 3.8, 0.0, 1.0);
 
-        // Posicionar barca con balanceo vivo sobre el oleaje dinámico
         activeBoat.group.position.copy(posOnCurve);
         activeBoat.group.position.y += Math.sin(t * 2.15) * (0.04 + 0.045 * smoothMotionFactor);
 
-        // Proa alineada hacia adelante sobre la tangente de la curva
         const targetYaw = Math.atan2(tangent.x, tangent.z);
         activeBoat.group.rotation.y = lerpAngle(activeBoat.group.rotation.y, targetYaw, dt * 3.2);
 
-        // Cabeceo y rolido SOLO en la geometría de la barca (confort VR total)
         activeBoat.visual.rotation.x = Math.sin(t * 1.95) * (0.025 + 0.025 * smoothMotionFactor);
         activeBoat.visual.rotation.z = Math.cos(t * 1.55) * (0.030 + 0.032 * smoothMotionFactor);
 
@@ -1491,19 +2461,17 @@
           posOnCurve.z + CONFIG.seatOffset.z
         );
 
-        // Dinamismo del agua acoplado a la trayectoria real
         waterUniforms.uBoatPos.value.copy(posOnCurve);
         currentBoatDir.set(tangent.x, tangent.z).normalize();
         waterUniforms.uBoatDir.value.copy(currentBoatDir);
         waterUniforms.uBoatSpeed.value = currentBoatSpeed;
 
-        // Acumular flujo de corriente en sentido contrario al avance para ver pasar el agua
         waterUniforms.uFlowOffset.value.x -= currentBoatDir.x * currentBoatSpeed * dt * 0.55;
         waterUniforms.uFlowOffset.value.y -= currentBoatDir.y * currentBoatSpeed * dt * 0.55;
 
         updateWaterSpray(dt, posOnCurve, currentBoatDir, smoothMotionFactor);
 
-        const proximity = THREE.MathUtils.smoothstep(navProgress, 0.45, 1.0);
+        const proximity = smoothstepJS(0.45, 1.0, navProgress);
         portalUniforms.uProximity.value = proximity;
         portalGlowLight.intensity = 8.5 + proximity * 14.0;
 
@@ -1518,7 +2486,7 @@
           stateTimer = 0;
           flashSwapped = false;
           portalFlashMesh.visible = true;
-          setHUD('Cruzando el umbral...', '');
+          setHUD('Cruzando el umbral...', '', false);
         }
       }
 
@@ -1553,7 +2521,6 @@
         }
       }
 
-      // Suavizado continuo de la intensidad del agua dinámica
       smoothMotionFactor = THREE.MathUtils.lerp(smoothMotionFactor, targetMotionFactor, dt * 2.8);
       waterUniforms.uMotionFactor.value = smoothMotionFactor;
       if (currentState !== STATE.NAVIGATING) {
@@ -1568,6 +2535,9 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      const pr = Math.min(window.devicePixelRatio, 2);
+      matParticleUniforms.uRatio.value = pr;
+      ambientParticleUniforms.uRatio.value = pr;
     });
   </script>
 </body>

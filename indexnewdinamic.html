@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>La Barca de las Grullas — Travesía al Portal (VR / AR)</title>
+  <link rel="icon" type="image/png" href="./image_c713d6.png" />
+
+  <style>
+    :root {
+      --glass-bg: rgba(7, 15, 25, 0.56);
+      --glass-border: rgba(236, 206, 146, 0.30);
+      --accent: #f4d694;
+      --text-main: #eef3f8;
+      --text-muted: rgba(238, 243, 248, 0.76);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #040911;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-main);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Pantalla de carga inicial limpia */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: radial-gradient(circle at 50% 42%, #0c1c2e 0%, #040911 72%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-ring {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 2px solid rgba(244, 214, 148, 0.2);
+      border-top-color: var(--accent);
+      animation: spin 1.1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-title {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .loader-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* HUD minimalista translúcido (compatible con WebAR dom-overlay) */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      z-index: 10;
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .status-pill {
+      pointer-events: auto;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 8px 15px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      flex-shrink: 0;
+    }
+
+    .hud-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #hint {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 92vw;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .xr-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .xr-btn:hover {
+      background: rgba(244, 214, 148, 0.16);
+      border-color: var(--accent);
+    }
+
+    .xr-btn:active { transform: scale(0.96); }
+    .xr-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .xr-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div id="loader">
+    <div class="loader-ring"></div>
+    <div class="loader-title">La Barca de las Grullas</div>
+    <div id="loader-status" class="loader-sub">Preparando embarcaciones...</div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-top">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span id="state-label">Embarcadero — Barcas en calma</span>
+      </div>
+      <div class="top-actions">
+        <button id="btn-audio" class="xr-btn">Audio: OFF</button>
+        <button id="btn-fullscreen" class="xr-btn">Pantalla completa</button>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div id="hint">Arrastra para mirar · Toca una barca para subir y zarpar</div>
+      <div class="controls-row">
+        <button id="btn-vr" class="xr-btn" disabled>VR no disponible</button>
+        <button id="btn-ar" class="xr-btn" disabled>AR no disponible</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+    // =========================================================================
+    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + PARÁMETROS DE ESCENA
+    // =========================================================================
+    const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main';
+
+    const ASSETS = {
+      boatPrimary:  './models/barcagrullas.glb',
+      boatFallback: `${REPO_RAW}/models/barcagrullas.glb`,
+      audioPrimary: './bosque_noche.mp3',
+      audioFallback:`${REPO_RAW}/bosque_noche.mp3`
+    };
+
+    const CONFIG = {
+      // Escala física objetivo de cada barca (metros de eslora) al autonormalizar el .glb
+      targetBoatLength: 3.8,
+      waterlineSink: 0.14,      // Cuánto se hunde la quilla bajo la superficie para flotar real
+      defaultEyeHeight: 1.65,   // Altura de ojos en escritorio/móvil (VR/AR usa altura real)
+      seatOffset: new THREE.Vector3(0, 0.34, -0.1),
+
+      originPosition: new THREE.Vector3(0, 0, 0),
+
+      // 7 barcas estáticas en semicírculo orgánico mirando hacia el gran portal
+      boatsLayout: [
+        { pos: new THREE.Vector3(-8.4, 0, -7.8), yaw:  0.34 },
+        { pos: new THREE.Vector3(-5.4, 0, -5.8), yaw:  0.22 },
+        { pos: new THREE.Vector3(-2.6, 0, -4.6), yaw:  0.10 },
+        { pos: new THREE.Vector3( 0.0, 0, -4.1), yaw:  0.00 },
+        { pos: new THREE.Vector3( 2.7, 0, -4.7), yaw: -0.11 },
+        { pos: new THREE.Vector3( 5.5, 0, -6.0), yaw: -0.23 },
+        { pos: new THREE.Vector3( 8.5, 0, -8.0), yaw: -0.35 }
+      ],
+
+      // Gran portal redondo luminoso
+      portalPosition: new THREE.Vector3(0, 3.2, -40),
+      portalRadius: 4.8,
+
+      // Ritmo contemplativo y confort VR
+      boardingDuration: 1.15,
+      voyageDuration: 16.0,
+      proximityBoardDist: 1.65,
+      flashPeakDuration: 0.55
+    };
+
+    // =========================================================================
+    // BLOQUE 2: RENDERIZADOR, ESCENA E ILUMINACIÓN ATMOSFÉRICA
+    // =========================================================================
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const NIGHT_BG = new THREE.Color(0x050b14);
+    const NIGHT_FOG = new THREE.FogExp2(0x06101c, 0.016);
+    scene.background = NIGHT_BG;
+    scene.fog = NIGHT_FOG;
+
+    // PlayerRig: traslada al usuario suavemente sobre el agua sin robar control de cabeza en VR/AR
+    const playerRig = new THREE.Group();
+    playerRig.position.copy(CONFIG.originPosition);
+    scene.add(playerRig);
+
+    const camera = new THREE.PerspectiveCamera(
+      62,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      150
+    );
+    camera.position.set(0, CONFIG.defaultEyeHeight, 0);
+    playerRig.add(camera);
+
+    // Malla de destello 3D adherida a la cámara (visible en Desktop, AR y estereoscópico VR)
+    const portalFlashMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0xfff4d8),
+      transparent: true,
+      opacity: 0.0,
+      depthTest: false,
+      depthWrite: false
+    });
+    const portalFlashMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 3), portalFlashMat);
+    portalFlashMesh.position.set(0, 0, -0.32);
+    portalFlashMesh.renderOrder = 999;
+    portalFlashMesh.visible = false;
+    camera.add(portalFlashMesh);
+
+    // Iluminación atmosférica diseñada para que el bronce de barcagrullas.glb no se empaste en negro
+    const hemiLight = new THREE.HemisphereLight(0x8bb4da, 0x203247, 1.35);
+    scene.add(hemiLight);
+
+    const moonLight = new THREE.DirectionalLight(0xd8ebff, 1.45);
+    moonLight.position.set(14, 24, 12);
+    scene.add(moonLight);
+
+    const fillLight = new THREE.DirectionalLight(0x88b0c8, 0.55);
+    fillLight.position.set(-14, 10, 16);
+    scene.add(fillLight);
+
+    const portalGlowLight = new THREE.PointLight(0xffd27d, 6.0, 62, 1.35);
+    portalGlowLight.position.copy(CONFIG.portalPosition).add(new THREE.Vector3(0, 0.5, 3.2));
+    scene.add(portalGlowLight);
+
+    // Bóveda estrellada (se apaga automáticamente en WebAR)
+    const skyGroup = new THREE.Group();
+    scene.add(skyGroup);
+    {
+      const starCount = 340;
+      const starPos = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(0.14 + Math.random() * 0.86);
+        const r = 72 + Math.random() * 18;
+        starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        starPos[i * 3 + 1] = r * Math.cos(phi);
+        starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+      }
+      const starGeo = new THREE.BufferGeometry();
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({
+        color: 0xe2eeff,
+        size: 0.34,
+        transparent: true,
+        opacity: 0.78,
+        depthWrite: false
+      });
+      skyGroup.add(new THREE.Points(starGeo, starMat));
+    }
+
+    // =========================================================================
+    // BLOQUE 3: SHADERS GLSL (AGUA CON ESTELA ~30° + PORTAL + LUCIÉRNAGAS)
+    // =========================================================================
+    const waterUniforms = {
+      uTime:      { value: 0 },
+      uBoatPos:   { value: new THREE.Vector3(0, 0, -999) },
+      uBoatDir:   { value: new THREE.Vector2(0, -1) },
+      uBoatSpeed: { value: 0 },
+      uPortalPos: { value: CONFIG.portalPosition.clone() },
+      uIsAR:      { value: 0 }
+    };
+
+    const waterMaterial = new THREE.ShaderMaterial({
+      uniforms: waterUniforms,
+      transparent: true,
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        varying vec3 vWorldPos;
+        varying float vElevation;
+
+        float waveHeight(vec2 p, float t) {
+          float w1 = sin(p.x * 0.36 + t * 0.82) * 0.052;
+          float w2 = cos(p.y * 0.44 - t * 0.68) * 0.048;
+          float w3 = sin((p.x * 0.24 + p.y * 0.32) + t * 1.10) * 0.030;
+          return w1 + w2 + w3;
+        }
+
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          float h = waveHeight(worldPos.xz, uTime);
+          worldPos.y += h;
+          vWorldPos = worldPos.xyz;
+          vElevation = h;
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform vec3 uBoatPos;
+        uniform vec2 uBoatDir;
+        uniform float uBoatSpeed;
+        uniform vec3 uPortalPos;
+        uniform float uIsAR;
+
+        varying vec3 vWorldPos;
+        varying float vElevation;
+
+        void main() {
+          vec2 p = vWorldPos.xz;
+
+          // Normales analíticas para reflejos de luna y portal sin texturas pesadas
+          float nx = cos(p.x * 0.36 + uTime * 0.82) * 0.13
+                   + cos((p.x * 0.24 + p.y * 0.32) + uTime * 1.10) * 0.08;
+          float nz = -sin(p.y * 0.44 - uTime * 0.68) * 0.13
+                   + cos((p.x * 0.24 + p.y * 0.32) + uTime * 1.10) * 0.08;
+          vec3 N = normalize(vec3(-nx, 1.0, -nz));
+          vec3 V = normalize(cameraPosition - vWorldPos);
+
+          vec3 deepColor  = vec3(0.024, 0.065, 0.112);
+          vec3 crestColor = vec3(0.062, 0.158, 0.228);
+          float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+          vec3 col = mix(deepColor, crestColor, clamp(vElevation * 4.6 + 0.45, 0.0, 1.0));
+          col += vec3(0.14, 0.24, 0.35) * fresnel * 0.72;
+
+          // Reflejo dorado del portal sobre el oleaje
+          vec3 toPortal = uPortalPos - vWorldPos;
+          float portalDist = length(toPortal.xz);
+          vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y, 1.5), toPortal.z));
+          vec3 Hportal = normalize(Lportal + V);
+          float specPortal = pow(max(dot(N, Hportal), 0.0), 26.0);
+          float portalAtten = smoothstep(62.0, 4.0, portalDist);
+          col += vec3(1.0, 0.82, 0.46) * specPortal * portalAtten * 1.38;
+          col += vec3(0.96, 0.74, 0.38) * exp(-portalDist * 0.082) * 0.30;
+
+          // Estela orgánica en V (~30 grados: tan(30°) ≈ 0.577) detrás de la barca navegando
+          if (uBoatSpeed > 0.02) {
+            vec2 toFrag = p - uBoatPos.xz;
+            vec2 fwd = normalize(uBoatDir + vec2(0.0001));
+            vec2 right = vec2(-fwd.y, fwd.x);
+
+            float along = dot(toFrag, fwd);
+            float across = abs(dot(toFrag, right));
+
+            if (along < 1.0 && along > -16.0) {
+              float spread = max(0.0, -along) * 0.56 + 0.58;
+              float distToArm = abs(across - spread);
+              float rippleOsc = 0.55 + 0.45 * sin(along * 3.6 - uTime * 6.0);
+              float armMask = exp(-distToArm * 2.5) * rippleOsc;
+              float lengthFade = smoothstep(-16.0, -1.4, along) * smoothstep(1.0, -0.35, along);
+              float wake = armMask * lengthFade * clamp(uBoatSpeed * 0.52, 0.0, 1.0);
+
+              col += vec3(0.76, 0.88, 0.94) * wake * 0.55;
+            }
+          }
+
+          float camDist = length(vWorldPos.xz - cameraPosition.xz);
+          float alpha = 0.95;
+          if (uIsAR > 0.5) {
+            alpha = smoothstep(48.0, 10.0, camDist) * 0.78;
+          } else {
+            float fogFactor = 1.0 - exp(-pow(camDist * 0.016, 2.0));
+            col = mix(col, vec3(0.024, 0.063, 0.110), clamp(fogFactor, 0.0, 1.0));
+          }
+
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    // Malla de agua con buena subdivisión para oleaje suave a 60–72 fps
+    const waterMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(116, 116, 84, 84),
+      waterMaterial
+    );
+    waterMesh.rotation.x = -Math.PI / 2;
+    scene.add(waterMesh);
+
+    // --- Gran Portal Redondo Luminoso (3 mallas, 0 UnrealBloomPass) ---
+    const portalGroup = new THREE.Group();
+    portalGroup.position.copy(CONFIG.portalPosition);
+    scene.add(portalGroup);
+
+    const portalUniforms = {
+      uTime:      { value: 0 },
+      uProximity: { value: 0 }
+    };
+
+    const portalRing = new THREE.Mesh(
+      new THREE.TorusGeometry(CONFIG.portalRadius, 0.17, 18, 72),
+      new THREE.MeshStandardMaterial({
+        color: 0xc99c52,
+        emissive: 0xffc66d,
+        emissiveIntensity: 0.95,
+        metalness: 0.76,
+        roughness: 0.26
+      })
+    );
+    portalGroup.add(portalRing);
+
+    const vortexDisk = new THREE.Mesh(
+      new THREE.CircleGeometry(CONFIG.portalRadius * 0.99, 64),
+      new THREE.ShaderMaterial({
+        uniforms: portalUniforms,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv * 2.0 - 1.0;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          uniform float uProximity;
+          varying vec2 vUv;
+
+          void main() {
+            float r = length(vUv);
+            if (r > 1.0) discard;
+
+            float angle = atan(vUv.y, vUv.x);
+            float speed = 0.65 + uProximity * 1.9;
+            float swirl1 = sin(angle * 4.0 + r * 7.0 - uTime * speed * 1.4);
+            float swirl2 = cos(angle * 7.0 - r * 11.0 + uTime * speed * 0.95);
+            float waves = 0.5 + 0.5 * (swirl1 * 0.6 + swirl2 * 0.4);
+
+            vec3 coreDark = vec3(0.08, 0.16, 0.30);
+            vec3 midGold  = vec3(0.95, 0.76, 0.40);
+            vec3 rimLight = vec3(1.00, 0.96, 0.85);
+
+            vec3 col = mix(coreDark, midGold, smoothstep(0.14, 0.92, r) * (0.65 + 0.35 * waves));
+            col = mix(col, rimLight, smoothstep(0.72, 0.99, r));
+            col = mix(col, rimLight, uProximity * 0.68 * (1.0 - r * 0.3));
+
+            float alpha = smoothstep(1.0, 0.88, r) * (0.80 + 0.20 * waves);
+            gl_FragColor = vec4(col, alpha);
+          }
+        `
+      })
+    );
+    portalGroup.add(vortexDisk);
+
+    const haloPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(CONFIG.portalRadius * 3.9, CONFIG.portalRadius * 3.9),
+      new THREE.ShaderMaterial({
+        uniforms: portalUniforms,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv * 2.0 - 1.0;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          uniform float uProximity;
+          varying vec2 vUv;
+
+          void main() {
+            float r = length(vUv);
+            float pulse = 0.92 + 0.08 * sin(uTime * 1.7);
+            float ringGlow = exp(-pow((r - 0.51) * 5.1, 2.0));
+            float softAura = exp(-r * 2.35) * 0.50;
+            float intensity = (ringGlow * 0.88 + softAura) * pulse * (1.0 + uProximity * 0.95);
+            intensity *= smoothstep(1.0, 0.60, r);
+
+            vec3 glowCol = mix(vec3(1.0, 0.78, 0.38), vec3(1.0, 0.96, 0.86), ringGlow);
+            gl_FragColor = vec4(glowCol * intensity, intensity);
+          }
+        `
+      })
+    );
+    haloPlane.position.z = -0.08;
+    portalGroup.add(haloPlane);
+
+    // --- Luciérnagas orgánicas pulsantes (1 solo draw call) ---
+    const fireflyUniforms = { uTime: { value: 0 } };
+    {
+      const count = 90;
+      const positions = new Float32Array(count * 3);
+      const phases = new Float32Array(count);
+      for (let i = 0; i < count; i++) {
+        positions[i * 3]     = (Math.random() - 0.5) * 32;
+        positions[i * 3 + 1] = 0.4 + Math.random() * 6.8;
+        positions[i * 3 + 2] = -Math.random() * 46;
+        phases[i] = Math.random() * Math.PI * 2;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+      const mat = new THREE.ShaderMaterial({
+        uniforms: fireflyUniforms,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        vertexShader: /* glsl */ `
+          attribute float aPhase;
+          uniform float uTime;
+          varying float vPulse;
+          void main() {
+            vec3 pos = position;
+            pos.y += sin(uTime * 0.68 + aPhase) * 0.36;
+            pos.x += cos(uTime * 0.42 + aPhase * 1.3) * 0.38;
+            vPulse = 0.32 + 0.68 * (0.5 + 0.5 * sin(uTime * 1.8 + aPhase * 2.2));
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = (28.0 / max(-mvPosition.z, 1.0)) * (0.7 + 0.5 * vPulse);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying float vPulse;
+          void main() {
+            float d = length(gl_PointCoord - 0.5);
+            if (d > 0.5) discard;
+            float glow = exp(-d * 6.4) * vPulse;
+            gl_FragColor = vec4(1.0, 0.88, 0.54, glow);
+          }
+        `
+      });
+      scene.add(new THREE.Points(geo, mat));
+    }
+
+    // =========================================================================
+    // BLOQUE 4: CARGA Y AUTONORMALIZACIÓN DE models/barcagrullas.glb
+    // =========================================================================
+    const boats = [];
+    const boatHitboxes = [];
+    const loaderEl = document.getElementById('loader');
+    const loaderStatus = document.getElementById('loader-status');
+
+    function normalizeBoatTemplate(rawScene) {
+      const wrapper = new THREE.Group();
+      wrapper.add(rawScene);
+
+      // 1. Medimos la geometría real tal cual salió de Blender
+      rawScene.updateMatrixWorld(true);
+      let box = new THREE.Box3().setFromObject(rawScene);
+      let size = box.getSize(new THREE.Vector3());
+
+      // 2. Si el eje largo de la barca vino exportado sobre X en vez de Z, la alineamos automáticamente
+      if (size.x > size.z * 1.15) {
+        rawScene.rotation.y = Math.PI / 2;
+        rawScene.updateMatrixWorld(true);
+        box = new THREE.Box3().setFromObject(rawScene);
+        size = box.getSize(new THREE.Vector3());
+      }
+
+      // 3. Escalado uniforme a eslora física realista (3.8 metros)
+      const longestHoriz = Math.max(size.x, size.z, 0.001);
+      const scale = CONFIG.targetBoatLength / longestHoriz;
+      rawScene.scale.setScalar(scale);
+      rawScene.updateMatrixWorld(true);
+
+      // 4. Centrado en X/Z y asentamiento natural de la quilla en la línea de flotación
+      box = new THREE.Box3().setFromObject(rawScene);
+      const center = box.getCenter(new THREE.Vector3());
+      rawScene.position.x -= center.x;
+      rawScene.position.z -= center.z;
+      rawScene.position.y -= (box.min.y + CONFIG.waterlineSink);
+
+      // 5. Recalculamos altura final para ubicar la postura del pasajero con comodidad
+      rawScene.updateMatrixWorld(true);
+      const finalBox = new THREE.Box3().setFromObject(wrapper);
+      const finalSize = finalBox.getSize(new THREE.Vector3());
+      CONFIG.seatOffset.set(0, THREE.MathUtils.clamp(finalSize.y * 0.20, 0.25, 0.55), 0);
+
+      // Ajuste sutil de materiales para lectura escultórica bajo luz nocturna
+      rawScene.traverse((obj) => {
+        if (obj.isMesh && obj.material) {
+          obj.frustumCulled = true;
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach((m) => {
+            if (m.isMeshStandardMaterial) {
+              m.roughness = Math.min(m.roughness ?? 0.6, 0.78);
+            }
+          });
+        }
+      });
+
+      return { wrapper, finalSize };
+    }
+
+    function createEmergencyBoat() {
+      const g = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({ color: 0x5c4b36, metalness: 0.55, roughness: 0.42 });
+      const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 2.2, 6, 14), mat);
+      hull.rotation.x = Math.PI / 2;
+      hull.scale.set(1.0, 0.55, 1.1);
+      hull.position.y = 0.2;
+      g.add(hull);
+      return { wrapper: g, finalSize: new THREE.Vector3(1.4, 1.4, 3.6) };
+    }
+
+    function populateBoats(normalizedData) {
+      boats.forEach(b => scene.remove(b.group));
+      boats.length = 0;
+      boatHitboxes.length = 0;
+
+      const { wrapper, finalSize } = normalizedData;
+      const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
+
+      CONFIG.boatsLayout.forEach((cfg, index) => {
+        const boatGroup = new THREE.Group();
+        boatGroup.position.copy(cfg.pos);
+        // Proa orientada hacia el portal (-Z => Math.PI) con ángulo de abanico
+        const initialYaw = Math.PI + cfg.yaw;
+        boatGroup.rotation.y = initialYaw;
+
+        const visual = wrapper.clone(true);
+        boatGroup.add(visual);
+
+        // Anillo luminoso discreto en la superficie del agua (indica que se puede abordar)
+        const beaconRing = new THREE.Mesh(
+          new THREE.RingGeometry(ringRadius * 0.92, ringRadius * 1.03, 40),
+          new THREE.MeshBasicMaterial({
+            color: 0xf4d694,
+            transparent: true,
+            opacity: 0.16,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          })
+        );
+        beaconRing.rotation.x = -Math.PI / 2;
+        beaconRing.position.y = 0.04;
+        boatGroup.add(beaconRing);
+
+        // Hitbox invisible ajustado al tamaño real de barcagrullas.glb
+        const hitbox = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            Math.max(finalSize.x * 1.15, 1.8),
+            Math.max(finalSize.y * 1.15, 2.0),
+            Math.max(finalSize.z * 1.08, 3.6)
+          ),
+          new THREE.MeshBasicMaterial({ visible: false })
+        );
+        hitbox.position.y = Math.max(finalSize.y * 0.45, 0.8);
+        hitbox.userData.boatIndex = index;
+        boatGroup.add(hitbox);
+        boatHitboxes.push(hitbox);
+
+        scene.add(boatGroup);
+
+        boats.push({
+          index,
+          group: boatGroup,
+          visual,
+          beaconRing,
+          homePos: cfg.pos.clone(),
+          homeYaw: initialYaw,
+          phaseOffset: index * 1.41 + Math.random() * 0.5
+        });
+      });
+    }
+
+    function loadBoatAsset() {
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.setDRACOLoader(dracoLoader);
+      gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+
+      const attemptLoad = (url, isFallback) => {
+        gltfLoader.load(
+          url,
+          (gltf) => {
+            const normalized = normalizeBoatTemplate(gltf.scene);
+            populateBoats(normalized);
+            loaderEl.classList.add('hidden');
+          },
+          (xhr) => {
+            if (xhr.lengthComputable) {
+              const pct = Math.min(Math.round((xhr.loaded / xhr.total) * 100), 100);
+              loaderStatus.textContent = `Cargando barcagrullas.glb (${pct}%)...`;
+            }
+          },
+          (err) => {
+            if (!isFallback) {
+              loaderStatus.textContent = 'Conectando con respaldo de repositorio...';
+              attemptLoad(ASSETS.boatFallback, true);
+            } else {
+              console.warn('No se pudo cargar barcagrullas.glb:', err);
+              populateBoats(createEmergencyBoat());
+              loaderEl.classList.add('hidden');
+            }
+          }
+        );
+      };
+
+      attemptLoad(ASSETS.boatPrimary, false);
+    }
+    loadBoatAsset();
+
+    // =========================================================================
+    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + ESTELA + RESONANCIA PORTAL)
+    // =========================================================================
+    const forestAudio = new Audio();
+    forestAudio.src = ASSETS.audioPrimary;
+    forestAudio.loop = true;
+    forestAudio.preload = 'auto';
+    forestAudio.volume = 0;
+    forestAudio.addEventListener('error', () => {
+      if (forestAudio.src !== ASSETS.audioFallback) {
+        forestAudio.src = ASSETS.audioFallback;
+      }
+    });
+
+    const audioEngine = {
+      ctx: null,
+      enabled: false,
+      masterGain: null,
+      wakeGain: null,
+      wakeFilter: null,
+      portalGain: null,
+      currentForestVol: 0,
+
+      initSynth() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.0;
+        this.masterGain.connect(this.ctx.destination);
+
+        // Ruido filtrado suave para el agua deslizándose por el casco al navegar
+        const bufSize = this.ctx.sampleRate * 3;
+        const noiseBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufSize; i++) {
+          const white = Math.random() * 2 - 1;
+          lastOut = (lastOut + 0.025 * white) / 1.025;
+          data[i] = lastOut * 2.6;
+        }
+
+        const wakeSrc = this.ctx.createBufferSource();
+        wakeSrc.buffer = noiseBuf;
+        wakeSrc.loop = true;
+        this.wakeFilter = this.ctx.createBiquadFilter();
+        this.wakeFilter.type = 'bandpass';
+        this.wakeFilter.frequency.value = 400;
+        this.wakeFilter.Q.value = 0.85;
+        this.wakeGain = this.ctx.createGain();
+        this.wakeGain.gain.value = 0.0;
+        wakeSrc.connect(this.wakeFilter).connect(this.wakeGain).connect(this.masterGain);
+        wakeSrc.start();
+
+        // Resonancia armónica cálida al acercarse al portal
+        this.portalGain = this.ctx.createGain();
+        this.portalGain.gain.value = 0.0;
+
+        const oscA = this.ctx.createOscillator();
+        oscA.type = 'sine';
+        oscA.frequency.value = 146.83; // Re3
+
+        const oscB = this.ctx.createOscillator();
+        oscB.type = 'triangle';
+        oscB.frequency.value = 220.0; // La3
+
+        const portalFilter = this.ctx.createBiquadFilter();
+        portalFilter.type = 'lowpass';
+        portalFilter.frequency.value = 620;
+
+        oscA.connect(portalFilter);
+        oscB.connect(portalFilter);
+        portalFilter.connect(this.portalGain).connect(this.masterGain);
+        oscA.start();
+        oscB.start();
+      },
+
+      toggle(forceOn = false) {
+        this.initSynth();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        this.enabled = forceOn ? true : !this.enabled;
+        const now = this.ctx.currentTime;
+        this.masterGain.gain.setTargetAtTime(this.enabled ? 0.65 : 0.0, now, 0.25);
+
+        if (this.enabled) {
+          forestAudio.play().catch(() => {});
+        } else {
+          forestAudio.pause();
+        }
+
+        btnAudio.textContent = this.enabled ? 'Audio: ON' : 'Audio: OFF';
+        btnAudio.classList.toggle('active', this.enabled);
+      },
+
+      playBoardChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(293.66, now);
+        osc.frequency.exponentialRampToValueAtTime(440.0, now + 0.65);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.13, now + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+        osc.connect(gain).connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 1.45);
+      },
+
+      update(dt, boatSpeed, portalProximity) {
+        // Fundido suave del archivo bosque_noche.mp3 (se atenúa levemente al entrar al portal)
+        const targetForest = this.enabled ? THREE.MathUtils.lerp(0.62, 0.22, portalProximity) : 0.0;
+        this.currentForestVol = THREE.MathUtils.lerp(this.currentForestVol, targetForest, dt * 2.5);
+        forestAudio.volume = THREE.MathUtils.clamp(this.currentForestVol, 0, 1);
+
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const normSpeed = THREE.MathUtils.clamp(boatSpeed / 3.2, 0, 1);
+        this.wakeGain.gain.setTargetAtTime(normSpeed * 0.36, now, 0.15);
+        this.wakeFilter.frequency.setTargetAtTime(340 + normSpeed * 500, now, 0.15);
+        this.portalGain.gain.setTargetAtTime(Math.pow(portalProximity, 1.55) * 0.28, now, 0.12);
+      }
+    };
+
+    // =========================================================================
+    // BLOQUE 6: MÁQUINA DE ESTADOS + GANCHO DESACOPLADO DEL DESTINO DEL PORTAL
+    // =========================================================================
+    const STATE = {
+      IDLE: 'IDLE',
+      BOARDING: 'BOARDING',
+      NAVIGATING: 'NAVIGATING',
+      PORTAL_CROSSING: 'PORTAL_CROSSING'
+    };
+
+    let currentState = STATE.IDLE;
+    let activeBoat = null;
+    let hoveredBoatIndex = -1;
+    let isARMode = false;
+    let voyagesCompleted = 0;
+
+    let stateTimer = 0;
+    const boardStartRigPos = new THREE.Vector3();
+    let navCurve = null;
+    let navProgress = 0;
+    let currentBoatSpeed = 0;
+    const prevBoatPos = new THREE.Vector3();
+    const currentBoatDir = new THREE.Vector2(0, -1);
+    let flashSwapped = false;
+
+    const stateLabel = document.getElementById('state-label');
+    const hintEl = document.getElementById('hint');
+    const btnAudio = document.getElementById('btn-audio');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnVR = document.getElementById('btn-vr');
+    const btnAR = document.getElementById('btn-ar');
+
+    function setHUD(status, hint) {
+      stateLabel.textContent = status;
+      if (hint !== undefined) hintEl.textContent = hint;
+    }
+
+    function lerpAngle(a, b, t) {
+      const diff = ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      return a + diff * t;
+    }
+
+    function buildVoyageCurve(startPos) {
+      const endPos = new THREE.Vector3(
+        CONFIG.portalPosition.x,
+        0.35,
+        CONFIG.portalPosition.z + 0.4
+      );
+      const sideSign = startPos.x === 0 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(startPos.x);
+      const p1 = new THREE.Vector3(
+        startPos.x * 0.80 + sideSign * 0.95,
+        0.0,
+        THREE.MathUtils.lerp(startPos.z, endPos.z, 0.34)
+      );
+      const p2 = new THREE.Vector3(
+        startPos.x * 0.24 - sideSign * 0.90,
+        0.08,
+        THREE.MathUtils.lerp(startPos.z, endPos.z, 0.70)
+      );
+      return new THREE.CatmullRomCurve3([startPos.clone(), p1, p2, endPos]);
+    }
+
+    function startBoarding(boat) {
+      if (currentState !== STATE.IDLE || !boat) return;
+      if (!audioEngine.enabled) audioEngine.toggle(true);
+      audioEngine.playBoardChime();
+
+      activeBoat = boat;
+      currentState = STATE.BOARDING;
+      stateTimer = 0;
+      boardStartRigPos.copy(playerRig.position);
+      navCurve = buildVoyageCurve(boat.group.position);
+      navProgress = 0;
+      prevBoatPos.copy(boat.group.position);
+
+      setHUD('Abordando barca...', 'La corriente hacia el portal está por comenzar');
+    }
+
+    /**
+     * =========================================================================
+     * DESTINO DEL PORTAL (Aislado para futuras expansiones)
+     * -------------------------------------------------------------------------
+     * Se dispara en plena luz (opacidad = 1.0) al atravesar el portal.
+     * HOY: regresa limpiamente al embarcadero inicial.
+     * MAÑANA: cambia solo este bloque para abrir otro mundo o revelación.
+     * =========================================================================
+     */
+    function onPortalCrossed(context) {
+      playerRig.position.copy(CONFIG.originPosition);
+
+      if (context.boat) {
+        context.boat.group.position.copy(context.boat.homePos);
+        context.boat.group.rotation.set(0, context.boat.homeYaw, 0);
+        context.boat.visual.rotation.x = 0;
+        context.boat.visual.rotation.z = 0;
+      }
+
+      activeBoat = null;
+      navCurve = null;
+      navProgress = 0;
+      currentBoatSpeed = 0;
+      portalUniforms.uProximity.value = 0;
+      waterUniforms.uBoatSpeed.value = 0;
+
+      setHUD(
+        `De regreso en el embarcadero (Travesía #${context.voyagesCompleted})`,
+        'Elige otra barca cuando quieras volver a zarpar'
+      );
+    }
+
+    // =========================================================================
+    // BLOQUE 7: INTERACCIÓN (DESKTOP, MÓVIL, WEBAR Y META QUEST 3)
+    // =========================================================================
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2();
+
+    let isDragging = false;
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let camYaw = 0;
+    let camPitch = -0.04;
+
+    function updateDesktopCameraLook() {
+      if (renderer.xr.isPresenting) return;
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = camYaw;
+      camera.rotation.x = camPitch;
+    }
+    updateDesktopCameraLook();
+
+    function pickBoatFromPointer(clientX, clientY) {
+      pointerNDC.x = (clientX / window.innerWidth) * 2 - 1;
+      pointerNDC.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+      const hits = raycaster.intersectObjects(boatHitboxes, false);
+      return hits.length > 0 ? boats[hits[0].object.userData.boatIndex] : null;
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      pointerDownX = lastPointerX = e.clientX;
+      pointerDownY = lastPointerY = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (isDragging && !renderer.xr.isPresenting) {
+        const dx = e.clientX - lastPointerX;
+        const dy = e.clientY - lastPointerY;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        camYaw += dx * 0.0042;
+        camPitch = THREE.MathUtils.clamp(camPitch + dy * 0.0036, -1.05, 1.05);
+        updateDesktopCameraLook();
+      } else if (currentState === STATE.IDLE && !renderer.xr.isPresenting) {
+        const b = pickBoatFromPointer(e.clientX, e.clientY);
+        hoveredBoatIndex = b ? b.index : -1;
+        renderer.domElement.style.cursor = b ? 'pointer' : 'grab';
+      }
+    });
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const moved = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
+      isDragging = false;
+      if (moved < 10 && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
+        const b = pickBoatFromPointer(e.clientX, e.clientY);
+        if (b) startBoarding(b);
+      }
+    });
+
+    // Controladores WebXR (Sirven para gatillos Quest 3 Y toques de pantalla en WebAR)
+    const tempMatrix = new THREE.Matrix4();
+    const controllers = [];
+    const vrLasers = [];
+
+    function raycastFromController(controller) {
+      tempMatrix.identity().extractRotation(controller.matrixWorld);
+      raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+      raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+      const hits = raycaster.intersectObjects(boatHitboxes, false);
+      return hits.length > 0 ? boats[hits[0].object.userData.boatIndex] : null;
+    }
+
+    function setupXRController(idx) {
+      const controller = renderer.xr.getController(idx);
+      const laser = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 0, -15)
+        ]),
+        new THREE.LineBasicMaterial({
+          color: 0xf4d694,
+          transparent: true,
+          opacity: 0.45
+        })
+      );
+      controller.add(laser);
+      vrLasers.push(laser);
+
+      controller.addEventListener('selectstart', () => {
+        if (currentState !== STATE.IDLE) return;
+        const boat = raycastFromController(controller);
+        if (boat) startBoarding(boat);
+      });
+
+      playerRig.add(controller);
+      controllers.push(controller);
+    }
+    setupXRController(0);
+    setupXRController(1);
+
+    // Botones HUD
+    btnAudio.addEventListener('click', () => audioEngine.toggle());
+
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      btnFullscreen.textContent = document.fullscreenElement ? 'Salir pantalla' : 'Pantalla completa';
+    });
+
+    async function initXRButtons() {
+      if (!('xr' in navigator)) return;
+
+      const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+      if (vrSupported) {
+        btnVR.disabled = false;
+        btnVR.textContent = 'Entrar en VR';
+        btnVR.addEventListener('click', () => startXRSession('immersive-vr'));
+      }
+
+      const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+      if (arSupported) {
+        btnAR.disabled = false;
+        btnAR.textContent = 'Entrar en AR';
+        btnAR.addEventListener('click', () => startXRSession('immersive-ar'));
+      }
+    }
+    initXRButtons();
+
+    async function startXRSession(mode) {
+      try {
+        if (!audioEngine.enabled) audioEngine.toggle(true);
+
+        const isAR = (mode === 'immersive-ar');
+        const sessionInit = isAR
+          ? {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'dom-overlay'],
+              domOverlay: { root: document.getElementById('hud') }
+            }
+          : {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+            };
+
+        const session = await navigator.xr.requestSession(mode, sessionInit);
+        isARMode = isAR;
+
+        if (isARMode) {
+          scene.background = null;
+          scene.fog = null;
+          skyGroup.visible = false;
+          waterUniforms.uIsAR.value = 1.0;
+          renderer.setClearAlpha(0);
+          vrLasers.forEach(l => l.visible = false);
+          setHUD('Modo AR — Barcas en calma', 'Camina hacia una barca o tócala para abordar');
+        } else {
+          scene.background = NIGHT_BG;
+          scene.fog = NIGHT_FOG;
+          skyGroup.visible = true;
+          waterUniforms.uIsAR.value = 0.0;
+          renderer.setClearAlpha(1);
+          vrLasers.forEach(l => l.visible = true);
+          setHUD('Modo VR — Barcas en calma', 'Apunta con el gatillo o camina hacia una barca');
+        }
+
+        if (renderer.xr.setFoveation) renderer.xr.setFoveation(1);
+        await renderer.xr.setSession(session);
+        camera.position.set(0, 0, 0);
+
+        session.addEventListener('end', () => {
+          isARMode = false;
+          scene.background = NIGHT_BG;
+          scene.fog = NIGHT_FOG;
+          skyGroup.visible = true;
+          waterUniforms.uIsAR.value = 0.0;
+          renderer.setClearAlpha(1);
+          vrLasers.forEach(l => l.visible = true);
+          camera.position.set(0, CONFIG.defaultEyeHeight, 0);
+          updateDesktopCameraLook();
+          setHUD('Embarcadero — Barcas en calma', 'Arrastra para mirar · Toca una barca para subir y zarpar');
+        });
+      } catch (err) {
+        console.warn('No se pudo iniciar la sesión WebXR:', err);
+      }
+    }
+
+    // =========================================================================
+    // BUCLE PRINCIPAL DE ANIMACIÓN (60–72+ FPS)
+    // =========================================================================
+    const clock = new THREE.Clock();
+    const worldCamPos = new THREE.Vector3();
+
+    renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.getElapsedTime();
+
+      waterUniforms.uTime.value = t;
+      portalUniforms.uTime.value = t;
+      fireflyUniforms.uTime.value = t;
+
+      // Mar infinito centrado bajo el usuario
+      waterMesh.position.x = playerRig.position.x;
+      waterMesh.position.z = playerRig.position.z;
+
+      portalRing.rotation.z = t * 0.14;
+
+      // Interacción XR: puntero en VR + abordaje físico al caminar hacia una barca
+      if (currentState === STATE.IDLE && renderer.xr.isPresenting) {
+        hoveredBoatIndex = -1;
+        if (!isARMode) {
+          for (const ctrl of controllers) {
+            const hit = raycastFromController(ctrl);
+            if (hit) { hoveredBoatIndex = hit.index; break; }
+          }
+        }
+
+        camera.getWorldPosition(worldCamPos);
+        for (const b of boats) {
+          const distXZ = Math.hypot(
+            worldCamPos.x - b.group.position.x,
+            worldCamPos.z - b.group.position.z
+          );
+          if (distXZ < CONFIG.proximityBoardDist) {
+            startBoarding(b);
+            break;
+          }
+        }
+      }
+
+      // Flotación suave independiente para las barcas en espera
+      for (const b of boats) {
+        const isHovered = (b.index === hoveredBoatIndex && currentState === STATE.IDLE);
+        const targetRingOpacity = (currentState === STATE.IDLE) ? (isHovered ? 0.85 : 0.16) : 0.0;
+        b.beaconRing.material.opacity = THREE.MathUtils.lerp(
+          b.beaconRing.material.opacity,
+          targetRingOpacity,
+          dt * 6
+        );
+        const targetScale = isHovered ? 1.12 : 1.0;
+        b.beaconRing.scale.setScalar(
+          THREE.MathUtils.lerp(b.beaconRing.scale.x, targetScale, dt * 6)
+        );
+
+        if (b !== activeBoat) {
+          const ph = b.phaseOffset;
+          b.group.position.y = Math.sin(t * 1.12 + ph) * 0.045;
+          b.visual.rotation.x = Math.sin(t * 0.88 + ph) * 0.026;
+          b.visual.rotation.z = Math.cos(t * 1.02 + ph) * 0.032;
+        }
+      }
+
+      // Máquina de estados
+      if (currentState === STATE.BOARDING && activeBoat) {
+        stateTimer += dt;
+        const u = Math.min(stateTimer / CONFIG.boardingDuration, 1.0);
+        const smooth = u * u * (3 - 2 * u);
+
+        const targetRigPos = activeBoat.group.position.clone().add(CONFIG.seatOffset);
+        playerRig.position.lerpVectors(boardStartRigPos, targetRigPos, smooth);
+
+        // Hundimiento sutil realista al recibir al pasajero
+        activeBoat.group.position.y = -Math.sin(u * Math.PI) * 0.07;
+
+        if (u >= 1.0) {
+          currentState = STATE.NAVIGATING;
+          stateTimer = 0;
+          setHUD('Navegando hacia el portal', 'Observa libremente a tu alrededor');
+        }
+      }
+
+      else if (currentState === STATE.NAVIGATING && activeBoat && navCurve) {
+        stateTimer += dt;
+        const rawT = Math.min(stateTimer / CONFIG.voyageDuration, 1.0);
+
+        // Arranque con inercia real (ease-in) seguido de crucero sereno
+        const easedT = rawT < 0.22
+          ? (rawT * rawT) / 0.22 * 0.14
+          : 0.14 + ((rawT - 0.22) / 0.78) * 0.86;
+        navProgress = Math.min(easedT, 1.0);
+
+        const posOnCurve = navCurve.getPoint(navProgress);
+        const tangent = navCurve.getTangent(navProgress);
+
+        const stepDist = posOnCurve.distanceTo(prevBoatPos);
+        currentBoatSpeed = dt > 0 ? stepDist / dt : 0;
+        prevBoatPos.copy(posOnCurve);
+
+        activeBoat.group.position.copy(posOnCurve);
+        activeBoat.group.position.y += Math.sin(t * 1.75) * 0.035;
+
+        const targetYaw = Math.atan2(tangent.x, tangent.z);
+        activeBoat.group.rotation.y = lerpAngle(activeBoat.group.rotation.y, targetYaw, dt * 3.0);
+
+        // Balanceo solo en el casco (nunca inclina la cabeza del usuario en VR)
+        activeBoat.visual.rotation.x = Math.sin(t * 1.55) * 0.024;
+        activeBoat.visual.rotation.z = Math.cos(t * 1.32) * 0.030;
+
+        playerRig.position.set(
+          posOnCurve.x + CONFIG.seatOffset.x,
+          posOnCurve.y + CONFIG.seatOffset.y,
+          posOnCurve.z + CONFIG.seatOffset.z
+        );
+
+        waterUniforms.uBoatPos.value.copy(posOnCurve);
+        currentBoatDir.set(tangent.x, tangent.z).normalize();
+        waterUniforms.uBoatDir.value.copy(currentBoatDir);
+        waterUniforms.uBoatSpeed.value = currentBoatSpeed;
+
+        const proximity = THREE.MathUtils.smoothstep(navProgress, 0.35, 1.0);
+        portalUniforms.uProximity.value = proximity;
+        portalGlowLight.intensity = 6.0 + proximity * 10.5;
+
+        if (navProgress > 0.90) {
+          const preFlash = (navProgress - 0.90) / 0.10;
+          portalFlashMesh.visible = true;
+          portalFlashMat.opacity = Math.min(preFlash * 0.65, 0.65);
+        }
+
+        if (rawT >= 1.0) {
+          currentState = STATE.PORTAL_CROSSING;
+          stateTimer = 0;
+          flashSwapped = false;
+          portalFlashMesh.visible = true;
+          setHUD('Cruzando el umbral...', '');
+        }
+      }
+
+      else if (currentState === STATE.PORTAL_CROSSING) {
+        stateTimer += dt;
+        const riseTime = 0.45;
+        const holdTime = CONFIG.flashPeakDuration;
+        const fadeTime = 1.25;
+
+        if (stateTimer < riseTime) {
+          const k = stateTimer / riseTime;
+          portalFlashMat.opacity = THREE.MathUtils.lerp(0.65, 1.0, k);
+        } else if (stateTimer < riseTime + holdTime) {
+          portalFlashMat.opacity = 1.0;
+          if (!flashSwapped) {
+            flashSwapped = true;
+            voyagesCompleted += 1;
+            onPortalCrossed({
+              voyagesCompleted,
+              boat: activeBoat,
+              isARMode
+            });
+          }
+        } else if (stateTimer < riseTime + holdTime + fadeTime) {
+          const k = (stateTimer - riseTime - holdTime) / fadeTime;
+          portalFlashMat.opacity = 1.0 - (k * k * (3 - 2 * k));
+        } else {
+          portalFlashMat.opacity = 0.0;
+          portalFlashMesh.visible = false;
+          portalGlowLight.intensity = 6.0;
+          currentState = STATE.IDLE;
+        }
+      }
+
+      audioEngine.update(dt, currentBoatSpeed, portalUniforms.uProximity.value);
+      renderer.render(scene, camera);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

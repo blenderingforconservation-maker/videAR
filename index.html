@@ -132,7 +132,6 @@
       transition: width 0.25s ease;
     }
 
-    /* 3 botones circulares flotantes modernos y místicos */
     .orbs-dock {
       display: flex;
       align-items: center;
@@ -450,7 +449,7 @@
   </section>
 
   <!-- =====================================================================
-       HUD EN EXPERIENCIA (MINIMALISTA, SIN CONTROLES DE EDICIÓN DEL CIELO)
+       HUD EN EXPERIENCIA (MINIMALISTA)
        ===================================================================== -->
   <div id="hud">
     <div class="hud-top">
@@ -478,7 +477,7 @@
     import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
     // =========================================================================
-    // BLOQUE 1: RUTAS EXACTAS DEL REPO videAR + PARÁMETROS CALIBRADOS
+    // BLOQUE 1: RUTAS DEL REPO videAR + PARÁMETROS CALIBRADOS
     // =========================================================================
     const REPO_RAW = 'https://raw.githubusercontent.com/blenderingforconservation-maker/videAR/main';
 
@@ -499,7 +498,7 @@
 
       originPosition: new THREE.Vector3(0, 0, 0),
 
-      // 7 barcas estáticas mirando de frente hacia el portal monumental
+      // 7 barcas estáticas encarando el portal monumental
       boatsLayout: [
         { pos: new THREE.Vector3(-8.6, 0, -8.0), yaw:  0.22 },
         { pos: new THREE.Vector3(-5.6, 0, -6.0), yaw:  0.14 },
@@ -510,10 +509,11 @@
         { pos: new THREE.Vector3( 8.7, 0, -8.2), yaw: -0.22 }
       ],
 
-      // Portal colosal emergiendo del agua a 78 m (travesía real de 20 s)
+      // Portal colosal (doble de escala: 56 m de altura emergiendo del agua a 78 m)
       portalBasePosition: new THREE.Vector3(0, 0, -78),
-      portalTargetHeight: 28.0, // Escala gigantesca (28 m de alto sobre el agua)
-      portalWaterSink: 0.55,
+      portalTargetHeight: 56.0,
+      portalMaxWidth:     88.0,
+      portalWaterSink:    1.25,
 
       materializeDuration: 3.8,
       boardingDuration: 1.15,
@@ -522,12 +522,33 @@
       flashPeakDuration: 0.55
     };
 
-    // Calibración fija y sobria del cielo nocturno (luminosidad moderada y profunda)
+    // Cielo nocturno calibrado (sobrio y profundo, sin controles en UI)
     const SKY_SETTINGS = {
-      galaxyIntensity: 0.58,
-      nebulaRichness:  0.64,
+      galaxyIntensity: 0.56,
+      nebulaRichness:  0.62,
       rotationSpeed:   0.25
     };
+
+    const FOG_DENSITY = 0.0044;
+
+    // Utilidad de liberación segura de recursos GPU
+    function disposeHierarchy(root, disposeGeometries = true, disposeMaterials = true) {
+      if (!root) return;
+      root.traverse((obj) => {
+        if (disposeGeometries && obj.geometry) {
+          obj.geometry.dispose();
+        }
+        if (disposeMaterials && obj.material) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          for (const m of mats) m.dispose();
+        }
+      });
+    }
+
+    function smoothstepJS(edge0, edge1, x) {
+      const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
 
     // =========================================================================
     // BLOQUE 2: RENDERIZADOR, ESCENA E ILUMINACIÓN
@@ -548,7 +569,7 @@
     const scene = new THREE.Scene();
     const INTRO_BG = new THREE.Color(0x02060e);
     const NIGHT_BG = new THREE.Color(0x020610);
-    const NIGHT_FOG = new THREE.FogExp2(0x050e1c, 0.0056);
+    const NIGHT_FOG = new THREE.FogExp2(0x050e1c, FOG_DENSITY);
     scene.background = INTRO_BG;
     scene.fog = null;
 
@@ -560,7 +581,7 @@
       62,
       window.innerWidth / window.innerHeight,
       0.1,
-      360
+      400
     );
     camera.position.set(0, CONFIG.defaultEyeHeight, 0);
     playerRig.add(camera);
@@ -580,32 +601,32 @@
     camera.add(portalFlashMesh);
 
     // Iluminación nocturna balanceada
-    const hemiLight = new THREE.HemisphereLight(0x7ca8d8, 0x142236, 0.90);
+    const hemiLight = new THREE.HemisphereLight(0x7ca8d8, 0x142236, 0.92);
     scene.add(hemiLight);
 
     const moonLight = new THREE.DirectionalLight(0xd2e8ff, 1.18);
-    moonLight.position.set(16, 28, 14);
+    moonLight.position.set(16, 36, 18);
     scene.add(moonLight);
 
-    const fillLight = new THREE.DirectionalLight(0x709cc8, 0.45);
-    fillLight.position.set(-16, 12, 18);
+    const fillLight = new THREE.DirectionalLight(0x709cc8, 0.48);
+    fillLight.position.set(-18, 18, 22);
     scene.add(fillLight);
 
-    const materializeBlueLight = new THREE.PointLight(0x3cb8ff, 0.0, 46, 1.5);
+    const materializeBlueLight = new THREE.PointLight(0x3cb8ff, 0.0, 48, 1.5);
     materializeBlueLight.position.set(0, 3.2, -6.0);
     scene.add(materializeBlueLight);
 
-    // Luces dedicadas al portal monumental (bañan el marco 3D y proyectan reflejo en el agua)
-    const portalGlowLight = new THREE.PointLight(0xffd27d, 0.0, 155, 1.15);
-    portalGlowLight.position.set(0, 13.0, CONFIG.portalBasePosition.z + 9.0);
+    // Iluminación dual dedicada al portal de 56 m (baño dorado base + luz superior para relieve del marco)
+    const portalGlowLight = new THREE.PointLight(0xffd27d, 0.0, 210, 1.05);
+    portalGlowLight.position.set(0, 14.0, CONFIG.portalBasePosition.z + 12.0);
     scene.add(portalGlowLight);
 
-    const portalCoreBlueLight = new THREE.PointLight(0x46c0ff, 0.0, 85, 1.35);
-    portalCoreBlueLight.position.set(0, 13.0, CONFIG.portalBasePosition.z + 3.5);
-    scene.add(portalCoreBlueLight);
+    const portalCrownLight = new THREE.PointLight(0x88c8ff, 0.0, 150, 1.15);
+    portalCrownLight.position.set(0, 34.0, CONFIG.portalBasePosition.z + 14.0);
+    scene.add(portalCrownLight);
 
     // =========================================================================
-    // BLOQUE 2B: CIELO GALÁCTICO PROCEDURAL (NOCTURNO, SOBRIO Y SIN BOTONES)
+    // BLOQUE 2B: CIELO GALÁCTICO PROCEDURAL OPTIMIZADO + HDRI PMREM
     // =========================================================================
     const galaxySkyUniforms = {
       uTime:            { value: 0.0 },
@@ -667,17 +688,27 @@
         float nx01 = mix(n001, n101, u.x);
         float nx11 = mix(n011, n111, u.x);
 
-        float nxy0 = mix(nx00, nx10, u.y);
-        float nxy1 = mix(nx01, nx11, u.y);
-        return mix(nxy0, nxy1, u.z);
+        return mix(mix(nx00, nx10, u.y), mix(nx01, nx11, u.y), u.z);
       }
 
-      float fbm(vec3 p) {
+      // FBM optimizado por capas para 60-72 FPS en móviles y Quest 3
+      float fbm4(vec3 p) {
         float val = 0.0;
         float amp = 0.5;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
           val += amp * noise3D(p);
           p = p * 2.04 + vec3(13.1, 7.7, 5.3);
+          amp *= 0.5;
+        }
+        return val;
+      }
+
+      float fbm3(vec3 p) {
+        float val = 0.0;
+        float amp = 0.52;
+        for (int i = 0; i < 3; i++) {
+          val += amp * noise3D(p);
+          p = p * 2.06 + vec3(11.3, 6.9, 4.7);
           amp *= 0.5;
         }
         return val;
@@ -701,42 +732,29 @@
         float d = length(f - starPos);
 
         float brightness = smoothstep(threshold, 1.0, rnd.x);
-        float radius = (0.042 + 0.078 * brightness) * sizeScale;
+        float radius = (0.042 + 0.076 * brightness) * sizeScale;
 
-        float core = smoothstep(radius, 0.0, d);
-        core = pow(core, 2.3);
-        float halo = exp(-d * (11.5 / max(sizeScale, 0.4))) * brightness * 0.18;
+        float core = pow(smoothstep(radius, 0.0, d), 2.3);
+        float halo = exp(-d * (11.5 / max(sizeScale, 0.4))) * brightness * 0.16;
 
         float twinkle = 0.74 + 0.26 * sin(uTime * twinkleRate * (0.7 + rnd.y * 1.4) + rnd.z * 62.83);
 
         vec3 specCol;
-        if (rnd.y < 0.30) {
-          specCol = vec3(0.66, 0.82, 1.00);
-        } else if (rnd.y < 0.55) {
-          specCol = vec3(0.94, 0.96, 1.00);
-        } else if (rnd.y < 0.78) {
-          specCol = vec3(0.98, 0.87, 0.68);
-        } else if (rnd.y < 0.90) {
-          specCol = vec3(0.54, 0.88, 1.00);
-        } else {
-          specCol = vec3(0.96, 0.68, 0.46);
-        }
+        if (rnd.y < 0.30)      specCol = vec3(0.66, 0.82, 1.00);
+        else if (rnd.y < 0.55) specCol = vec3(0.94, 0.96, 1.00);
+        else if (rnd.y < 0.78) specCol = vec3(0.98, 0.87, 0.68);
+        else if (rnd.y < 0.90) specCol = vec3(0.54, 0.88, 1.00);
+        else                   specCol = vec3(0.96, 0.68, 0.46);
 
-        return specCol * (core * 1.15 + halo) * (0.40 + 0.85 * brightness) * twinkle;
+        return specCol * (core * 1.12 + halo) * (0.38 + 0.82 * brightness) * twinkle;
       }
 
       vec3 renderSpiralGalaxy(
-        vec3 dir,
-        vec3 centerDir,
-        float angRadius,
-        float tiltRatio,
-        float tiltAngle,
-        float spinSpeed,
-        vec3 coreColor,
-        vec3 armColor
+        vec3 dir, vec3 centerDir, float angRadius,
+        float tiltRatio, float tiltAngle, float spinSpeed,
+        vec3 coreColor, vec3 armColor
       ) {
-        float alignment = dot(dir, centerDir);
-        if (alignment < 0.82) return vec3(0.0);
+        if (dot(dir, centerDir) < 0.82) return vec3(0.0);
 
         vec3 upRef = abs(centerDir.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
         vec3 uAxis = normalize(cross(upRef, centerDir));
@@ -761,24 +779,20 @@
         float armMask = pow(mainArms, 2.3) * (0.55 + 0.75 * clumps) + pow(subArms, 3.2) * 0.25;
         armMask *= smoothstep(0.04, 0.22, r) * exp(-r * 2.35);
 
-        float core = exp(-r * 7.8) * 1.25;
-        float innerGlow = exp(-r * 3.1) * 0.36;
+        float core = exp(-r * 7.8) * 1.20;
+        float innerGlow = exp(-r * 3.1) * 0.34;
         float outerFade = smoothstep(1.30, 0.55, r);
 
-        vec3 col = coreColor * (core + innerGlow * 0.60)
-                 + armColor * (armMask * 0.88 + innerGlow * 0.40);
-        return col * outerFade;
+        return (coreColor * (core + innerGlow * 0.58) + armColor * (armMask * 0.84 + innerGlow * 0.38)) * outerFade;
       }
 
       void main() {
         vec3 rawDir = normalize(vLocalDir);
         vec3 dir = rotY(rawDir, uSkyRotation);
 
-        // Base nocturna profunda y sobria
         float elev = clamp(rawDir.y, 0.0, 1.0);
         vec3 voidCol = mix(vec3(0.009, 0.020, 0.044), vec3(0.003, 0.006, 0.016), pow(elev, 0.62));
 
-        // Banda de la Vía Láctea contenida y elegante
         vec3 galUp    = normalize(vec3(0.56, 0.74, -0.37));
         vec3 galFwd   = normalize(vec3(-0.22, 0.52, -0.82));
         vec3 galRight = normalize(cross(galUp, galFwd));
@@ -786,15 +800,15 @@
 
         vec3 g = vec3(dot(dir, galRight), dot(dir, galUp), dot(dir, galFwd));
 
-        float warp = (fbm(g * 2.6 + vec3(1.2, -0.8, 3.1)) - 0.5) * 0.24;
+        float warp = (fbm3(g * 2.6 + vec3(1.2, -0.8, 3.1)) - 0.5) * 0.24;
         float lat = g.y + warp;
 
         float bandTight = exp(-abs(lat) * 6.2);
         float bandWide  = exp(-abs(lat) * 2.25);
 
-        float nebA = fbm(g * 3.4 + vec3(0.0, 1.5, -2.2));
-        float nebB = fbm(g * 7.2 + vec3(4.1, -2.3, 1.7));
-        float dustNoise = fbm(g * 5.6 + vec3(-3.2, 0.6, 5.4));
+        float nebA = fbm4(g * 3.4 + vec3(0.0, 1.5, -2.2));
+        float nebB = fbm3(g * 7.0 + vec3(4.1, -2.3, 1.7));
+        float dustNoise = fbm3(g * 5.6 + vec3(-3.2, 0.6, 5.4));
 
         float riftBand = exp(-abs(lat + (dustNoise - 0.5) * 0.14) * 14.5);
         float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.80;
@@ -810,58 +824,46 @@
 
         vec3 milkyWay = vec3(0.0);
         milkyWay += colIndigo * bandWide * (0.42 + 0.78 * nebA);
-        milkyWay += colSapph  * bandTight * smoothstep(0.30, 0.84, nebA * 0.65 + nebB * 0.45) * 0.98;
-        milkyWay += colViolet * bandWide  * smoothstep(0.44, 0.86, nebB) * 0.60;
-        milkyWay += colAmber  * (coreAlign * 0.52 + coreTight * 0.68) * (0.50 + 0.60 * nebA);
+        milkyWay += colSapph  * bandTight * smoothstep(0.30, 0.84, nebA * 0.65 + nebB * 0.45) * 0.96;
+        milkyWay += colViolet * bandWide  * smoothstep(0.44, 0.86, nebB) * 0.58;
+        milkyWay += colAmber  * (coreAlign * 0.50 + coreTight * 0.64) * (0.50 + 0.60 * nebA);
 
-        float cosmicMist = smoothstep(0.48, 0.88, fbm(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
-        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.17;
+        float cosmicMist = smoothstep(0.48, 0.88, fbm3(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
+        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.16;
 
         vec3 skyCol = voidCol + (milkyWay * dustAbsorption + outerNebula) * uNebulaRichness * uGalaxyIntensity;
 
-        // Tres galaxias espirales distantes sutiles
         vec3 g1 = renderSpiralGalaxy(
-          dir,
-          normalize(vec3(0.34, 0.48, -0.80)),
-          0.160, 0.46, 0.58, 0.024,
-          vec3(0.95, 0.82, 0.58),
-          vec3(0.32, 0.62, 0.94)
+          dir, normalize(vec3(0.38, 0.52, -0.76)), 0.155, 0.46, 0.58, 0.024,
+          vec3(0.95, 0.82, 0.58), vec3(0.32, 0.62, 0.94)
         );
         vec3 g2 = renderSpiralGalaxy(
-          dir,
-          normalize(vec3(-0.46, 0.64, -0.61)),
-          0.118, 0.82, -0.40, -0.030,
-          vec3(0.84, 0.92, 0.98),
-          vec3(0.24, 0.72, 0.94)
+          dir, normalize(vec3(-0.46, 0.64, -0.61)), 0.118, 0.82, -0.40, -0.030,
+          vec3(0.84, 0.92, 0.98), vec3(0.24, 0.72, 0.94)
         );
         vec3 g3 = renderSpiralGalaxy(
-          dir,
-          normalize(vec3(0.54, 0.52, 0.66)),
-          0.130, 0.56, 1.12, 0.020,
-          vec3(0.94, 0.74, 0.52),
-          vec3(0.50, 0.36, 0.84)
+          dir, normalize(vec3(0.54, 0.52, 0.66)), 0.130, 0.56, 1.12, 0.020,
+          vec3(0.94, 0.74, 0.52), vec3(0.50, 0.36, 0.84)
         );
-        skyCol += (g1 + g2 + g3) * 0.68 * uGalaxyIntensity;
+        skyCol += (g1 + g2 + g3) * 0.64 * uGalaxyIntensity;
 
-        // Campo estelar nítido pero controlado
         vec3 stars = vec3(0.0);
-        float bandBoost = 1.0 + bandTight * 0.95 * dustAbsorption;
-        stars += starLayer(dir, 118.0, 0.930, 0.86, 1.6) * 0.54 * bandBoost;
-        stars += starLayer(dir,  64.0, 0.956, 0.96, 2.1) * 0.82;
-        stars += starLayer(dir,  29.0, 0.977, 1.12, 2.6) * 1.10;
-        skyCol += stars * (0.48 + 0.36 * uGalaxyIntensity);
+        float bandBoost = 1.0 + bandTight * 0.92 * dustAbsorption;
+        stars += starLayer(dir, 118.0, 0.932, 0.84, 1.6) * 0.52 * bandBoost;
+        stars += starLayer(dir,  64.0, 0.957, 0.94, 2.1) * 0.78;
+        stars += starLayer(dir,  29.0, 0.978, 1.10, 2.6) * 1.05;
+        skyCol += stars * (0.46 + 0.36 * uGalaxyIntensity);
 
-        // Horizonte suave fusionado con el océano oscuro
         float horizonBand = exp(-abs(rawDir.y) * 10.0);
-        vec3 horizonGlow = vec3(0.018, 0.052, 0.100) * horizonBand * 0.85;
+        vec3 horizonGlow = vec3(0.018, 0.050, 0.096) * horizonBand * 0.82;
         float portalAzimuth = pow(max(dot(normalize(vec3(rawDir.x, 0.0, rawDir.z)), vec3(0.0, 0.0, -1.0)), 0.0), 8.0);
-        horizonGlow += vec3(0.18, 0.13, 0.06) * horizonBand * portalAzimuth * 0.45;
+        horizonGlow += vec3(0.20, 0.14, 0.06) * horizonBand * portalAzimuth * 0.48;
 
         float aboveWater = smoothstep(-0.08, 0.08, rawDir.y);
         skyCol = mix(vec3(0.012, 0.036, 0.070), skyCol, aboveWater) + horizonGlow;
 
         float rev = clamp(uReveal, 0.0, 1.0);
-        vec3 birthTint = vec3(0.03, 0.14, 0.28) * sin(rev * 3.14159) * 0.36;
+        vec3 birthTint = vec3(0.03, 0.14, 0.28) * sin(rev * 3.14159) * 0.34;
         vec3 finalCol = mix(vec3(0.006, 0.012, 0.026), skyCol, rev) + birthTint;
 
         gl_FragColor = vec4(finalCol * uBakeBoost, 1.0);
@@ -878,14 +880,13 @@
     });
 
     const galaxySkyDome = new THREE.Mesh(
-      new THREE.SphereGeometry(225, 64, 40),
+      new THREE.SphereGeometry(245, 56, 36),
       galaxySkyMaterial
     );
     galaxySkyDome.visible = false;
     galaxySkyDome.renderOrder = -10;
     scene.add(galaxySkyDome);
 
-    // Entorno HDRI procedural PMREM para reflejos nocturnos en esculturas y portal
     function bakeProceduralHDRIEnvironment() {
       try {
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -895,18 +896,18 @@
         const bakeMat = galaxySkyMaterial.clone();
         bakeMat.uniforms = THREE.UniformsUtils.clone(galaxySkyUniforms);
         bakeMat.uniforms.uReveal.value = 1.0;
-        bakeMat.uniforms.uGalaxyIntensity.value = 0.85;
-        bakeMat.uniforms.uNebulaRichness.value = 0.85;
-        bakeMat.uniforms.uBakeBoost.value = 1.38;
+        bakeMat.uniforms.uGalaxyIntensity.value = 0.82;
+        bakeMat.uniforms.uNebulaRichness.value = 0.82;
+        bakeMat.uniforms.uBakeBoost.value = 1.35;
 
-        const bakeGeo = new THREE.SphereGeometry(48, 48, 32);
+        const bakeGeo = new THREE.SphereGeometry(48, 40, 28);
         bakeScene.add(new THREE.Mesh(bakeGeo, bakeMat));
 
         const bakePortalSpot = new THREE.Mesh(
-          new THREE.SphereGeometry(7.5, 16, 16),
+          new THREE.SphereGeometry(9.0, 14, 14),
           new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 1.75, 1.0) })
         );
-        bakePortalSpot.position.set(0, 10, -40);
+        bakePortalSpot.position.set(0, 12, -40);
         bakeScene.add(bakePortalSpot);
 
         const rt = pmremGenerator.fromScene(bakeScene, 0.025, 0.1, 120);
@@ -952,6 +953,7 @@
           }
         `,
         fragmentShader: /* glsl */ `
+          precision highp float;
           uniform float uTime;
           uniform float uFade;
           varying vec2 vUv;
@@ -1008,6 +1010,7 @@
           }
         `,
         fragmentShader: /* glsl */ `
+          precision highp float;
           uniform float uFade;
           varying float vPulse;
           void main() {
@@ -1024,6 +1027,12 @@
     function buildIntroWireframe(normalizedWrapper) {
       if (introWireframePivot) {
         introStage.remove(introWireframePivot);
+        // Solo liberamos los EdgesGeometry y materiales propios del wireframe
+        introWireframePivot.traverse((obj) => {
+          if (obj.isLineSegments && obj.geometry) obj.geometry.dispose();
+        });
+        if (introEdgeMat) introEdgeMat.dispose();
+        if (introMeshWireMat) introMeshWireMat.dispose();
         introWireframePivot = null;
       }
 
@@ -1091,8 +1100,8 @@
     // =========================================================================
     // BLOQUE 3: AGUA DENSA DINÁMICA + ROCÍO DE CASCO
     // =========================================================================
-    const WATER_SIZE = 190;
-    const WATER_SEGMENTS = 108;
+    const WATER_SIZE = 260;
+    const WATER_SEGMENTS = 100;
     const WATER_STEP = WATER_SIZE / WATER_SEGMENTS;
 
     const waterUniforms = {
@@ -1103,8 +1112,9 @@
       uBoatSpeed:       { value: 0 },
       uMotionFactor:    { value: 0 },
       uFlowOffset:      { value: new THREE.Vector2(0, 0) },
-      uPortalPos:       { value: new THREE.Vector3(0, 12.0, CONFIG.portalBasePosition.z) },
+      uPortalPos:       { value: new THREE.Vector3(0, 26.0, CONFIG.portalBasePosition.z) },
       uGalaxyIntensity: { value: SKY_SETTINGS.galaxyIntensity },
+      uFogDensity:      { value: FOG_DENSITY },
       uIsAR:            { value: 0 }
     };
 
@@ -1165,6 +1175,8 @@
         }
       `,
       fragmentShader: /* glsl */ `
+        precision highp float;
+
         uniform float uTime;
         uniform float uWaterReveal;
         uniform vec3 uBoatPos;
@@ -1174,6 +1186,7 @@
         uniform vec2 uFlowOffset;
         uniform vec3 uPortalPos;
         uniform float uGalaxyIntensity;
+        uniform float uFogDensity;
         uniform float uIsAR;
 
         varying vec3 vWorldPos;
@@ -1188,12 +1201,12 @@
           float blueEdgeGlow = 0.0;
           if (uWaterReveal < 0.999) {
             float distOrigin = length(p);
-            float revealRadius = uWaterReveal * 140.0;
+            float revealRadius = uWaterReveal * 185.0;
             float edgeDist = revealRadius - distOrigin;
-            revealMask = smoothstep(-5.0, 5.5, edgeDist);
+            revealMask = smoothstep(-5.5, 6.0, edgeDist);
             if (revealMask <= 0.005) discard;
             float pulse = 0.62 + 0.38 * sin(uTime * 7.5 - distOrigin * 0.45);
-            blueEdgeGlow = exp(-abs(edgeDist) * 0.32) * pulse * (1.0 - smoothstep(0.88, 1.0, uWaterReveal));
+            blueEdgeGlow = exp(-abs(edgeDist) * 0.30) * pulse * (1.0 - smoothstep(0.88, 1.0, uWaterReveal));
           }
 
           vec2 pf = p - uFlowOffset;
@@ -1217,7 +1230,6 @@
           vec3 col = mix(deepColor, midColor, smoothstep(0.0, 0.65, heightFactor));
           col = mix(col, crestColor, smoothstep(0.55, 1.0, heightFactor));
 
-          // Reflejo atmosférico moderado del cielo nocturno
           float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.7);
           float galRefBand = exp(-abs(dot(R, normalize(vec3(0.56, 0.74, -0.37)))) * 4.2);
           vec3 galaxyRefCol = mix(vec3(0.07, 0.16, 0.30), vec3(0.18, 0.18, 0.38), galRefBand);
@@ -1226,18 +1238,17 @@
           vec3 moonDir = normalize(vec3(0.32, 0.72, 0.26));
           vec3 moonHalf = normalize(moonDir + V);
           float moonSpec = pow(max(dot(N, moonHalf), 0.0), 46.0);
-          col += vec3(0.56, 0.74, 0.92) * moonSpec * 0.38;
+          col += vec3(0.56, 0.74, 0.92) * moonSpec * 0.36;
 
-          // Largo reflejo dorado-azul del portal monumental sobre las olas
+          // Sendero dorado del portal monumental sobre las olas
           vec3 toPortal = uPortalPos - vWorldPos;
           float portalDist = length(toPortal.xz);
-          vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y, 4.0), toPortal.z));
+          vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y * 0.55, 4.5), toPortal.z));
           vec3 Hportal = normalize(Lportal + V);
-          float specPortal = pow(max(dot(N, Hportal), 0.0), 18.0);
-          float portalAtten = smoothstep(135.0, 8.0, portalDist);
-          col += vec3(1.0, 0.82, 0.46) * specPortal * portalAtten * (1.55 + 0.40 * uMotionFactor);
-          col += vec3(0.32, 0.76, 1.0) * pow(specPortal, 1.5) * portalAtten * 0.48;
-          col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.032) * 0.42;
+          float specPortal = pow(max(dot(N, Hportal), 0.0), 20.0);
+          float portalAtten = smoothstep(160.0, 10.0, portalDist);
+          col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.55 + 0.38 * uMotionFactor);
+          col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.028) * 0.42;
 
           // Espuma dinámica de proa y estela en V
           if (uMotionFactor > 0.01) {
@@ -1276,9 +1287,9 @@
           float camDist = length(vWorldPos.xz - cameraPosition.xz);
           float alpha = 0.99;
           if (uIsAR > 0.5) {
-            alpha = smoothstep(86.0, 26.0, camDist) * 0.94;
+            alpha = smoothstep(95.0, 28.0, camDist) * 0.94;
           } else {
-            float fogFactor = 1.0 - exp(-pow(camDist * 0.0056, 2.0));
+            float fogFactor = 1.0 - exp(-pow(camDist * uFogDensity, 2.0));
             col = mix(col, vec3(0.016, 0.046, 0.092), clamp(fogFactor, 0.0, 1.0));
           }
 
@@ -1295,7 +1306,7 @@
     waterMesh.visible = false;
     scene.add(waterMesh);
 
-    // --- Rocío de agua alrededor del casco ---
+    // --- Rocío de agua alrededor del casco (culling automático en reposo) ---
     const SPRAY_COUNT = 54;
     const sprayPositions = new Float32Array(SPRAY_COUNT * 3);
     const sprayVelocities = [];
@@ -1316,10 +1327,16 @@
     });
     const sprayPoints = new THREE.Points(sprayGeo, sprayMat);
     sprayPoints.frustumCulled = false;
+    sprayPoints.visible = false;
     scene.add(sprayPoints);
 
     function updateWaterSpray(dt, boatPos, dir2D, motionFactor) {
       sprayMat.opacity = THREE.MathUtils.lerp(sprayMat.opacity, motionFactor * 0.72, dt * 5);
+      if (sprayMat.opacity <= 0.005 && motionFactor < 0.05) {
+        sprayPoints.visible = false;
+        return;
+      }
+      sprayPoints.visible = true;
       if (motionFactor < 0.05) return;
 
       const posAttr = sprayGeo.attributes.position;
@@ -1354,7 +1371,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 3B: PORTAL MONUMENTAL 3D (GLB) + VÓRTICE ESPIRAL + NUBE ENVOLVENTE
+    // BLOQUE 3B: PORTAL MONUMENTAL 3D (56 m) + VÓRTICE ORIGINAL + NUBE SUTIL
     // =========================================================================
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalBasePosition);
@@ -1365,7 +1382,6 @@
       uTime:      { value: 0 },
       uProximity: { value: 0 },
       uReveal:    { value: 0 },
-      uAspect:    { value: 1.0 },
       uRatio:     { value: Math.min(window.devicePixelRatio, 2) }
     };
 
@@ -1375,11 +1391,10 @@
     let portalVortexMesh = null;
     let portalHaloMesh = null;
     let portalCloudPoints = null;
-    let portalBoundsSize = new THREE.Vector3(24, CONFIG.portalTargetHeight, 6);
     let portalSampledVerts = [];
 
-    // Shader del vórtice espiralado contenido dentro del marco 3D
-    const portalSpiralMaterial = new THREE.ShaderMaterial({
+    // Efecto de vórtice anterior restaurado (azul profundo -> ondas doradas -> borde crema)
+    const portalVortexMaterial = new THREE.ShaderMaterial({
       uniforms: portalUniforms,
       transparent: true,
       side: THREE.DoubleSide,
@@ -1398,69 +1413,36 @@
         uniform float uTime;
         uniform float uProximity;
         uniform float uReveal;
-        uniform float uAspect;
         varying vec2 vUv;
-
-        // SDF de rectángulo redondeado para adaptarse limpiamente al marco 3D sin esquinas duras
-        float sdRoundedBox(vec2 p, vec2 b, float r) {
-          vec2 q = abs(p) - b + r;
-          return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
-        }
 
         void main() {
           if (uReveal <= 0.005) discard;
+          float r = length(vUv);
+          if (r > 1.0) discard;
 
-          float frameSdf = sdRoundedBox(vUv, vec2(0.96, 0.96), 0.30);
-          float frameMask = smoothstep(0.02, -0.24, frameSdf);
-          if (frameMask <= 0.003) discard;
+          float angle = atan(vUv.y, vUv.x);
+          float speed = 0.65 + uProximity * 2.1 + (1.0 - uReveal) * 2.2;
+          float swirl1 = sin(angle * 4.0 + r * 7.0 - uTime * speed * 1.45);
+          float swirl2 = cos(angle * 7.0 - r * 11.0 + uTime * speed * 0.95);
+          float waves = 0.5 + 0.5 * (swirl1 * 0.6 + swirl2 * 0.4);
 
-          // Coordenadas proporcionales para espiral perfectamente circular
-          vec2 sp = vec2(vUv.x * max(uAspect, 0.55), vUv.y);
-          float r = length(sp);
-          float angle = atan(sp.y, sp.x);
+          vec3 coreDark  = vec3(0.09, 0.18, 0.34);
+          vec3 midGold   = vec3(0.96, 0.78, 0.42);
+          vec3 rimLight  = vec3(1.00, 0.97, 0.86);
+          vec3 blueBirth = vec3(0.26, 0.78, 1.00);
 
-          float speed = 0.85 + uProximity * 2.45 + (1.0 - uReveal) * 2.1;
-          float logR = log(r + 0.075);
+          vec3 col = mix(coreDark, midGold, smoothstep(0.12, 0.90, r) * (0.68 + 0.32 * waves));
+          col = mix(col, rimLight, smoothstep(0.70, 0.99, r));
+          col = mix(col, rimLight, uProximity * 0.72 * (1.0 - r * 0.28));
+          col = mix(blueBirth, col, smoothstep(0.25, 0.95, uReveal));
 
-          // Brazos espirales logarítmicos principales y secundarios absorbiendo hacia el centro
-          float armMain = 0.5 + 0.5 * sin(angle * 3.0 - logR * 8.6 + uTime * speed * 1.75);
-          float armSub  = 0.5 + 0.5 * sin(angle * 5.0 - logR * 13.8 + uTime * speed * 2.35 + 1.3);
-          float armFine = 0.5 + 0.5 * sin(angle * 2.0 - r * 10.5 - uTime * speed * 1.30);
-
-          // Ondas concéntricas que pulsan hacia el núcleo
-          float inwardWave = 0.5 + 0.5 * sin(r * 13.0 + uTime * speed * 2.6);
-
-          float spiral = pow(armMain, 1.75) * 0.64
-                       + pow(armSub,  2.40) * 0.36
-                       + pow(armFine, 2.20) * 0.22;
-          spiral *= (0.76 + 0.24 * inwardWave);
-
-          // Núcleo dimensional brillante + halo interno cerca del borde del marco
-          float coreSingularity = exp(-r * 4.6);
-          float coreHalo        = exp(-r * 2.0) * 0.48;
-          float innerRimGlow    = smoothstep(-0.34, -0.04, frameSdf) * frameMask;
-
-          vec3 abyssBlue = vec3(0.025, 0.070, 0.190);
-          vec3 cyanMyst  = vec3(0.160, 0.680, 1.000);
-          vec3 goldAlch  = vec3(1.000, 0.780, 0.380);
-          vec3 coreWhite = vec3(1.000, 0.965, 0.880);
-          vec3 birthBlue = vec3(0.260, 0.800, 1.000);
-
-          vec3 col = mix(abyssBlue, cyanMyst, clamp(spiral * 0.82 + coreHalo * 0.5, 0.0, 1.0));
-          col = mix(col, goldAlch, clamp(pow(armMain, 2.2) * (0.35 + 0.55 * r) + innerRimGlow * 0.55, 0.0, 1.0));
-          col += coreWhite * (coreSingularity * (0.95 + 0.55 * uProximity) + pow(armSub, 4.0) * 0.25);
-
-          // Intensificación total al acercarse al umbral
-          col = mix(col, coreWhite, uProximity * 0.66 * (1.0 - r * 0.25));
-          col = mix(birthBlue, col, smoothstep(0.22, 0.95, uReveal));
-
-          float alpha = frameMask * clamp(0.68 + 0.32 * spiral + coreSingularity * 0.45, 0.0, 1.0) * uReveal;
+          float alpha = smoothstep(1.0, 0.86, r) * (0.84 + 0.16 * waves) * uReveal;
           gl_FragColor = vec4(col, alpha);
         }
       `
     });
 
-    // Aura atmosférica monumental detrás del marco 3D
+    // Halo dorado original restaurado detrás del marco 3D
     const portalHaloMaterial = new THREE.ShaderMaterial({
       uniforms: portalUniforms,
       transparent: true,
@@ -1476,6 +1458,8 @@
         }
       `,
       fragmentShader: /* glsl */ `
+        precision highp float;
+
         uniform float uTime;
         uniform float uProximity;
         uniform float uReveal;
@@ -1484,20 +1468,21 @@
         void main() {
           if (uReveal <= 0.005) discard;
           float r = length(vUv);
-          float pulse = 0.88 + 0.12 * sin(uTime * 1.85);
-          float softAura = exp(-r * 2.35) * 0.58;
-          float outerRing = exp(-pow((r - 0.56) * 4.4, 2.0)) * 0.42;
-          float intensity = (softAura + outerRing) * pulse * (1.0 + uProximity * 0.85) * uReveal;
-          intensity *= smoothstep(1.0, 0.52, r);
+          float pulse = 0.92 + 0.08 * sin(uTime * 1.7);
+          float ringGlow = exp(-pow((r - 0.48) * 5.0, 2.0));
+          float softAura = exp(-r * 2.35) * 0.46;
+          float intensity = (ringGlow * 0.78 + softAura) * pulse * (1.0 + uProximity * 0.85) * uReveal;
+          intensity *= smoothstep(1.0, 0.56, r);
 
-          vec3 goldBlue = mix(vec3(0.22, 0.70, 1.0), vec3(1.0, 0.80, 0.44), 0.48 + 0.25 * sin(uTime * 1.1));
-          vec3 birthCol = vec3(0.26, 0.80, 1.0);
-          vec3 finalCol = mix(birthCol, goldBlue, smoothstep(0.25, 0.95, uReveal));
-          gl_FragColor = vec4(finalCol * intensity, intensity);
+          vec3 goldGlow = mix(vec3(1.0, 0.78, 0.38), vec3(1.0, 0.96, 0.86), ringGlow);
+          vec3 blueGlow = vec3(0.28, 0.80, 1.0);
+          vec3 glowCol = mix(blueGlow, goldGlow, smoothstep(0.25, 0.95, uReveal));
+          gl_FragColor = vec4(glowCol * intensity, intensity);
         }
       `
     });
 
+    // Nube envolvente de partículas pequeñas y de brillo moderado alrededor del portal de 56 m
     function buildPortalParticleCloud(sampledVerts, size) {
       if (portalCloudPoints) {
         portalGroup.remove(portalCloudPoints);
@@ -1506,8 +1491,8 @@
         portalCloudPoints = null;
       }
 
-      const TOTAL = 740;
-      const surfaceCount = Math.floor(TOTAL * 0.56);
+      const TOTAL = 620;
+      const surfaceCount = Math.floor(TOTAL * 0.58);
 
       const positions = new Float32Array(TOTAL * 3);
       const sizes     = new Float32Array(TOTAL);
@@ -1519,45 +1504,42 @@
       const centerY = size.y * 0.5 - CONFIG.portalWaterSink;
       const halfW = size.x * 0.5;
       const halfH = size.y * 0.5;
-      const halfD = Math.max(size.z * 0.5, 2.6);
+      const halfD = Math.max(size.z * 0.5, 4.0);
 
       for (let i = 0; i < TOTAL; i++) {
         let px, py, pz;
 
         if (i < surfaceCount && sampledVerts.length > 0) {
-          // Partículas abrazando directamente la geometría real del marco 3D gigante
           const base = sampledVerts[i % sampledVerts.length];
-          const spread = 1.2 + Math.random() * 3.8;
+          const spread = 1.2 + Math.random() * 4.4;
           const theta = Math.random() * Math.PI * 2;
           const phi = (Math.random() - 0.5) * Math.PI;
           px = base.x + Math.cos(theta) * Math.cos(phi) * spread;
           py = base.y + Math.sin(phi) * spread;
-          pz = base.z + Math.sin(theta) * Math.cos(phi) * (spread * 1.25);
+          pz = base.z + Math.sin(theta) * Math.cos(phi) * (spread * 1.2);
         } else {
-          // Envoltura volumétrica 3D completa alrededor de todo el portal colosal
           const ang = Math.random() * Math.PI * 2;
-          const radFactor = 0.72 + Math.random() * 0.68;
-          px = Math.cos(ang) * halfW * radFactor * 1.28 + (Math.random() - 0.5) * 3.5;
-          py = centerY + Math.sin(ang) * halfH * radFactor * 1.18 + (Math.random() - 0.5) * 3.2;
-          pz = (Math.random() - 0.5) * (halfD * 2.0 + 11.0);
+          const radFactor = 0.72 + Math.random() * 0.56;
+          px = Math.cos(ang) * halfW * radFactor * 1.18 + (Math.random() - 0.5) * 4.5;
+          py = centerY + Math.sin(ang) * halfH * radFactor * 1.12 + (Math.random() - 0.5) * 4.2;
+          pz = (Math.random() - 0.5) * (halfD * 2.0 + 14.0);
         }
 
-        // Mantener por encima de la superficie del agua
-        py = Math.max(0.45, py);
+        py = Math.max(0.55, py);
 
         positions[i * 3]     = px;
         positions[i * 3 + 1] = py;
         positions[i * 3 + 2] = pz;
 
-        // Tamaño medianamente considerable acorde a la escala gigantesca de 28 m
-        sizes[i]    = 620.0 + Math.random() * 640.0;
+        // Tamaño contenido y fino acorde a la nueva estética sutil
+        sizes[i]    = 175.0 + Math.random() * 195.0;
         phases[i]   = Math.random() * Math.PI * 2;
-        speeds[i]   = 1.65 + Math.random() * 2.75;
+        speeds[i]   = 1.45 + Math.random() * 2.25;
         colorMix[i] = Math.random();
 
-        drifts[i * 3]     = (Math.random() - 0.5) * 1.45;
-        drifts[i * 3 + 1] = 0.65 + Math.random() * 1.35;
-        drifts[i * 3 + 2] = (Math.random() - 0.5) * 1.55;
+        drifts[i * 3]     = (Math.random() - 0.5) * 1.35;
+        drifts[i * 3 + 1] = 0.55 + Math.random() * 1.20;
+        drifts[i * 3 + 2] = (Math.random() - 0.5) * 1.35;
       }
 
       const geo = new THREE.BufferGeometry();
@@ -1594,25 +1576,25 @@
             vec3 p = position;
             float t = uTime;
 
-            // Flotación y respiración orgánica alrededor del monumento 3D
-            p.x += sin(t * 0.55 + aPhase) * aDrift.x;
-            p.y += cos(t * 0.48 + aPhase * 1.25) * aDrift.y;
-            p.z += sin(t * 0.42 + aPhase * 0.85) * aDrift.z;
+            p.x += sin(t * 0.48 + aPhase) * aDrift.x;
+            p.y += cos(t * 0.42 + aPhase * 1.25) * aDrift.y;
+            p.z += sin(t * 0.38 + aPhase * 0.85) * aDrift.z;
 
-            // Pulsación fuerte y viva de brillo y tamaño
-            float pulseWave = 0.5 + 0.5 * sin(t * aSpeed * (1.0 + uProximity * 0.65) + aPhase * 2.4);
-            vPulse = 0.34 + 0.66 * pow(pulseWave, 1.35);
+            float pulseWave = 0.5 + 0.5 * sin(t * aSpeed * (1.0 + uProximity * 0.5) + aPhase * 2.4);
+            vPulse = 0.25 + 0.75 * pow(pulseWave, 1.5);
             vColorMix = aColorMix;
             vReveal = uReveal;
 
             vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-            float dist = max(-mvPosition.z, 2.0);
-            float ptSize = (aSize * uRatio / dist) * (0.72 + 0.56 * vPulse) * (1.0 + uProximity * 0.25);
-            gl_PointSize = clamp(ptSize, 6.5 * uRatio, 78.0 * uRatio);
+            float dist = max(-mvPosition.z, 2.5);
+            float ptSize = (aSize * uRatio / dist) * (0.74 + 0.42 * vPulse);
+            gl_PointSize = clamp(ptSize, 1.8 * uRatio, 18.0 * uRatio);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: /* glsl */ `
+          precision highp float;
+
           uniform float uProximity;
           varying float vPulse;
           varying float vColorMix;
@@ -1623,26 +1605,22 @@
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
 
-            float halo = exp(-d * 5.0);
-            float core = exp(-d * 14.0);
+            float halo = exp(-d * 6.4);
+            float core = exp(-d * 16.0);
 
-            vec3 cyanOrb  = vec3(0.24, 0.78, 1.00);
-            vec3 goldOrb  = vec3(1.00, 0.82, 0.44);
-            vec3 starOrb  = vec3(0.94, 0.97, 1.00);
+            vec3 softCyan = vec3(0.32, 0.74, 0.96);
+            vec3 warmGold = vec3(0.96, 0.79, 0.46);
+            vec3 pearlCol = vec3(0.92, 0.94, 0.96);
 
-            vec3 orbCol;
-            if (vColorMix < 0.46) {
-              orbCol = mix(cyanOrb, starOrb, vColorMix / 0.46);
-            } else {
-              orbCol = mix(starOrb, goldOrb, (vColorMix - 0.46) / 0.54);
-            }
+            vec3 orbCol = vColorMix < 0.38
+              ? mix(softCyan, pearlCol, vColorMix / 0.38)
+              : mix(pearlCol, warmGold, (vColorMix - 0.38) / 0.62);
 
-            // Durante la materialización nacen en azul eléctrico pulsante
-            orbCol = mix(cyanOrb, orbCol, smoothstep(0.20, 0.95, vReveal));
-            vec3 col = mix(orbCol, vec3(1.0), core * 0.85);
+            orbCol = mix(softCyan, orbCol, smoothstep(0.22, 0.95, vReveal));
+            vec3 col = mix(orbCol, vec3(0.98, 0.96, 0.92), core * 0.55);
 
-            float alpha = (halo * 0.76 + core * 0.90) * (0.48 + 0.62 * vPulse) * vReveal;
-            gl_FragColor = vec4(col * (1.08 + 0.45 * vPulse + 0.30 * uProximity), alpha);
+            float alpha = (halo * 0.44 + core * 0.48) * (0.28 + 0.48 * vPulse) * 0.66 * vReveal;
+            gl_FragColor = vec4(col * (0.76 + 0.26 * vPulse + 0.14 * uProximity), alpha);
           }
         `
       });
@@ -1660,7 +1638,7 @@
       let box = new THREE.Box3().setFromObject(rawScene);
       let size = box.getSize(new THREE.Vector3());
 
-      // Asegura que el plano frontal del marco encare a las barcas (eje Z)
+      // Orienta el plano frontal del marco hacia las barcas (eje Z)
       if (size.z > size.x * 1.15) {
         rawScene.rotation.y = Math.PI / 2;
       }
@@ -1669,10 +1647,10 @@
       box = new THREE.Box3().setFromObject(rawScene);
       size = box.getSize(new THREE.Vector3());
 
-      // Escala gigantesca (28 m de altura monumental sobre el agua)
+      // Escala colosal duplicada (56 m de altura sobre el agua)
       let scale = CONFIG.portalTargetHeight / Math.max(size.y, 0.001);
-      if (size.x * scale > 44.0) {
-        scale = 44.0 / Math.max(size.x, 0.001);
+      if (size.x * scale > CONFIG.portalMaxWidth) {
+        scale = CONFIG.portalMaxWidth / Math.max(size.x, 0.001);
       }
       rawScene.scale.setScalar(scale);
       rawScene.updateMatrixWorld(true);
@@ -1681,7 +1659,6 @@
       const center = box.getCenter(new THREE.Vector3());
       rawScene.position.x -= center.x;
       rawScene.position.z -= center.z;
-      // Base del portal colosal hundida ligeramente en el agua
       rawScene.position.y -= (box.min.y + CONFIG.portalWaterSink);
 
       rawScene.updateMatrixWorld(true);
@@ -1714,11 +1691,10 @@
         }
       });
 
-      const sampledVerts = sampleVerticesFromTemplate(wrapper, 260);
+      const sampledVerts = sampleVerticesFromTemplate(wrapper, 280);
       return { wrapper, finalSize, matRecords, sampledVerts };
     }
 
-    // Respaldo escultórico colosal solo si fallara la red
     function createFallbackMonumentalPortal() {
       const wrapper = new THREE.Group();
       const mat = new THREE.MeshStandardMaterial({
@@ -1729,22 +1705,25 @@
       });
       const h = CONFIG.portalTargetHeight;
       const w = h * 0.86;
-      const thick = 2.4;
-      const depth = 3.2;
+      const thick = 4.6;
+      const depth = 6.2;
 
-      const leftPillar  = new THREE.Mesh(new THREE.BoxGeometry(thick, h, depth), mat);
-      leftPillar.position.set(-w * 0.5 + thick * 0.5, h * 0.5 - CONFIG.portalWaterSink, 0);
+      const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(thick, h, depth), mat);
+      leftPillar.position.set(-w * 0.5 + thick * 0.5, h * 0.5, 0);
       const rightPillar = leftPillar.clone();
       rightPillar.position.x = w * 0.5 - thick * 0.5;
-      const topBeam     = new THREE.Mesh(new THREE.BoxGeometry(w, thick * 1.1, depth * 1.05), mat);
-      topBeam.position.set(0, h - thick * 0.55 - CONFIG.portalWaterSink, 0);
+      const topBeam = new THREE.Mesh(new THREE.BoxGeometry(w, thick * 1.1, depth * 1.05), mat);
+      topBeam.position.set(0, h - thick * 0.55, 0);
 
       wrapper.add(leftPillar, rightPillar, topBeam);
       return normalizePortalTemplate(wrapper);
     }
 
     function setupMonumentalPortal(normalizedPortal) {
-      if (portalModelPivot) portalGroup.remove(portalModelPivot);
+      if (portalModelPivot) {
+        portalGroup.remove(portalModelPivot);
+        disposeHierarchy(portalModelPivot);
+      }
       if (portalVortexMesh) {
         portalGroup.remove(portalVortexMesh);
         portalVortexMesh.geometry.dispose();
@@ -1757,7 +1736,6 @@
       const { wrapper, finalSize, matRecords, sampledVerts } = normalizedPortal;
       portalModelPivot   = wrapper;
       portalMatRecords   = matRecords;
-      portalBoundsSize   = finalSize.clone();
       portalSampledVerts = sampledVerts;
       portalMaterialized = false;
 
@@ -1765,46 +1743,40 @@
 
       const centerY = finalSize.y * 0.50 - CONFIG.portalWaterSink;
 
-      // Vórtice espiralado encajado dentro del marco 3D gigante
-      const innerW = finalSize.x * 0.82;
-      const innerH = finalSize.y * 0.82;
-      portalUniforms.uAspect.value = innerW / Math.max(innerH, 0.01);
+      // Vórtice anterior ajustado limpiamente dentro del hueco del marco gigante
+      const innerW = finalSize.x * 0.80;
+      const innerH = finalSize.y * 0.80;
 
       portalVortexMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(innerW, innerH),
-        portalSpiralMaterial
+        portalVortexMaterial
       );
       portalVortexMesh.position.set(0, centerY, 0.0);
       portalVortexMesh.frustumCulled = false;
       portalGroup.add(portalVortexMesh);
 
-      // Aura atmosférica sutil detrás de la silueta del marco colosal
-      const haloSpan = Math.max(finalSize.x, finalSize.y) * 1.95;
+      // Halo dorado original detrás de la silueta colosal
+      const haloSpan = Math.max(finalSize.x, finalSize.y) * 2.1;
       portalHaloMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(haloSpan, haloSpan),
         portalHaloMaterial
       );
-      portalHaloMesh.position.set(0, centerY, -(finalSize.z * 0.5 + 0.6));
+      portalHaloMesh.position.set(0, centerY, -(finalSize.z * 0.5 + 0.8));
       portalHaloMesh.frustumCulled = false;
       portalGroup.add(portalHaloMesh);
 
-      // Nube envolvente de partículas brillantes y pulsantes alrededor de todo el portal 3D
       buildPortalParticleCloud(sampledVerts, finalSize);
 
-      // Sincroniza luces y reflejo sobre el agua con el corazón real del portal
-      portalGlowLight.position.set(0, centerY, CONFIG.portalBasePosition.z + Math.max(finalSize.z, 6.0) + 5.0);
-      portalCoreBlueLight.position.set(0, centerY, CONFIG.portalBasePosition.z + 3.2);
+      // Luces y reflejo sobre el agua sincronizados con el portal de 56 m
+      const frontOffset = Math.max(finalSize.z * 0.6, 8.0) + 6.0;
+      portalGlowLight.position.set(0, centerY * 0.52, CONFIG.portalBasePosition.z + frontOffset);
+      portalCrownLight.position.set(0, centerY * 1.25, CONFIG.portalBasePosition.z + frontOffset + 4.0);
       waterUniforms.uPortalPos.value.set(0, centerY, CONFIG.portalBasePosition.z);
     }
 
     const BLUE_MAT_COLOR       = new THREE.Color(0x28a4ff);
     const GOLD_PORTAL_EMISSIVE = new THREE.Color(0xd8a856);
     const BLUE_PORTAL_EMISSIVE = new THREE.Color(0x38b6ff);
-
-    function smoothstepJS(edge0, edge1, x) {
-      const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
-      return t * t * (3 - 2 * t);
-    }
 
     function setPortalMaterialization(progress, timeSec) {
       const p = THREE.MathUtils.clamp(progress, 0, 1);
@@ -1820,7 +1792,7 @@
 
       portalModelPivot.visible = true;
       const easeOut = 1.0 - Math.pow(1.0 - p, 3.0);
-      portalGroup.scale.setScalar(THREE.MathUtils.lerp(0.84, 1.0, easeOut));
+      portalGroup.scale.setScalar(THREE.MathUtils.lerp(0.86, 1.0, easeOut));
 
       if (p >= 0.999) {
         if (!portalMaterialized) {
@@ -1856,7 +1828,7 @@
           rec.mat.emissive.lerpColors(BLUE_PORTAL_EMISSIVE, GOLD_PORTAL_EMISSIVE, smoothstepJS(0.45, 1.0, p));
           rec.mat.emissiveIntensity = THREE.MathUtils.lerp(
             rec.origEmissiveIntensity,
-            1.45 * bluePulse,
+            1.35 * bluePulse,
             glowBell
           );
         }
@@ -1880,7 +1852,7 @@
       }
 
       const perBoatCount = sampledBoatVerts.length;
-      const sceneExtraCount = 380;
+      const sceneExtraCount = 340;
       const total = boats.length * perBoatCount + sceneExtraCount;
 
       const positions = new Float32Array(total * 3);
@@ -1907,14 +1879,14 @@
       });
 
       for (let i = 0; i < sceneExtraCount; i++) {
-        const isPortalCloud = i > sceneExtraCount * 0.58;
+        const isPortalCloud = i > sceneExtraCount * 0.60;
         if (isPortalCloud && portalSampledVerts.length > 0) {
           const pv = portalSampledVerts[i % portalSampledVerts.length];
-          positions[ptr * 3]     = CONFIG.portalBasePosition.x + pv.x + (Math.random() - 0.5) * 3.5;
-          positions[ptr * 3 + 1] = Math.max(0.5, pv.y + (Math.random() - 0.5) * 3.5);
-          positions[ptr * 3 + 2] = CONFIG.portalBasePosition.z + pv.z + (Math.random() - 0.5) * 4.5;
+          positions[ptr * 3]     = CONFIG.portalBasePosition.x + pv.x + (Math.random() - 0.5) * 4.0;
+          positions[ptr * 3 + 1] = Math.max(0.6, pv.y + (Math.random() - 0.5) * 4.0);
+          positions[ptr * 3 + 2] = CONFIG.portalBasePosition.z + pv.z + (Math.random() - 0.5) * 5.0;
           delays[ptr] = 0.70 + Math.random() * 0.75;
-          kinds[ptr]  = 2.0; // Partículas grandes para materializar el portal colosal
+          kinds[ptr]  = 2.0;
         } else {
           positions[ptr * 3]     = (Math.random() - 0.5) * 34;
           positions[ptr * 3 + 1] = 0.08 + Math.random() * 0.6;
@@ -1949,8 +1921,10 @@
 
           varying float vAlpha;
           varying float vPulse;
+          varying float vKind;
 
           void main() {
+            vKind = aKind;
             if (uMatTime < 0.0) {
               vAlpha = 0.0;
               gl_PointSize = 0.0;
@@ -1987,45 +1961,51 @@
 
               vAlpha = smoothstep(0.0, 0.14, p) * (1.0 - smoothstep(0.68, 1.0, p));
             } else {
-              pos.y += p * (2.6 + fract(aSeed * 11.1) * 3.4);
-              pos.x += sin(uTime * 1.4 + aSeed * 12.0) * (aKind > 1.5 ? 1.4 : 0.55);
-              pos.z += cos(uTime * 1.1 + aSeed * 9.0) * (aKind > 1.5 ? 1.4 : 0.55);
+              pos.y += p * (2.4 + fract(aSeed * 11.1) * 3.0);
+              pos.x += sin(uTime * 1.4 + aSeed * 12.0) * (aKind > 1.5 ? 1.2 : 0.55);
+              pos.z += cos(uTime * 1.1 + aSeed * 9.0) * (aKind > 1.5 ? 1.2 : 0.55);
               vAlpha = smoothstep(0.0, 0.18, p) * (1.0 - smoothstep(0.68, 1.0, p));
             }
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            float baseSize = (aKind > 1.5 ? 720.0 : (aKind < 0.5 ? 36.0 : 56.0)) * uRatio;
-            gl_PointSize = clamp((baseSize / max(-mvPosition.z, 1.0)) * (0.65 + 0.65 * pulse), 2.5, 62.0);
+            float baseSize = (aKind > 1.5 ? 240.0 : (aKind < 0.5 ? 36.0 : 52.0)) * uRatio;
+            float maxPt = (aKind > 1.5 ? 22.0 : 44.0) * uRatio;
+            gl_PointSize = clamp((baseSize / max(-mvPosition.z, 1.0)) * (0.65 + 0.60 * pulse), 2.0, maxPt);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: /* glsl */ `
+          precision highp float;
+
           varying float vAlpha;
           varying float vPulse;
+          varying float vKind;
 
           void main() {
             if (vAlpha <= 0.005) discard;
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
 
-            float halo = exp(-d * 5.6);
-            float core = exp(-d * 14.5);
+            float halo = exp(-d * 5.8);
+            float core = exp(-d * 14.8);
 
             vec3 deepBlue  = vec3(0.08, 0.46, 1.00);
             vec3 cyanBlue  = vec3(0.36, 0.84, 1.00);
             vec3 coreWhite = vec3(0.88, 0.97, 1.00);
 
             vec3 col = mix(deepBlue, cyanBlue, vPulse);
-            col = mix(col, coreWhite, core * 0.85);
+            col = mix(col, coreWhite, core * 0.78);
 
-            float finalAlpha = (halo * 0.78 + core * 0.65) * vAlpha * (0.55 + 0.45 * vPulse);
-            gl_FragColor = vec4(col * (1.0 + 0.35 * vPulse), finalAlpha);
+            float dimPortal = vKind > 1.5 ? 0.65 : 1.0;
+            float finalAlpha = (halo * 0.72 + core * 0.60) * vAlpha * (0.50 + 0.45 * vPulse) * dimPortal;
+            gl_FragColor = vec4(col * (0.95 + 0.30 * vPulse), finalAlpha);
           }
         `
       });
 
       materializePoints = new THREE.Points(geo, mat);
       materializePoints.frustumCulled = false;
+      materializePoints.visible = false;
       scene.add(materializePoints);
     }
 
@@ -2036,12 +2016,12 @@
       uRatio:  { value: Math.min(window.devicePixelRatio, 2) }
     };
     const ambientPoints = (() => {
-      const count = 175;
+      const count = 165;
       const positions = new Float32Array(count * 3);
       const phases = new Float32Array(count);
       const isBlue = new Float32Array(count);
       for (let i = 0; i < count; i++) {
-        const blueMote = i < 70;
+        const blueMote = i < 65;
         positions[i * 3]     = (Math.random() - 0.5) * 38;
         positions[i * 3 + 1] = blueMote ? (0.25 + Math.random() * 2.8) : (0.8 + Math.random() * 8.0);
         positions[i * 3 + 2] = 4 - Math.random() * 90;
@@ -2076,11 +2056,13 @@
             vIsBlue = aIsBlue;
             vReveal = uReveal;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = clamp((26.0 * uRatio / max(-mvPosition.z, 1.0)) * (0.65 + 0.55 * vPulse), 1.5, 28.0);
+            gl_PointSize = clamp((24.0 * uRatio / max(-mvPosition.z, 1.0)) * (0.65 + 0.55 * vPulse), 1.5, 24.0);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: /* glsl */ `
+          precision highp float;
+
           varying float vPulse;
           varying float vIsBlue;
           varying float vReveal;
@@ -2089,7 +2071,7 @@
             if (vReveal <= 0.005) discard;
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
-            float glow = exp(-d * 6.2) * vPulse * vReveal;
+            float glow = exp(-d * 6.4) * vPulse * vReveal * 0.85;
             vec3 col = mix(vec3(1.0, 0.88, 0.54), vec3(0.32, 0.80, 1.0), vIsBlue);
             gl_FragColor = vec4(col, glow);
           }
@@ -2113,6 +2095,7 @@
     let portalProgress = 0;
     let vrSupported = false;
     let arSupported = false;
+    let activeDracoLoader = null;
 
     const introScreen = document.getElementById('intro-screen');
     const loadTrack   = document.getElementById('load-track');
@@ -2265,7 +2248,10 @@
     }
 
     function populateBoats(normalizedData) {
-      boats.forEach(b => scene.remove(b.group));
+      boats.forEach((b) => {
+        scene.remove(b.group);
+        disposeHierarchy(b.group, false, true);
+      });
       boats.length = 0;
       boatHitboxes.length = 0;
 
@@ -2273,6 +2259,15 @@
       boatSampledVerts = sampledVerts;
       const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
       const centerIndex = Math.floor(CONFIG.boatsLayout.length / 2);
+
+      // Geometrías compartidas entre las 7 barcas para ahorrar memoria GPU
+      const sharedRingGeo = new THREE.RingGeometry(ringRadius * 0.92, ringRadius * 1.03, 40);
+      const sharedHitboxGeo = new THREE.BoxGeometry(
+        Math.max(finalSize.x * 1.15, 1.8),
+        Math.max(finalSize.y * 1.15, 2.0),
+        Math.max(finalSize.z * 1.08, 3.6)
+      );
+      const sharedHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
 
       buildIntroWireframe(wrapper);
 
@@ -2309,7 +2304,7 @@
         boatGroup.add(visual);
 
         const beaconRing = new THREE.Mesh(
-          new THREE.RingGeometry(ringRadius * 0.92, ringRadius * 1.03, 40),
+          sharedRingGeo,
           new THREE.MeshBasicMaterial({
             color: 0xf4d694,
             transparent: true,
@@ -2322,14 +2317,7 @@
         beaconRing.position.y = 0.06;
         boatGroup.add(beaconRing);
 
-        const hitbox = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            Math.max(finalSize.x * 1.15, 1.8),
-            Math.max(finalSize.y * 1.15, 2.0),
-            Math.max(finalSize.z * 1.08, 3.6)
-          ),
-          new THREE.MeshBasicMaterial({ visible: false })
-        );
+        const hitbox = new THREE.Mesh(sharedHitboxGeo, sharedHitboxMat);
         hitbox.position.y = Math.max(finalSize.y * 0.45, 0.8);
         hitbox.userData.boatIndex = index;
         boatGroup.add(hitbox);
@@ -2419,7 +2407,16 @@
 
     function refreshIntroOrbs() {
       if (!boatReady || !portalReady) return;
-      buildMaterializeParticles(boatSampledVerts);
+
+      // Liberamos los workers WASM de Draco una vez decodificados ambos modelos
+      if (activeDracoLoader) {
+        activeDracoLoader.dispose();
+        activeDracoLoader = null;
+      }
+
+      if (!materializePoints) {
+        buildMaterializeParticles(boatSampledVerts);
+      }
 
       loadFill.style.width = '100%';
       loadTrack.classList.add('done');
@@ -2433,14 +2430,13 @@
     }
 
     function loadAll3DAssets() {
-      const dracoLoader = new DRACOLoader();
-      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+      activeDracoLoader = new DRACOLoader();
+      activeDracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
 
       const gltfLoader = new GLTFLoader();
-      gltfLoader.setDRACOLoader(dracoLoader);
+      gltfLoader.setDRACOLoader(activeDracoLoader);
       gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
-      // 1. Cargar barcagrullas.glb
       const loadBoat = (url, isFallback) => {
         gltfLoader.load(
           url,
@@ -2471,7 +2467,6 @@
         );
       };
 
-      // 2. Cargar portal barcas_optimizado.glb
       const loadPortal = (url, isFallback) => {
         gltfLoader.load(
           url,
@@ -2508,7 +2503,7 @@
     loadAll3DAssets();
 
     // =========================================================================
-    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + SÍNTESIS WEB AUDIO API)
+    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + WEB AUDIO + CICLO DE VIDA)
     // =========================================================================
     const forestAudio = new Audio();
     forestAudio.crossOrigin = 'anonymous';
@@ -2602,6 +2597,17 @@
         btnAudio.classList.toggle('active', this.enabled);
       },
 
+      handleVisibility(isHidden) {
+        if (!this.ctx) return;
+        if (isHidden) {
+          forestAudio.pause();
+          if (this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+        } else if (this.enabled) {
+          if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+          forestAudio.play().catch(() => {});
+        }
+      },
+
       playMaterializeSwell() {
         if (!this.enabled || !this.ctx) return;
         const now = this.ctx.currentTime;
@@ -2658,6 +2664,10 @@
         this.portalGain.gain.setTargetAtTime(Math.pow(portalProximity, 1.55) * 0.30, now, 0.12);
       }
     };
+
+    document.addEventListener('visibilitychange', () => {
+      audioEngine.handleVisibility(document.hidden);
+    });
 
     // =========================================================================
     // BLOQUE 6: MÁQUINA DE ESTADOS (INTRO -> MATERIALIZING -> IDLE -> VOYAGE)
@@ -2719,6 +2729,7 @@
       smoothMotionFactor = 0;
       matElapsed = -1.0;
       matParticleUniforms.uMatTime.value = -1.0;
+      if (materializePoints) materializePoints.visible = false;
 
       galaxySkyDome.visible = false;
       galaxySkyUniforms.uReveal.value = 0.0;
@@ -2732,12 +2743,13 @@
       portalUniforms.uProximity.value = 0.0;
       setPortalMaterialization(0.0, 0.0);
       portalGlowLight.intensity = 0.0;
-      portalCoreBlueLight.intensity = 0.0;
+      portalCrownLight.intensity = 0.0;
       materializeBlueLight.intensity = 0.0;
 
       ambientPoints.visible = false;
       ambientParticleUniforms.uReveal.value = 0.0;
       sprayMat.opacity = 0.0;
+      sprayPoints.visible = false;
 
       portalFlashMesh.visible = false;
       portalFlashMat.opacity = 0.0;
@@ -2764,6 +2776,7 @@
       portalGroup.visible = true;
       ambientPoints.visible = true;
       galaxySkyDome.visible = !isARMode;
+      if (materializePoints) materializePoints.visible = true;
 
       currentState = STATE.MATERIALIZING;
       stateTimer = 0;
@@ -2804,7 +2817,7 @@
       const endPos = new THREE.Vector3(
         CONFIG.portalBasePosition.x,
         0.45,
-        CONFIG.portalBasePosition.z + 1.2
+        CONFIG.portalBasePosition.z + 1.5
       );
       const sideSign = startPos.x === 0 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(startPos.x);
       const p1 = new THREE.Vector3(
@@ -2865,6 +2878,7 @@
       waterUniforms.uBoatSpeed.value = 0;
       waterUniforms.uMotionFactor.value = 0;
       sprayMat.opacity = 0;
+      sprayPoints.visible = false;
 
       setHUD(
         `Embarcadero · Travesía #${context.voyagesCompleted}`,
@@ -2896,7 +2910,7 @@
     updateDesktopCameraLook();
 
     window.addEventListener('pointermove', (e) => {
-      if (currentState !== STATE.INTRO) return;
+      if (currentState !== STATE.INTRO || !e.isPrimary) return;
       introParallaxX = (e.clientX / window.innerWidth - 0.5) * 2;
       introParallaxY = (e.clientY / window.innerHeight - 0.5) * 2;
     });
@@ -2910,14 +2924,14 @@
     }
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
-      if (currentState === STATE.INTRO) return;
+      if (currentState === STATE.INTRO || !e.isPrimary) return;
       isDragging = true;
       pointerDownX = lastPointerX = e.clientX;
       pointerDownY = lastPointerY = e.clientY;
     });
 
     renderer.domElement.addEventListener('pointermove', (e) => {
-      if (currentState === STATE.INTRO) return;
+      if (currentState === STATE.INTRO || !e.isPrimary) return;
       if (isDragging && !renderer.xr.isPresenting) {
         const dx = e.clientX - lastPointerX;
         const dy = e.clientY - lastPointerY;
@@ -2933,15 +2947,17 @@
       }
     });
 
-    renderer.domElement.addEventListener('pointerup', (e) => {
-      if (currentState === STATE.INTRO) return;
+    window.addEventListener('pointerup', (e) => {
+      if (!isDragging || !e.isPrimary) return;
       const moved = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
       isDragging = false;
-      if (moved < 10 && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
+      if (e.target === renderer.domElement && moved < 10 && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
         const b = pickBoatFromPointer(e.clientX, e.clientY);
         if (b) startBoarding(b);
       }
     });
+
+    window.addEventListener('pointercancel', () => { isDragging = false; });
 
     // Controladores WebXR (Quest 3 + toque pantalla WebAR)
     const tempMatrix = new THREE.Matrix4();
@@ -3019,7 +3035,7 @@
       vrLasers.forEach(l => l.visible = false);
       camera.position.set(0, CONFIG.defaultEyeHeight, 0);
       camYaw = 0;
-      camPitch = 0.08; // Encuadre inicial ligeramente elevado hacia el portal colosal
+      camPitch = 0.14; // Encuadre inicial ligeramente elevado para abarcar el portal de 56 m
       updateDesktopCameraLook();
 
       audioEngine.toggle(true);
@@ -3080,10 +3096,13 @@
     }
 
     // =========================================================================
-    // BUCLE PRINCIPAL DE ANIMACIÓN (60–72+ FPS)
+    // BUCLE PRINCIPAL DE ANIMACIÓN (CERO ASIGNACIONES POR FRAME, 60–72+ FPS)
     // =========================================================================
     const clock = new THREE.Clock();
     const worldCamPos = new THREE.Vector3();
+    const tmpTargetRigPos = new THREE.Vector3();
+    const tmpPosOnCurve = new THREE.Vector3();
+    const tmpTangent = new THREE.Vector3();
 
     renderer.setAnimationLoop(() => {
       const dt = Math.min(clock.getDelta(), 0.05);
@@ -3096,7 +3115,7 @@
       ambientParticleUniforms.uTime.value = t;
 
       // =====================================================================
-      // ESTADO: INTRO (Wireframe azul 2D desvanecido)
+      // ESTADO: INTRO
       // =====================================================================
       if (currentState === STATE.INTRO) {
         introAuraUniforms.uTime.value = t;
@@ -3121,7 +3140,7 @@
         return;
       }
 
-      // Rotación celeste lenta y paralaje infinito del cielo nocturno
+      // Rotación celeste lenta y paralaje infinito del cielo
       skyAngle += dt * 0.012 * SKY_SETTINGS.rotationSpeed;
       galaxySkyUniforms.uSkyRotation.value = skyAngle;
       galaxySkyDome.position.copy(playerRig.position);
@@ -3130,13 +3149,18 @@
       waterMesh.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
       waterMesh.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
 
-      if (matElapsed >= 0 && matElapsed < 6.5) {
-        matElapsed += dt;
-        matParticleUniforms.uMatTime.value = matElapsed;
+      // Avance y apagado automático de las partículas de materialización
+      if (matElapsed >= 0) {
+        if (matElapsed < 6.5) {
+          matElapsed += dt;
+          matParticleUniforms.uMatTime.value = matElapsed;
+        } else if (materializePoints && materializePoints.visible) {
+          materializePoints.visible = false;
+        }
       }
 
       // =====================================================================
-      // ESTADO: MATERIALIZING (Cielo + agua + partículas azules + barcas + portal 3D)
+      // ESTADO: MATERIALIZING
       // =====================================================================
       if (currentState === STATE.MATERIALIZING) {
         stateTimer += dt;
@@ -3157,16 +3181,16 @@
 
         const portalP = smoothstepJS(0.22, 0.96, u);
         setPortalMaterialization(portalP, t);
-        portalGlowLight.intensity     = portalP * 16.0;
-        portalCoreBlueLight.intensity = portalP * 11.0;
+        portalGlowLight.intensity  = portalP * 18.0;
+        portalCrownLight.intensity = portalP * 9.0;
 
         if (u >= 1.0) {
           galaxySkyUniforms.uReveal.value = 1.0;
           waterUniforms.uWaterReveal.value = 1.0;
           ambientParticleUniforms.uReveal.value = 1.0;
           setPortalMaterialization(1.0, t);
-          portalGlowLight.intensity     = 16.0;
-          portalCoreBlueLight.intensity = 11.0;
+          portalGlowLight.intensity  = 18.0;
+          portalCrownLight.intensity = 9.0;
           materializeBlueLight.intensity = 0.0;
           for (const b of boats) setBoatMaterialization(b, 1.0, t);
 
@@ -3185,8 +3209,7 @@
         return;
       }
 
-      // Respiración luminosa continua en las luces del portal colosal
-      const portalBreath = 0.90 + 0.10 * Math.sin(t * 1.9);
+      const portalBreath = 0.92 + 0.08 * Math.sin(t * 1.7);
 
       // =====================================================================
       // INTERACCIÓN XR EN REPOSO + FLOTACIÓN ORGÁNICA
@@ -3244,8 +3267,8 @@
         const u = Math.min(stateTimer / CONFIG.boardingDuration, 1.0);
         const smooth = u * u * (3 - 2 * u);
 
-        const targetRigPos = activeBoat.group.position.clone().add(CONFIG.seatOffset);
-        playerRig.position.lerpVectors(boardStartRigPos, targetRigPos, smooth);
+        tmpTargetRigPos.copy(activeBoat.group.position).add(CONFIG.seatOffset);
+        playerRig.position.lerpVectors(boardStartRigPos, tmpTargetRigPos, smooth);
         activeBoat.group.position.y = -Math.sin(u * Math.PI) * 0.075;
 
         if (u >= 1.0) {
@@ -3260,44 +3283,44 @@
         const rawT = Math.min(stateTimer / CONFIG.voyageDuration, 1.0);
         navProgress = voyageEaseC1(rawT);
 
-        const posOnCurve = navCurve.getPoint(navProgress);
-        const tangent = navCurve.getTangent(navProgress);
+        navCurve.getPoint(navProgress, tmpPosOnCurve);
+        navCurve.getTangent(navProgress, tmpTangent);
 
-        const stepDist = posOnCurve.distanceTo(prevBoatPos);
+        const stepDist = tmpPosOnCurve.distanceTo(prevBoatPos);
         currentBoatSpeed = dt > 0 ? stepDist / dt : 0;
-        prevBoatPos.copy(posOnCurve);
+        prevBoatPos.copy(tmpPosOnCurve);
 
         targetMotionFactor = THREE.MathUtils.clamp(currentBoatSpeed / 3.8, 0.0, 1.0);
 
-        activeBoat.group.position.copy(posOnCurve);
+        activeBoat.group.position.copy(tmpPosOnCurve);
         activeBoat.group.position.y += Math.sin(t * 2.15) * (0.04 + 0.045 * smoothMotionFactor);
 
-        const targetYaw = Math.atan2(tangent.x, tangent.z);
+        const targetYaw = Math.atan2(tmpTangent.x, tmpTangent.z);
         activeBoat.group.rotation.y = lerpAngle(activeBoat.group.rotation.y, targetYaw, dt * 3.2);
 
         activeBoat.visual.rotation.x = Math.sin(t * 1.95) * (0.025 + 0.025 * smoothMotionFactor);
         activeBoat.visual.rotation.z = Math.cos(t * 1.55) * (0.030 + 0.032 * smoothMotionFactor);
 
         playerRig.position.set(
-          posOnCurve.x + CONFIG.seatOffset.x,
-          posOnCurve.y + CONFIG.seatOffset.y,
-          posOnCurve.z + CONFIG.seatOffset.z
+          tmpPosOnCurve.x + CONFIG.seatOffset.x,
+          tmpPosOnCurve.y + CONFIG.seatOffset.y,
+          tmpPosOnCurve.z + CONFIG.seatOffset.z
         );
 
-        waterUniforms.uBoatPos.value.copy(posOnCurve);
-        currentBoatDir.set(tangent.x, tangent.z).normalize();
+        waterUniforms.uBoatPos.value.copy(tmpPosOnCurve);
+        currentBoatDir.set(tmpTangent.x, tmpTangent.z).normalize();
         waterUniforms.uBoatDir.value.copy(currentBoatDir);
         waterUniforms.uBoatSpeed.value = currentBoatSpeed;
 
         waterUniforms.uFlowOffset.value.x -= currentBoatDir.x * currentBoatSpeed * dt * 0.55;
         waterUniforms.uFlowOffset.value.y -= currentBoatDir.y * currentBoatSpeed * dt * 0.55;
 
-        updateWaterSpray(dt, posOnCurve, currentBoatDir, smoothMotionFactor);
+        updateWaterSpray(dt, tmpPosOnCurve, currentBoatDir, smoothMotionFactor);
 
         const proximity = smoothstepJS(0.45, 1.0, navProgress);
         portalUniforms.uProximity.value = proximity;
-        portalGlowLight.intensity     = (16.0 + proximity * 24.0) * portalBreath;
-        portalCoreBlueLight.intensity = (11.0 + proximity * 16.0) * portalBreath;
+        portalGlowLight.intensity  = (18.0 + proximity * 26.0) * portalBreath;
+        portalCrownLight.intensity = (9.0  + proximity * 12.0) * portalBreath;
 
         if (navProgress > 0.92) {
           const preFlash = (navProgress - 0.92) / 0.08;
@@ -3340,13 +3363,13 @@
         } else {
           portalFlashMat.opacity = 0.0;
           portalFlashMesh.visible = false;
-          portalGlowLight.intensity     = 16.0;
-          portalCoreBlueLight.intensity = 11.0;
+          portalGlowLight.intensity  = 18.0;
+          portalCrownLight.intensity = 9.0;
           currentState = STATE.IDLE;
         }
       } else {
-        portalGlowLight.intensity     = 16.0 * portalBreath;
-        portalCoreBlueLight.intensity = 11.0 * portalBreath;
+        portalGlowLight.intensity  = 18.0 * portalBreath;
+        portalCrownLight.intensity = 9.0  * portalBreath;
       }
 
       smoothMotionFactor = THREE.MathUtils.lerp(smoothMotionFactor, targetMotionFactor, dt * 2.8);

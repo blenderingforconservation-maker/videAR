@@ -38,9 +38,6 @@
       height: 100%;
     }
 
-    /* =====================================================================
-       PORTADA GRÁFICA: WIREFRAME AZUL 2D DESVANECIDO + 3 MEDALLONES FLOTANTES
-       ===================================================================== */
     #intro-screen {
       position: fixed;
       inset: 0;
@@ -266,9 +263,6 @@
       box-shadow: none;
     }
 
-    /* =====================================================================
-       HUD EN EXPERIENCIA
-       ===================================================================== */
     #hud {
       position: fixed;
       inset: 0;
@@ -389,7 +383,6 @@
     }
   </style>
 
-  <!-- Three.js r160 vía jsdelivr -->
   <script type="importmap">
     {
       "imports": {
@@ -401,9 +394,6 @@
 </head>
 <body>
 
-  <!-- =====================================================================
-       1. PORTADA GRÁFICA MINIMALISTA (WIREFRAME 2D + 3 MEDALLONES MÍSTICOS)
-       ===================================================================== -->
   <section id="intro-screen" aria-label="Inicio — La Barca de las Grullas">
     <header class="intro-header">
       <span class="museum-mark">Museo Leonora Carrington</span>
@@ -448,9 +438,6 @@
     </nav>
   </section>
 
-  <!-- =====================================================================
-       HUD EN EXPERIENCIA (MINIMALISTA)
-       ===================================================================== -->
   <div id="hud">
     <div class="hud-top">
       <div class="status-pill">
@@ -486,19 +473,20 @@
       boatFallback:   `${REPO_RAW}/models/barcagrullas.glb`,
       portalPrimary:  './models/portal%20barcas_optimizado.glb',
       portalFallback: `${REPO_RAW}/models/portal%20barcas_optimizado.glb`,
+      waterPrimary:   './models/agua.glb',
+      waterFallback:  `${REPO_RAW}/models/agua.glb`,
       audioPrimary:   './bosque_noche.mp3',
       audioFallback:  `${REPO_RAW}/bosque_noche.mp3`
     };
 
     const CONFIG = {
       targetBoatLength: 3.8,
-      waterlineSink: 0.14,
+      waterlineSink: 0.32, // Más hundidas y con mayor peso visual en el agua
       defaultEyeHeight: 1.65,
-      seatOffset: new THREE.Vector3(0, 0.34, -0.1),
+      seatOffset: new THREE.Vector3(0, 0.30, -0.1),
 
       originPosition: new THREE.Vector3(0, 0, 0),
 
-      // 7 barcas estáticas encarando el portal monumental
       boatsLayout: [
         { pos: new THREE.Vector3(-8.6, 0, -8.0), yaw:  0.22 },
         { pos: new THREE.Vector3(-5.6, 0, -6.0), yaw:  0.14 },
@@ -509,7 +497,6 @@
         { pos: new THREE.Vector3( 8.7, 0, -8.2), yaw: -0.22 }
       ],
 
-      // Portal colosal (doble de escala: 56 m de altura emergiendo del agua a 78 m)
       portalBasePosition: new THREE.Vector3(0, 0, -78),
       portalTargetHeight: 56.0,
       portalMaxWidth:     88.0,
@@ -522,22 +509,18 @@
       flashPeakDuration: 0.55
     };
 
-    // Cielo nocturno calibrado (sobrio y profundo, sin controles en UI)
     const SKY_SETTINGS = {
-      galaxyIntensity: 0.56,
-      nebulaRichness:  0.62,
-      rotationSpeed:   0.25
+      galaxyIntensity: 0.86,
+      nebulaRichness:  0.80,
+      rotationSpeed:   0.22
     };
 
     const FOG_DENSITY = 0.0044;
 
-    // Utilidad de liberación segura de recursos GPU
     function disposeHierarchy(root, disposeGeometries = true, disposeMaterials = true) {
       if (!root) return;
       root.traverse((obj) => {
-        if (disposeGeometries && obj.geometry) {
-          obj.geometry.dispose();
-        }
+        if (disposeGeometries && obj.geometry) obj.geometry.dispose();
         if (disposeMaterials && obj.material) {
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
           for (const m of mats) m.dispose();
@@ -577,16 +560,10 @@
     playerRig.position.copy(CONFIG.originPosition);
     scene.add(playerRig);
 
-    const camera = new THREE.PerspectiveCamera(
-      62,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      400
-    );
+    const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 400);
     camera.position.set(0, CONFIG.defaultEyeHeight, 0);
     playerRig.add(camera);
 
-    // Malla de destello 3D pegada a la cámara (idéntica en 3D Web, AR y VR)
     const portalFlashMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(0xfff4d8),
       transparent: true,
@@ -600,7 +577,6 @@
     portalFlashMesh.visible = false;
     camera.add(portalFlashMesh);
 
-    // Iluminación nocturna balanceada
     const hemiLight = new THREE.HemisphereLight(0x7ca8d8, 0x142236, 0.92);
     scene.add(hemiLight);
 
@@ -616,7 +592,6 @@
     materializeBlueLight.position.set(0, 3.2, -6.0);
     scene.add(materializeBlueLight);
 
-    // Iluminación dual dedicada al portal de 56 m (baño dorado base + luz superior para relieve del marco)
     const portalGlowLight = new THREE.PointLight(0xffd27d, 0.0, 210, 1.05);
     portalGlowLight.position.set(0, 14.0, CONFIG.portalBasePosition.z + 12.0);
     scene.add(portalGlowLight);
@@ -626,7 +601,7 @@
     scene.add(portalCrownLight);
 
     // =========================================================================
-    // BLOQUE 2B: CIELO GALÁCTICO PROCEDURAL OPTIMIZADO + HDRI PMREM
+    // BLOQUE 2B: CIELO GALÁCTICO (GALAXIAS VISIBLES EN PERSPECTIVA FRONTAL)
     // =========================================================================
     const galaxySkyUniforms = {
       uTime:            { value: 0.0 },
@@ -691,7 +666,6 @@
         return mix(mix(nx00, nx10, u.y), mix(nx01, nx11, u.y), u.z);
       }
 
-      // FBM optimizado por capas para 60-72 FPS en móviles y Quest 3
       float fbm4(vec3 p) {
         float val = 0.0;
         float amp = 0.5;
@@ -754,7 +728,7 @@
         float tiltRatio, float tiltAngle, float spinSpeed,
         vec3 coreColor, vec3 armColor
       ) {
-        if (dot(dir, centerDir) < 0.82) return vec3(0.0);
+        if (dot(dir, centerDir) < 0.72) return vec3(0.0);
 
         vec3 upRef = abs(centerDir.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
         vec3 uAxis = normalize(cross(upRef, centerDir));
@@ -768,7 +742,7 @@
         uv.y /= tiltRatio;
 
         float r = length(uv);
-        if (r > 1.35) return vec3(0.0);
+        if (r > 1.45) return vec3(0.0);
 
         float angle = atan(uv.y, uv.x) + uTime * spinSpeed;
         float logSpiral = angle * 2.0 - log(r + 0.065) * 5.6;
@@ -776,14 +750,14 @@
         float subArms  = 0.5 + 0.5 * sin(logSpiral * 2.0 + 1.4);
 
         float clumps = noise3D(vec3(uv * 5.2, 2.4)) * 0.65 + noise3D(vec3(uv * 11.5, 6.1)) * 0.35;
-        float armMask = pow(mainArms, 2.3) * (0.55 + 0.75 * clumps) + pow(subArms, 3.2) * 0.25;
-        armMask *= smoothstep(0.04, 0.22, r) * exp(-r * 2.35);
+        float armMask = pow(mainArms, 2.1) * (0.60 + 0.78 * clumps) + pow(subArms, 3.0) * 0.28;
+        armMask *= smoothstep(0.04, 0.20, r) * exp(-r * 2.10);
 
-        float core = exp(-r * 7.8) * 1.20;
-        float innerGlow = exp(-r * 3.1) * 0.34;
-        float outerFade = smoothstep(1.30, 0.55, r);
+        float core = exp(-r * 6.8) * 1.45;
+        float innerGlow = exp(-r * 2.8) * 0.42;
+        float outerFade = smoothstep(1.40, 0.52, r);
 
-        return (coreColor * (core + innerGlow * 0.58) + armColor * (armMask * 0.84 + innerGlow * 0.38)) * outerFade;
+        return (coreColor * (core + innerGlow * 0.62) + armColor * (armMask * 0.95 + innerGlow * 0.42)) * outerFade;
       }
 
       void main() {
@@ -793,8 +767,9 @@
         float elev = clamp(rawDir.y, 0.0, 1.0);
         vec3 voidCol = mix(vec3(0.009, 0.020, 0.044), vec3(0.003, 0.006, 0.016), pow(elev, 0.62));
 
-        vec3 galUp    = normalize(vec3(0.56, 0.74, -0.37));
-        vec3 galFwd   = normalize(vec3(-0.22, 0.52, -0.82));
+        // Banda de la Vía Láctea cruzando en diagonal baja justo frente al usuario
+        vec3 galUp    = normalize(vec3(0.62, 0.68, -0.39));
+        vec3 galFwd   = normalize(vec3(-0.18, 0.34, -0.92));
         vec3 galRight = normalize(cross(galUp, galFwd));
         galFwd        = normalize(cross(galRight, galUp));
 
@@ -803,49 +778,50 @@
         float warp = (fbm3(g * 2.6 + vec3(1.2, -0.8, 3.1)) - 0.5) * 0.24;
         float lat = g.y + warp;
 
-        float bandTight = exp(-abs(lat) * 6.2);
-        float bandWide  = exp(-abs(lat) * 2.25);
+        float bandTight = exp(-abs(lat) * 5.6);
+        float bandWide  = exp(-abs(lat) * 2.10);
 
         float nebA = fbm4(g * 3.4 + vec3(0.0, 1.5, -2.2));
         float nebB = fbm3(g * 7.0 + vec3(4.1, -2.3, 1.7));
         float dustNoise = fbm3(g * 5.6 + vec3(-3.2, 0.6, 5.4));
 
         float riftBand = exp(-abs(lat + (dustNoise - 0.5) * 0.14) * 14.5);
-        float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.80;
+        float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.78;
 
-        vec3 coreDir = normalize(vec3(-0.16, 0.30, -0.94));
-        float coreAlign = pow(max(dot(dir, coreDir), 0.0), 4.4);
-        float coreTight = pow(max(dot(dir, coreDir), 0.0), 14.0);
+        vec3 coreDir = normalize(vec3(-0.14, 0.24, -0.96));
+        float coreAlign = pow(max(dot(dir, coreDir), 0.0), 4.0);
+        float coreTight = pow(max(dot(dir, coreDir), 0.0), 12.0);
 
-        vec3 colIndigo = vec3(0.036, 0.092, 0.235);
-        vec3 colSapph  = vec3(0.075, 0.225, 0.450);
-        vec3 colViolet = vec3(0.195, 0.100, 0.315);
-        vec3 colAmber  = vec3(0.840, 0.580, 0.300);
+        vec3 colIndigo = vec3(0.042, 0.105, 0.265);
+        vec3 colSapph  = vec3(0.088, 0.255, 0.500);
+        vec3 colViolet = vec3(0.245, 0.120, 0.385);
+        vec3 colAmber  = vec3(0.900, 0.640, 0.340);
 
         vec3 milkyWay = vec3(0.0);
-        milkyWay += colIndigo * bandWide * (0.42 + 0.78 * nebA);
-        milkyWay += colSapph  * bandTight * smoothstep(0.30, 0.84, nebA * 0.65 + nebB * 0.45) * 0.96;
-        milkyWay += colViolet * bandWide  * smoothstep(0.44, 0.86, nebB) * 0.58;
-        milkyWay += colAmber  * (coreAlign * 0.50 + coreTight * 0.64) * (0.50 + 0.60 * nebA);
+        milkyWay += colIndigo * bandWide * (0.46 + 0.80 * nebA);
+        milkyWay += colSapph  * bandTight * smoothstep(0.28, 0.82, nebA * 0.65 + nebB * 0.45) * 1.05;
+        milkyWay += colViolet * bandWide  * smoothstep(0.40, 0.84, nebB) * 0.66;
+        milkyWay += colAmber  * (coreAlign * 0.56 + coreTight * 0.70) * (0.50 + 0.60 * nebA);
 
-        float cosmicMist = smoothstep(0.48, 0.88, fbm3(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
-        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.16;
+        float cosmicMist = smoothstep(0.45, 0.86, fbm3(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
+        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.18;
 
         vec3 skyCol = voidCol + (milkyWay * dustAbsorption + outerNebula) * uNebulaRichness * uGalaxyIntensity;
 
+        // 3 galaxias espirales reubicadas en el campo de visión frontal del usuario
         vec3 g1 = renderSpiralGalaxy(
-          dir, normalize(vec3(0.38, 0.52, -0.76)), 0.155, 0.46, 0.58, 0.024,
-          vec3(0.95, 0.82, 0.58), vec3(0.32, 0.62, 0.94)
+          dir, normalize(vec3(0.36, 0.28, -0.89)), 0.215, 0.44, 0.48, 0.024,
+          vec3(1.00, 0.86, 0.62), vec3(0.36, 0.68, 1.00)
         );
         vec3 g2 = renderSpiralGalaxy(
-          dir, normalize(vec3(-0.46, 0.64, -0.61)), 0.118, 0.82, -0.40, -0.030,
-          vec3(0.84, 0.92, 0.98), vec3(0.24, 0.72, 0.94)
+          dir, normalize(vec3(-0.42, 0.34, -0.84)), 0.165, 0.74, -0.36, -0.028,
+          vec3(0.88, 0.94, 1.00), vec3(0.28, 0.76, 0.98)
         );
         vec3 g3 = renderSpiralGalaxy(
-          dir, normalize(vec3(0.54, 0.52, 0.66)), 0.130, 0.56, 1.12, 0.020,
-          vec3(0.94, 0.74, 0.52), vec3(0.50, 0.36, 0.84)
+          dir, normalize(vec3(0.08, 0.44, -0.89)), 0.145, 0.52, 1.02, 0.020,
+          vec3(0.98, 0.78, 0.56), vec3(0.58, 0.40, 0.92)
         );
-        skyCol += (g1 + g2 + g3) * 0.64 * uGalaxyIntensity;
+        skyCol += (g1 + g2 + g3) * 0.92 * uGalaxyIntensity;
 
         vec3 stars = vec3(0.0);
         float bandBoost = 1.0 + bandTight * 0.92 * dustAbsorption;
@@ -857,7 +833,7 @@
         float horizonBand = exp(-abs(rawDir.y) * 10.0);
         vec3 horizonGlow = vec3(0.018, 0.050, 0.096) * horizonBand * 0.82;
         float portalAzimuth = pow(max(dot(normalize(vec3(rawDir.x, 0.0, rawDir.z)), vec3(0.0, 0.0, -1.0)), 0.0), 8.0);
-        horizonGlow += vec3(0.20, 0.14, 0.06) * horizonBand * portalAzimuth * 0.48;
+        horizonGlow += vec3(0.20, 0.14, 0.06) * horizonBand * portalAzimuth * 0.42;
 
         float aboveWater = smoothstep(-0.08, 0.08, rawDir.y);
         skyCol = mix(vec3(0.012, 0.036, 0.070), skyCol, aboveWater) + horizonGlow;
@@ -896,8 +872,8 @@
         const bakeMat = galaxySkyMaterial.clone();
         bakeMat.uniforms = THREE.UniformsUtils.clone(galaxySkyUniforms);
         bakeMat.uniforms.uReveal.value = 1.0;
-        bakeMat.uniforms.uGalaxyIntensity.value = 0.82;
-        bakeMat.uniforms.uNebulaRichness.value = 0.82;
+        bakeMat.uniforms.uGalaxyIntensity.value = 0.92;
+        bakeMat.uniforms.uNebulaRichness.value = 0.88;
         bakeMat.uniforms.uBakeBoost.value = 1.35;
 
         const bakeGeo = new THREE.SphereGeometry(48, 40, 28);
@@ -1027,7 +1003,6 @@
     function buildIntroWireframe(normalizedWrapper) {
       if (introWireframePivot) {
         introStage.remove(introWireframePivot);
-        // Solo liberamos los EdgesGeometry y materiales propios del wireframe
         introWireframePivot.traverse((obj) => {
           if (obj.isLineSegments && obj.geometry) obj.geometry.dispose();
         });
@@ -1098,7 +1073,7 @@
     positionIntroStage();
 
     // =========================================================================
-    // BLOQUE 3: AGUA DENSA DINÁMICA + ROCÍO DE CASCO
+    // BLOQUE 3: AGUA (GLB REALISTA ANIMADO + RESPALDO PROCEDURAL)
     // =========================================================================
     const WATER_SIZE = 260;
     const WATER_SEGMENTS = 100;
@@ -1117,6 +1092,14 @@
       uFogDensity:      { value: FOG_DENSITY },
       uIsAR:            { value: 0 }
     };
+
+    const waterRoot = new THREE.Group();
+    waterRoot.visible = false;
+    scene.add(waterRoot);
+
+    let usingGLBWater = false;
+    let glbWaterGroup = null;
+    const glbWaterAnimatedTextures = [];
 
     const waterMaterial = new THREE.ShaderMaterial({
       uniforms: waterUniforms,
@@ -1231,26 +1214,24 @@
           col = mix(col, crestColor, smoothstep(0.55, 1.0, heightFactor));
 
           float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.7);
-          float galRefBand = exp(-abs(dot(R, normalize(vec3(0.56, 0.74, -0.37)))) * 4.2);
-          vec3 galaxyRefCol = mix(vec3(0.07, 0.16, 0.30), vec3(0.18, 0.18, 0.38), galRefBand);
-          col += galaxyRefCol * fresnel * (0.45 + 0.40 * uGalaxyIntensity);
+          float galRefBand = exp(-abs(dot(R, normalize(vec3(0.62, 0.68, -0.39)))) * 4.0);
+          vec3 galaxyRefCol = mix(vec3(0.07, 0.16, 0.32), vec3(0.22, 0.20, 0.44), galRefBand);
+          col += galaxyRefCol * fresnel * (0.48 + 0.42 * uGalaxyIntensity);
 
           vec3 moonDir = normalize(vec3(0.32, 0.72, 0.26));
           vec3 moonHalf = normalize(moonDir + V);
           float moonSpec = pow(max(dot(N, moonHalf), 0.0), 46.0);
           col += vec3(0.56, 0.74, 0.92) * moonSpec * 0.36;
 
-          // Sendero dorado del portal monumental sobre las olas
           vec3 toPortal = uPortalPos - vWorldPos;
           float portalDist = length(toPortal.xz);
           vec3 Lportal = normalize(vec3(toPortal.x, max(toPortal.y * 0.55, 4.5), toPortal.z));
           vec3 Hportal = normalize(Lportal + V);
-          float specPortal = pow(max(dot(N, Hportal), 0.0), 20.0);
+          float specPortal = pow(max(dot(N, Hportal), 0.0), 22.0);
           float portalAtten = smoothstep(160.0, 10.0, portalDist);
-          col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.55 + 0.38 * uMotionFactor);
-          col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.028) * 0.42;
+          col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.35 + 0.35 * uMotionFactor);
+          col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.028) * 0.32;
 
-          // Espuma dinámica de proa y estela en V
           if (uMotionFactor > 0.01) {
             vec2 toFrag = p - uBoatPos.xz;
             vec2 fwd = normalize(uBoatDir + vec2(0.0001));
@@ -1303,10 +1284,203 @@
       waterMaterial
     );
     waterMesh.rotation.x = -Math.PI / 2;
-    waterMesh.visible = false;
-    scene.add(waterMesh);
+    waterRoot.add(waterMesh);
 
-    // --- Rocío de agua alrededor del casco (culling automático en reposo) ---
+    function setupGLBWaterPlane(rawScene) {
+      if (glbWaterGroup) {
+        waterRoot.remove(glbWaterGroup);
+        disposeHierarchy(glbWaterGroup);
+        glbWaterGroup = null;
+      }
+      glbWaterAnimatedTextures.length = 0;
+
+      const wrapper = new THREE.Group();
+      wrapper.add(rawScene);
+
+      rawScene.updateMatrixWorld(true);
+      let box = new THREE.Box3().setFromObject(rawScene);
+      let size = box.getSize(new THREE.Vector3());
+
+      const horizSpan = Math.max(size.x, size.z, 0.001);
+      const scaleXZ = WATER_SIZE / horizSpan;
+      rawScene.scale.set(scaleXZ, Math.max(1.0, scaleXZ * 0.05), scaleXZ);
+      rawScene.updateMatrixWorld(true);
+
+      box = new THREE.Box3().setFromObject(rawScene);
+      const center = box.getCenter(new THREE.Vector3());
+      rawScene.position.x -= center.x;
+      rawScene.position.z -= center.z;
+      rawScene.position.y -= center.y;
+
+      const seenTextures = new Set();
+
+      rawScene.traverse((obj) => {
+        if (!obj.isMesh || !obj.material) return;
+        obj.frustumCulled = false;
+
+        const isArray = Array.isArray(obj.material);
+        const mats = (isArray ? obj.material : [obj.material]).map((orig) => {
+          const m = orig.clone();
+          m.transparent = true;
+          m.depthWrite = true;
+
+          if (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial) {
+            m.envMapIntensity = Math.max(m.envMapIntensity ?? 1.0, 1.35);
+          }
+
+          const texSlots = [
+            { tex: m.normalMap,    speedX:  0.018, speedY:  0.024 },
+            { tex: m.bumpMap,      speedX: -0.015, speedY:  0.020 },
+            { tex: m.roughnessMap, speedX:  0.012, speedY: -0.016 },
+            { tex: m.map,          speedX:  0.010, speedY:  0.014 }
+          ];
+          for (const slot of texSlots) {
+            if (slot.tex && !seenTextures.has(slot.tex)) {
+              seenTextures.add(slot.tex);
+              slot.tex.wrapS = THREE.RepeatWrapping;
+              slot.tex.wrapT = THREE.RepeatWrapping;
+              slot.tex.needsUpdate = true;
+              glbWaterAnimatedTextures.push({
+                tex: slot.tex,
+                baseOffsetX: slot.tex.offset.x,
+                baseOffsetY: slot.tex.offset.y,
+                speedX: slot.speedX,
+                speedY: slot.speedY
+              });
+            }
+          }
+
+          m.onBeforeCompile = (shader) => {
+            shader.uniforms.uTime         = waterUniforms.uTime;
+            shader.uniforms.uWaterReveal  = waterUniforms.uWaterReveal;
+            shader.uniforms.uBoatPos      = waterUniforms.uBoatPos;
+            shader.uniforms.uBoatDir      = waterUniforms.uBoatDir;
+            shader.uniforms.uMotionFactor = waterUniforms.uMotionFactor;
+            shader.uniforms.uFlowOffset   = waterUniforms.uFlowOffset;
+            shader.uniforms.uIsAR         = waterUniforms.uIsAR;
+
+            shader.vertexShader = shader.vertexShader
+              .replace(
+                '#include <common>',
+                /* glsl */ `
+                #include <common>
+                uniform float uTime;
+                uniform vec3 uBoatPos;
+                uniform vec2 uBoatDir;
+                uniform float uMotionFactor;
+                uniform vec2 uFlowOffset;
+                varying vec3 vWaterWorldPos;
+                `
+              )
+              .replace(
+                '#include <begin_vertex>',
+                /* glsl */ `
+                #include <begin_vertex>
+                vec4 wpTmp = modelMatrix * vec4(transformed, 1.0);
+                vec2 pW = wpTmp.xz - uFlowOffset * 0.45;
+                float waveH = (sin(pW.x * 0.30 + uTime * 0.85) * 0.045
+                             + cos(pW.y * 0.38 - uTime * 0.78) * 0.040
+                             + sin((pW.x * 0.22 + pW.y * 0.30) + uTime * 1.15) * 0.028)
+                             * (1.0 + uMotionFactor * 0.65);
+
+                if (uMotionFactor > 0.01) {
+                  vec2 toV = wpTmp.xz - uBoatPos.xz;
+                  vec2 fwdW = normalize(uBoatDir + vec2(0.0001));
+                  vec2 rightW = vec2(-fwdW.y, fwdW.x);
+                  float alongW = dot(toV, fwdW);
+                  float acrossW = abs(dot(toV, rightW));
+                  if (alongW < 1.4 && alongW > -22.0) {
+                    float spreadW = max(0.0, -alongW) * 0.54 + 0.62;
+                    float armW = exp(-abs(acrossW - spreadW) * 1.4) * sin(alongW * 1.7 - uTime * 7.0);
+                    float fadeW = smoothstep(-22.0, -2.5, alongW) * smoothstep(1.4, -0.3, alongW);
+                    waveH += armW * fadeW * 0.10 * uMotionFactor;
+                  }
+                }
+                transformed.y += waveH;
+                vWaterWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                `
+              );
+
+            shader.fragmentShader = shader.fragmentShader
+              .replace(
+                '#include <common>',
+                /* glsl */ `
+                #include <common>
+                uniform float uTime;
+                uniform float uWaterReveal;
+                uniform vec3 uBoatPos;
+                uniform vec2 uBoatDir;
+                uniform float uMotionFactor;
+                uniform float uIsAR;
+                varying vec3 vWaterWorldPos;
+                `
+              )
+              .replace(
+                '#include <dithering_fragment>',
+                /* glsl */ `
+                if (uWaterReveal <= 0.001) discard;
+                float distOrigW = length(vWaterWorldPos.xz);
+                float revMaskW = 1.0;
+                if (uWaterReveal < 0.999) {
+                  float edgeW = uWaterReveal * 185.0 - distOrigW;
+                  revMaskW = smoothstep(-5.5, 6.0, edgeW);
+                  if (revMaskW <= 0.005) discard;
+                  float pulseW = 0.62 + 0.38 * sin(uTime * 7.5 - distOrigW * 0.45);
+                  float glowW = exp(-abs(edgeW) * 0.30) * pulseW * (1.0 - smoothstep(0.88, 1.0, uWaterReveal));
+                  gl_FragColor.rgb += vec3(0.24, 0.76, 1.0) * glowW * 1.25;
+                }
+
+                if (uMotionFactor > 0.01) {
+                  vec2 toF = vWaterWorldPos.xz - uBoatPos.xz;
+                  vec2 fwdF = normalize(uBoatDir + vec2(0.0001));
+                  vec2 rightF = vec2(-fwdF.y, fwdF.x);
+                  float alongF = dot(toF, fwdF);
+                  float acrossF = abs(dot(toF, rightF));
+
+                  float bowF = exp(-pow((alongF - 1.75) * 1.4, 2.0)) * exp(-pow(acrossF * 1.25, 2.0));
+                  float wakeF = 0.0;
+                  if (alongF < 1.5 && alongF > -24.0) {
+                    float spF = max(0.0, -alongF) * 0.56 + 0.62;
+                    float chevF = 0.55 + 0.45 * sin(alongF * 3.4 - acrossF * 2.2 - uTime * 8.5);
+                    float fdF = smoothstep(-24.0, -2.5, alongF) * smoothstep(1.5, -0.3, alongF);
+                    wakeF = exp(-abs(acrossF - spF) * 2.1) * chevF * fdF;
+                  }
+                  float foamF = clamp((bowF * 0.8 + wakeF * 0.85) * uMotionFactor, 0.0, 1.0);
+                  gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.82, 0.92, 0.97), foamF * 0.68);
+                }
+
+                if (uIsAR > 0.5) {
+                  float camDW = length(vWaterWorldPos.xz - cameraPosition.xz);
+                  gl_FragColor.a *= smoothstep(95.0, 28.0, camDW) * 0.94;
+                }
+                gl_FragColor.a *= revMaskW;
+                #include <dithering_fragment>
+                `
+              );
+          };
+
+          return m;
+        });
+
+        obj.material = isArray ? mats : mats[0];
+      });
+
+      glbWaterGroup = wrapper;
+      usingGLBWater = true;
+      waterMesh.visible = false;
+      waterRoot.add(glbWaterGroup);
+    }
+
+    function updateGLBWaterAnimation(t) {
+      if (!usingGLBWater) return;
+      const flowX = waterUniforms.uFlowOffset.value.x * 0.015;
+      const flowY = waterUniforms.uFlowOffset.value.y * 0.015;
+      for (const item of glbWaterAnimatedTextures) {
+        item.tex.offset.x = item.baseOffsetX + t * item.speedX + flowX;
+        item.tex.offset.y = item.baseOffsetY + t * item.speedY + flowY;
+      }
+    }
+
     const SPRAY_COUNT = 54;
     const sprayPositions = new Float32Array(SPRAY_COUNT * 3);
     const sprayVelocities = [];
@@ -1352,12 +1526,12 @@
           const lateral = side * (0.65 + Math.random() * 0.25);
 
           sprayPositions[i * 3]     = boatPos.x + dir2D.x * alongBoat + rightX * lateral;
-          sprayPositions[i * 3 + 1] = 0.08 + Math.random() * 0.12;
+          sprayPositions[i * 3 + 1] = 0.06 + Math.random() * 0.10;
           sprayPositions[i * 3 + 2] = boatPos.z + dir2D.y * alongBoat + rightZ * lateral;
 
           sprayVelocities[i].set(
             rightX * side * (0.65 + Math.random() * 0.85) - dir2D.x * 0.8,
-            0.55 + Math.random() * 0.75,
+            0.50 + Math.random() * 0.70,
             rightZ * side * (0.65 + Math.random() * 0.85) - dir2D.y * 0.8
           );
         } else {
@@ -1371,7 +1545,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 3B: PORTAL MONUMENTAL 3D (56 m) + VÓRTICE ORIGINAL + NUBE SUTIL
+    // BLOQUE 3B: PORTAL MONUMENTAL 3D + PUERTA INTERDIMENSIONAL ACOTADA AL MARCO
     // =========================================================================
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalBasePosition);
@@ -1382,6 +1556,7 @@
       uTime:      { value: 0 },
       uProximity: { value: 0 },
       uReveal:    { value: 0 },
+      uAspect:    { value: 0.72 },
       uRatio:     { value: Math.min(window.devicePixelRatio, 2) }
     };
 
@@ -1389,11 +1564,9 @@
     let portalMatRecords = [];
     let portalMaterialized = false;
     let portalVortexMesh = null;
-    let portalHaloMesh = null;
     let portalCloudPoints = null;
     let portalSampledVerts = [];
 
-    // Efecto de vórtice anterior restaurado (azul profundo -> ondas doradas -> borde crema)
     const portalVortexMaterial = new THREE.ShaderMaterial({
       uniforms: portalUniforms,
       transparent: true,
@@ -1402,9 +1575,13 @@
       fog: false,
       vertexShader: /* glsl */ `
         varying vec2 vUv;
+        varying vec3 vLocalViewDir;
         void main() {
           vUv = uv * 2.0 - 1.0;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vec3 worldView = normalize(cameraPosition - worldPos.xyz);
+          vLocalViewDir = normalize((inverse(modelMatrix) * vec4(worldView, 0.0)).xyz);
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
       `,
       fragmentShader: /* glsl */ `
@@ -1413,77 +1590,128 @@
         uniform float uTime;
         uniform float uProximity;
         uniform float uReveal;
+        uniform float uAspect;
+
         varying vec2 vUv;
+        varying vec3 vLocalViewDir;
+
+        float hash21(vec2 p) {
+          p = fract(p * vec2(123.34, 456.21));
+          p += dot(p, p + 45.32);
+          return fract(p.x * p.y);
+        }
+
+        float noise2D(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          vec2 u = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
+            mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
+            u.y
+          );
+        }
+
+        float fbm2(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
+          for (int i = 0; i < 4; i++) {
+            v += a * noise2D(p);
+            p = rot * p * 2.05 + vec2(3.7, 1.9);
+            a *= 0.5;
+          }
+          return v;
+        }
+
+        float sdDoorway(vec2 p) {
+          float archStart = 0.18;
+          if (p.y > archStart) {
+            vec2 q = vec2(p.x, (p.y - archStart) / (1.0 - archStart));
+            return length(q) - 1.0;
+          }
+          vec2 d = abs(vec2(p.x, p.y)) - vec2(1.0, 1.0);
+          return max(d.x, d.y);
+        }
+
+        float starField2D(vec2 uv, float scale, float density) {
+          vec2 gv = fract(uv * scale) - 0.5;
+          vec2 id = floor(uv * scale);
+          float n = hash21(id);
+          if (n < density) return 0.0;
+          vec2 offs = vec2(hash21(id + 11.3), hash21(id + 27.9)) - 0.5;
+          float d = length(gv - offs * 0.62);
+          float b = smoothstep(density, 1.0, n);
+          float tw = 0.72 + 0.28 * sin(uTime * (2.0 + b * 3.0) + n * 40.0);
+          return smoothstep(0.11 * b + 0.03, 0.0, d) * b * tw;
+        }
 
         void main() {
           if (uReveal <= 0.005) discard;
-          float r = length(vUv);
-          if (r > 1.0) discard;
 
-          float angle = atan(vUv.y, vUv.x);
-          float speed = 0.65 + uProximity * 2.1 + (1.0 - uReveal) * 2.2;
-          float swirl1 = sin(angle * 4.0 + r * 7.0 - uTime * speed * 1.45);
-          float swirl2 = cos(angle * 7.0 - r * 11.0 + uTime * speed * 0.95);
-          float waves = 0.5 + 0.5 * (swirl1 * 0.6 + swirl2 * 0.4);
+          float sdf = sdDoorway(vUv);
+          if (sdf > 0.0) discard;
 
-          vec3 coreDark  = vec3(0.09, 0.18, 0.34);
-          vec3 midGold   = vec3(0.96, 0.78, 0.42);
-          vec3 rimLight  = vec3(1.00, 0.97, 0.86);
-          vec3 blueBirth = vec3(0.26, 0.78, 1.00);
+          float innerDist = -sdf;
+          float edgeSoftMask = smoothstep(0.0, 0.055, innerDist);
 
-          vec3 col = mix(coreDark, midGold, smoothstep(0.12, 0.90, r) * (0.68 + 0.32 * waves));
-          col = mix(col, rimLight, smoothstep(0.70, 0.99, r));
-          col = mix(col, rimLight, uProximity * 0.72 * (1.0 - r * 0.28));
-          col = mix(blueBirth, col, smoothstep(0.25, 0.95, uReveal));
+          vec2 viewShift = vLocalViewDir.xy / max(abs(vLocalViewDir.z), 0.35);
+          vec2 pNorm = vec2(vUv.x * uAspect, vUv.y);
 
-          float alpha = smoothstep(1.0, 0.86, r) * (0.84 + 0.16 * waves) * uReveal;
+          float rimDistort = exp(-innerDist * 9.5) * 0.12;
+          vec2 pBase = pNorm + normalize(pNorm + vec2(0.0001)) * rimDistort;
+
+          vec2 deepUv = pBase * 1.15 - viewShift * 0.42;
+          float rDeep = length(deepUv);
+          float angDeep = atan(deepUv.y, deepUv.x);
+
+          vec2 galUv = deepUv - vec2(0.0, 0.06);
+          float gR = length(galUv * vec2(1.0, 1.55));
+          float gAng = atan(galUv.y * 1.55, galUv.x) - uTime * (0.14 + uProximity * 0.35);
+          float spiral = 0.5 + 0.5 * sin(gAng * 2.0 - log(gR + 0.08) * 5.2);
+          float galArms = pow(spiral, 2.2) * exp(-gR * 2.4) * smoothstep(0.03, 0.18, gR);
+          float galCore = exp(-gR * 6.5) * 1.35;
+
+          vec2 midUv = pBase * 1.45 - viewShift * 0.24;
+          float rotA = uTime * 0.06;
+          mat2 mRot = mat2(cos(rotA), -sin(rotA), sin(rotA), cos(rotA));
+          float neb1 = fbm2(mRot * midUv * 2.1 + vec2(0.0, uTime * 0.05));
+          float neb2 = fbm2(midUv * 3.8 - vec2(uTime * 0.07, -uTime * 0.04));
+
+          float ripple = sin(rDeep * 11.0 - uTime * (1.2 + uProximity * 1.8) + neb2 * 3.5);
+          float curtain = (0.5 + 0.5 * ripple) * exp(-innerDist * 3.2) * 0.28;
+
+          float starsFar  = starField2D(deepUv + vec2(uTime * 0.004, 0.0), 16.0, 0.84) * 0.95;
+          float starsNear = starField2D(midUv  + vec2(-uTime * 0.007, 0.0), 9.5, 0.89) * 1.20;
+
+          vec3 colVoid    = vec3(0.015, 0.030, 0.075);
+          vec3 colSapph   = vec3(0.10, 0.36, 0.72);
+          vec3 colViolet  = vec3(0.32, 0.16, 0.56);
+          vec3 colGold    = vec3(1.00, 0.82, 0.48);
+          vec3 colRim     = vec3(0.88, 0.95, 1.00);
+          vec3 colBirth   = vec3(0.24, 0.78, 1.00);
+
+          vec3 col = colVoid;
+          col += colSapph  * smoothstep(0.32, 0.85, neb1) * 0.72;
+          col += colViolet * smoothstep(0.38, 0.88, neb2) * 0.60;
+          col += colSapph  * galArms * 0.95;
+          col += colGold   * (galCore * 0.95 + galArms * 0.35);
+          col += vec3(0.86, 0.93, 1.00) * (starsFar + starsNear);
+
+          float rimLine = exp(-innerDist * 18.0) * (0.75 + 0.25 * sin(angDeep * 6.0 - uTime * 2.2));
+          float innerGlow = exp(-innerDist * 5.2) * 0.42;
+          col += mix(colGold, colRim, 0.45) * (rimLine * 1.15 + innerGlow + curtain);
+
+          col = mix(col, vec3(1.0, 0.96, 0.88), uProximity * 0.72 * (0.35 + 0.65 * exp(-rDeep * 1.2)));
+          col = mix(colBirth, col, smoothstep(0.22, 0.92, uReveal));
+
+          float alpha = edgeSoftMask * (0.94 + 0.06 * rimLine) * uReveal;
           gl_FragColor = vec4(col, alpha);
         }
       `
     });
 
-    // Halo dorado original restaurado detrás del marco 3D
-    const portalHaloMaterial = new THREE.ShaderMaterial({
-      uniforms: portalUniforms,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      fog: false,
-      vertexShader: /* glsl */ `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv * 2.0 - 1.0;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        precision highp float;
-
-        uniform float uTime;
-        uniform float uProximity;
-        uniform float uReveal;
-        varying vec2 vUv;
-
-        void main() {
-          if (uReveal <= 0.005) discard;
-          float r = length(vUv);
-          float pulse = 0.92 + 0.08 * sin(uTime * 1.7);
-          float ringGlow = exp(-pow((r - 0.48) * 5.0, 2.0));
-          float softAura = exp(-r * 2.35) * 0.46;
-          float intensity = (ringGlow * 0.78 + softAura) * pulse * (1.0 + uProximity * 0.85) * uReveal;
-          intensity *= smoothstep(1.0, 0.56, r);
-
-          vec3 goldGlow = mix(vec3(1.0, 0.78, 0.38), vec3(1.0, 0.96, 0.86), ringGlow);
-          vec3 blueGlow = vec3(0.28, 0.80, 1.0);
-          vec3 glowCol = mix(blueGlow, goldGlow, smoothstep(0.25, 0.95, uReveal));
-          gl_FragColor = vec4(glowCol * intensity, intensity);
-        }
-      `
-    });
-
-    // Nube envolvente de partículas pequeñas y de brillo moderado alrededor del portal de 56 m
-    function buildPortalParticleCloud(sampledVerts, size) {
+    function buildPortalParticleCloud(sampledVerts, aperture) {
       if (portalCloudPoints) {
         portalGroup.remove(portalCloudPoints);
         portalCloudPoints.geometry.dispose();
@@ -1491,8 +1719,8 @@
         portalCloudPoints = null;
       }
 
-      const TOTAL = 620;
-      const surfaceCount = Math.floor(TOTAL * 0.58);
+      const TOTAL = 360;
+      const surfaceCount = Math.floor(TOTAL * 0.55);
 
       const positions = new Float32Array(TOTAL * 3);
       const sizes     = new Float32Array(TOTAL);
@@ -1501,28 +1729,26 @@
       const colorMix  = new Float32Array(TOTAL);
       const drifts    = new Float32Array(TOTAL * 3);
 
-      const centerY = size.y * 0.5 - CONFIG.portalWaterSink;
-      const halfW = size.x * 0.5;
-      const halfH = size.y * 0.5;
-      const halfD = Math.max(size.z * 0.5, 4.0);
+      const halfW = aperture.width * 0.5;
+      const halfH = aperture.height * 0.5;
 
       for (let i = 0; i < TOTAL; i++) {
         let px, py, pz;
 
         if (i < surfaceCount && sampledVerts.length > 0) {
           const base = sampledVerts[i % sampledVerts.length];
-          const spread = 1.2 + Math.random() * 4.4;
+          const spread = 0.6 + Math.random() * 1.8;
           const theta = Math.random() * Math.PI * 2;
           const phi = (Math.random() - 0.5) * Math.PI;
           px = base.x + Math.cos(theta) * Math.cos(phi) * spread;
           py = base.y + Math.sin(phi) * spread;
-          pz = base.z + Math.sin(theta) * Math.cos(phi) * (spread * 1.2);
+          pz = base.z + Math.sin(theta) * Math.cos(phi) * spread;
         } else {
           const ang = Math.random() * Math.PI * 2;
-          const radFactor = 0.72 + Math.random() * 0.56;
-          px = Math.cos(ang) * halfW * radFactor * 1.18 + (Math.random() - 0.5) * 4.5;
-          py = centerY + Math.sin(ang) * halfH * radFactor * 1.12 + (Math.random() - 0.5) * 4.2;
-          pz = (Math.random() - 0.5) * (halfD * 2.0 + 14.0);
+          const rad = 0.78 + Math.random() * 0.24;
+          px = aperture.centerX + Math.cos(ang) * halfW * rad;
+          py = aperture.centerY + Math.sin(ang) * halfH * rad;
+          pz = aperture.zOffset + (Math.random() - 0.5) * 4.5;
         }
 
         py = Math.max(0.55, py);
@@ -1531,15 +1757,14 @@
         positions[i * 3 + 1] = py;
         positions[i * 3 + 2] = pz;
 
-        // Tamaño contenido y fino acorde a la nueva estética sutil
-        sizes[i]    = 175.0 + Math.random() * 195.0;
+        sizes[i]    = 145.0 + Math.random() * 155.0;
         phases[i]   = Math.random() * Math.PI * 2;
-        speeds[i]   = 1.45 + Math.random() * 2.25;
+        speeds[i]   = 1.35 + Math.random() * 2.0;
         colorMix[i] = Math.random();
 
-        drifts[i * 3]     = (Math.random() - 0.5) * 1.35;
-        drifts[i * 3 + 1] = 0.55 + Math.random() * 1.20;
-        drifts[i * 3 + 2] = (Math.random() - 0.5) * 1.35;
+        drifts[i * 3]     = (Math.random() - 0.5) * 0.85;
+        drifts[i * 3 + 1] = 0.35 + Math.random() * 0.85;
+        drifts[i * 3 + 2] = (Math.random() - 0.5) * 0.85;
       }
 
       const geo = new THREE.BufferGeometry();
@@ -1576,19 +1801,19 @@
             vec3 p = position;
             float t = uTime;
 
-            p.x += sin(t * 0.48 + aPhase) * aDrift.x;
-            p.y += cos(t * 0.42 + aPhase * 1.25) * aDrift.y;
-            p.z += sin(t * 0.38 + aPhase * 0.85) * aDrift.z;
+            p.x += sin(t * 0.45 + aPhase) * aDrift.x;
+            p.y += cos(t * 0.40 + aPhase * 1.25) * aDrift.y;
+            p.z += sin(t * 0.36 + aPhase * 0.85) * aDrift.z;
 
             float pulseWave = 0.5 + 0.5 * sin(t * aSpeed * (1.0 + uProximity * 0.5) + aPhase * 2.4);
-            vPulse = 0.25 + 0.75 * pow(pulseWave, 1.5);
+            vPulse = 0.24 + 0.76 * pow(pulseWave, 1.5);
             vColorMix = aColorMix;
             vReveal = uReveal;
 
             vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
             float dist = max(-mvPosition.z, 2.5);
-            float ptSize = (aSize * uRatio / dist) * (0.74 + 0.42 * vPulse);
-            gl_PointSize = clamp(ptSize, 1.8 * uRatio, 18.0 * uRatio);
+            float ptSize = (aSize * uRatio / dist) * (0.72 + 0.40 * vPulse);
+            gl_PointSize = clamp(ptSize, 1.6 * uRatio, 14.0 * uRatio);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
@@ -1605,8 +1830,8 @@
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
 
-            float halo = exp(-d * 6.4);
-            float core = exp(-d * 16.0);
+            float halo = exp(-d * 6.8);
+            float core = exp(-d * 16.5);
 
             vec3 softCyan = vec3(0.32, 0.74, 0.96);
             vec3 warmGold = vec3(0.96, 0.79, 0.46);
@@ -1619,8 +1844,8 @@
             orbCol = mix(softCyan, orbCol, smoothstep(0.22, 0.95, vReveal));
             vec3 col = mix(orbCol, vec3(0.98, 0.96, 0.92), core * 0.55);
 
-            float alpha = (halo * 0.44 + core * 0.48) * (0.28 + 0.48 * vPulse) * 0.66 * vReveal;
-            gl_FragColor = vec4(col * (0.76 + 0.26 * vPulse + 0.14 * uProximity), alpha);
+            float alpha = (halo * 0.40 + core * 0.44) * (0.26 + 0.44 * vPulse) * 0.58 * vReveal;
+            gl_FragColor = vec4(col * (0.74 + 0.24 * vPulse + 0.12 * uProximity), alpha);
           }
         `
       });
@@ -1628,6 +1853,62 @@
       portalCloudPoints = new THREE.Points(geo, mat);
       portalCloudPoints.frustumCulled = false;
       portalGroup.add(portalCloudPoints);
+    }
+
+    function computePortalInnerAperture(wrapper, finalBox, finalSize) {
+      wrapper.updateMatrixWorld(true);
+      const yLow  = finalBox.min.y + finalSize.y * 0.22;
+      const yHigh = finalBox.min.y + finalSize.y * 0.60;
+      const yTopSearch = finalBox.min.y + finalSize.y * 0.52;
+
+      let leftInner = -Infinity;
+      let rightInner = Infinity;
+      const v = new THREE.Vector3();
+
+      wrapper.traverse((obj) => {
+        if (!obj.isMesh || !obj.geometry || !obj.geometry.attributes.position) return;
+        const pos = obj.geometry.attributes.position;
+        const stride = Math.max(1, Math.floor(pos.count / 1200));
+        for (let i = 0; i < pos.count; i += stride) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+          if (v.y >= yLow && v.y <= yHigh) {
+            if (v.x < -finalSize.x * 0.08 && v.x > leftInner) leftInner = v.x;
+            if (v.x >  finalSize.x * 0.08 && v.x < rightInner) rightInner = v.x;
+          }
+        }
+      });
+
+      if (!isFinite(leftInner) || !isFinite(rightInner) || (rightInner - leftInner) < finalSize.x * 0.25) {
+        leftInner  = -finalSize.x * 0.34;
+        rightInner =  finalSize.x * 0.34;
+      }
+
+      const rawHalfW = (rightInner - leftInner) * 0.5;
+      const centerX = (leftInner + rightInner) * 0.5;
+
+      let topInner = Infinity;
+      wrapper.traverse((obj) => {
+        if (!obj.isMesh || !obj.geometry || !obj.geometry.attributes.position) return;
+        const pos = obj.geometry.attributes.position;
+        const stride = Math.max(1, Math.floor(pos.count / 1200));
+        for (let i = 0; i < pos.count; i += stride) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+          if (Math.abs(v.x - centerX) < rawHalfW * 0.45 && v.y > yTopSearch && v.y < topInner) {
+            topInner = v.y;
+          }
+        }
+      });
+
+      if (!isFinite(topInner) || topInner < finalSize.y * 0.45) {
+        topInner = finalBox.min.y + finalSize.y * 0.80;
+      }
+
+      const bottomY = Math.max(finalBox.min.y, -0.35);
+      const width   = THREE.MathUtils.clamp((rightInner - leftInner) * 0.98, finalSize.x * 0.35, finalSize.x * 0.82);
+      const height  = THREE.MathUtils.clamp((topInner - bottomY) * 0.99, finalSize.y * 0.48, finalSize.y * 0.84);
+      const centerY = bottomY + height * 0.5;
+
+      return { centerX, centerY, width, height, zOffset: -0.15 };
     }
 
     function normalizePortalTemplate(rawScene) {
@@ -1638,7 +1919,6 @@
       let box = new THREE.Box3().setFromObject(rawScene);
       let size = box.getSize(new THREE.Vector3());
 
-      // Orienta el plano frontal del marco hacia las barcas (eje Z)
       if (size.z > size.x * 1.15) {
         rawScene.rotation.y = Math.PI / 2;
       }
@@ -1647,7 +1927,6 @@
       box = new THREE.Box3().setFromObject(rawScene);
       size = box.getSize(new THREE.Vector3());
 
-      // Escala colosal duplicada (56 m de altura sobre el agua)
       let scale = CONFIG.portalTargetHeight / Math.max(size.y, 0.001);
       if (size.x * scale > CONFIG.portalMaxWidth) {
         scale = CONFIG.portalMaxWidth / Math.max(size.x, 0.001);
@@ -1664,6 +1943,7 @@
       rawScene.updateMatrixWorld(true);
       const finalBox = new THREE.Box3().setFromObject(wrapper);
       const finalSize = finalBox.getSize(new THREE.Vector3());
+      const aperture = computePortalInnerAperture(wrapper, finalBox, finalSize);
 
       const matRecords = [];
       rawScene.traverse((obj) => {
@@ -1692,7 +1972,7 @@
       });
 
       const sampledVerts = sampleVerticesFromTemplate(wrapper, 280);
-      return { wrapper, finalSize, matRecords, sampledVerts };
+      return { wrapper, finalSize, aperture, matRecords, sampledVerts };
     }
 
     function createFallbackMonumentalPortal() {
@@ -1728,12 +2008,8 @@
         portalGroup.remove(portalVortexMesh);
         portalVortexMesh.geometry.dispose();
       }
-      if (portalHaloMesh) {
-        portalGroup.remove(portalHaloMesh);
-        portalHaloMesh.geometry.dispose();
-      }
 
-      const { wrapper, finalSize, matRecords, sampledVerts } = normalizedPortal;
+      const { wrapper, finalSize, aperture, matRecords, sampledVerts } = normalizedPortal;
       portalModelPivot   = wrapper;
       portalMatRecords   = matRecords;
       portalSampledVerts = sampledVerts;
@@ -1741,37 +2017,21 @@
 
       portalGroup.add(portalModelPivot);
 
-      const centerY = finalSize.y * 0.50 - CONFIG.portalWaterSink;
-
-      // Vórtice anterior ajustado limpiamente dentro del hueco del marco gigante
-      const innerW = finalSize.x * 0.80;
-      const innerH = finalSize.y * 0.80;
-
+      portalUniforms.uAspect.value = aperture.width / Math.max(aperture.height, 0.01);
       portalVortexMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(innerW, innerH),
+        new THREE.PlaneGeometry(aperture.width, aperture.height),
         portalVortexMaterial
       );
-      portalVortexMesh.position.set(0, centerY, 0.0);
+      portalVortexMesh.position.set(aperture.centerX, aperture.centerY, aperture.zOffset);
       portalVortexMesh.frustumCulled = false;
       portalGroup.add(portalVortexMesh);
 
-      // Halo dorado original detrás de la silueta colosal
-      const haloSpan = Math.max(finalSize.x, finalSize.y) * 2.1;
-      portalHaloMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(haloSpan, haloSpan),
-        portalHaloMaterial
-      );
-      portalHaloMesh.position.set(0, centerY, -(finalSize.z * 0.5 + 0.8));
-      portalHaloMesh.frustumCulled = false;
-      portalGroup.add(portalHaloMesh);
+      buildPortalParticleCloud(sampledVerts, aperture);
 
-      buildPortalParticleCloud(sampledVerts, finalSize);
-
-      // Luces y reflejo sobre el agua sincronizados con el portal de 56 m
       const frontOffset = Math.max(finalSize.z * 0.6, 8.0) + 6.0;
-      portalGlowLight.position.set(0, centerY * 0.52, CONFIG.portalBasePosition.z + frontOffset);
-      portalCrownLight.position.set(0, centerY * 1.25, CONFIG.portalBasePosition.z + frontOffset + 4.0);
-      waterUniforms.uPortalPos.value.set(0, centerY, CONFIG.portalBasePosition.z);
+      portalGlowLight.position.set(0, aperture.centerY * 0.60, CONFIG.portalBasePosition.z + frontOffset);
+      portalCrownLight.position.set(0, aperture.centerY * 1.35, CONFIG.portalBasePosition.z + frontOffset + 4.0);
+      waterUniforms.uPortalPos.value.set(0, aperture.centerY, CONFIG.portalBasePosition.z);
     }
 
     const BLUE_MAT_COLOR       = new THREE.Color(0x28a4ff);
@@ -1835,7 +2095,6 @@
       }
     }
 
-    // --- Partículas de Materialización con Brillo Azul Pulsante (GPU, 1 draw call) ---
     let materializePoints = null;
     const matParticleUniforms = {
       uTime:    { value: 0 },
@@ -1882,9 +2141,9 @@
         const isPortalCloud = i > sceneExtraCount * 0.60;
         if (isPortalCloud && portalSampledVerts.length > 0) {
           const pv = portalSampledVerts[i % portalSampledVerts.length];
-          positions[ptr * 3]     = CONFIG.portalBasePosition.x + pv.x + (Math.random() - 0.5) * 4.0;
-          positions[ptr * 3 + 1] = Math.max(0.6, pv.y + (Math.random() - 0.5) * 4.0);
-          positions[ptr * 3 + 2] = CONFIG.portalBasePosition.z + pv.z + (Math.random() - 0.5) * 5.0;
+          positions[ptr * 3]     = CONFIG.portalBasePosition.x + pv.x + (Math.random() - 0.5) * 3.0;
+          positions[ptr * 3 + 1] = Math.max(0.6, pv.y + (Math.random() - 0.5) * 3.0);
+          positions[ptr * 3 + 2] = CONFIG.portalBasePosition.z + pv.z + (Math.random() - 0.5) * 3.5;
           delays[ptr] = 0.70 + Math.random() * 0.75;
           kinds[ptr]  = 2.0;
         } else {
@@ -1962,14 +2221,14 @@
               vAlpha = smoothstep(0.0, 0.14, p) * (1.0 - smoothstep(0.68, 1.0, p));
             } else {
               pos.y += p * (2.4 + fract(aSeed * 11.1) * 3.0);
-              pos.x += sin(uTime * 1.4 + aSeed * 12.0) * (aKind > 1.5 ? 1.2 : 0.55);
-              pos.z += cos(uTime * 1.1 + aSeed * 9.0) * (aKind > 1.5 ? 1.2 : 0.55);
+              pos.x += sin(uTime * 1.4 + aSeed * 12.0) * (aKind > 1.5 ? 1.0 : 0.55);
+              pos.z += cos(uTime * 1.1 + aSeed * 9.0) * (aKind > 1.5 ? 1.0 : 0.55);
               vAlpha = smoothstep(0.0, 0.18, p) * (1.0 - smoothstep(0.68, 1.0, p));
             }
 
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            float baseSize = (aKind > 1.5 ? 240.0 : (aKind < 0.5 ? 36.0 : 52.0)) * uRatio;
-            float maxPt = (aKind > 1.5 ? 22.0 : 44.0) * uRatio;
+            float baseSize = (aKind > 1.5 ? 210.0 : (aKind < 0.5 ? 36.0 : 52.0)) * uRatio;
+            float maxPt = (aKind > 1.5 ? 18.0 : 44.0) * uRatio;
             gl_PointSize = clamp((baseSize / max(-mvPosition.z, 1.0)) * (0.65 + 0.60 * pulse), 2.0, maxPt);
             gl_Position = projectionMatrix * mvPosition;
           }
@@ -1996,7 +2255,7 @@
             vec3 col = mix(deepBlue, cyanBlue, vPulse);
             col = mix(col, coreWhite, core * 0.78);
 
-            float dimPortal = vKind > 1.5 ? 0.65 : 1.0;
+            float dimPortal = vKind > 1.5 ? 0.60 : 1.0;
             float finalAlpha = (halo * 0.72 + core * 0.60) * vAlpha * (0.50 + 0.45 * vPulse) * dimPortal;
             gl_FragColor = vec4(col * (0.95 + 0.30 * vPulse), finalAlpha);
           }
@@ -2009,7 +2268,6 @@
       scene.add(materializePoints);
     }
 
-    // --- Partículas ambientales sutiles (luciérnagas doradas + motas azules pulsantes) ---
     const ambientParticleUniforms = {
       uTime:   { value: 0 },
       uReveal: { value: 0 },
@@ -2084,15 +2342,17 @@
     })();
 
     // =========================================================================
-    // BLOQUE 4: CARGA PARALELA (barcagrullas.glb + portal barcas_optimizado.glb)
+    // BLOQUE 4: CARGA PARALELA (barcagrullas.glb + portal + agua.glb)
     // =========================================================================
     const boats = [];
     const boatHitboxes = [];
     let boatSampledVerts = [];
     let boatReady = false;
     let portalReady = false;
+    let waterReady = false;
     let boatProgress = 0;
     let portalProgress = 0;
+    let waterProgress = 0;
     let vrSupported = false;
     let arSupported = false;
     let activeDracoLoader = null;
@@ -2170,7 +2430,7 @@
       rawScene.updateMatrixWorld(true);
       const finalBox = new THREE.Box3().setFromObject(wrapper);
       const finalSize = finalBox.getSize(new THREE.Vector3());
-      CONFIG.seatOffset.set(0, THREE.MathUtils.clamp(finalSize.y * 0.20, 0.26, 0.55), 0);
+      CONFIG.seatOffset.set(0, THREE.MathUtils.clamp(finalSize.y * 0.19, 0.24, 0.50), 0);
 
       rawScene.traverse((obj) => {
         if (obj.isMesh && obj.material) {
@@ -2208,34 +2468,34 @@
       hullGeo.rotateX(Math.PI / 2);
       hullGeo.scale(1.12, 0.52, 1.15);
       const hull = new THREE.Mesh(hullGeo, bronzeDark);
-      hull.position.y = 0.20;
+      hull.position.y = 0.04;
       wrapper.add(hull);
 
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.06, 10, 28), bronzeGold);
       rim.rotation.x = Math.PI / 2;
       rim.scale.set(0.64, 1.72, 1.0);
-      rim.position.y = 0.38;
+      rim.position.y = 0.22;
       wrapper.add(rim);
 
       const neckCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0.36, 1.20),
-        new THREE.Vector3(0, 0.96, 1.56),
-        new THREE.Vector3(0, 1.56, 1.44),
-        new THREE.Vector3(0, 1.66, 1.66)
+        new THREE.Vector3(0, 0.20, 1.20),
+        new THREE.Vector3(0, 0.80, 1.56),
+        new THREE.Vector3(0, 1.40, 1.44),
+        new THREE.Vector3(0, 1.50, 1.66)
       ]);
       wrapper.add(new THREE.Mesh(new THREE.TubeGeometry(neckCurve, 22, 0.07, 10, false), bronzeGold));
 
       const beak = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.42, 8), bronzeGold);
       beak.rotation.x = Math.PI / 2 + 0.12;
-      beak.position.set(0, 1.64, 1.92);
+      beak.position.set(0, 1.48, 1.92);
       wrapper.add(beak);
 
       [-1, 1].forEach((side) => {
         const wingCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.48, 0.36, 0.55),
-          new THREE.Vector3(side * 0.68, 0.72, -0.10),
-          new THREE.Vector3(side * 0.50, 0.92, -0.95),
-          new THREE.Vector3(side * 0.24, 0.62, -1.52)
+          new THREE.Vector3(side * 0.48, 0.20, 0.55),
+          new THREE.Vector3(side * 0.68, 0.56, -0.10),
+          new THREE.Vector3(side * 0.50, 0.76, -0.95),
+          new THREE.Vector3(side * 0.24, 0.46, -1.52)
         ]);
         wrapper.add(new THREE.Mesh(new THREE.TubeGeometry(wingCurve, 18, 0.055, 8, false), bronzeDark));
       });
@@ -2260,7 +2520,6 @@
       const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
       const centerIndex = Math.floor(CONFIG.boatsLayout.length / 2);
 
-      // Geometrías compartidas entre las 7 barcas para ahorrar memoria GPU
       const sharedRingGeo = new THREE.RingGeometry(ringRadius * 0.92, ringRadius * 1.03, 40);
       const sharedHitboxGeo = new THREE.BoxGeometry(
         Math.max(finalSize.x * 1.15, 1.8),
@@ -2314,11 +2573,11 @@
           })
         );
         beaconRing.rotation.x = -Math.PI / 2;
-        beaconRing.position.y = 0.06;
+        beaconRing.position.y = 0.05;
         boatGroup.add(beaconRing);
 
         const hitbox = new THREE.Mesh(sharedHitboxGeo, sharedHitboxMat);
-        hitbox.position.y = Math.max(finalSize.y * 0.45, 0.8);
+        hitbox.position.y = Math.max(finalSize.y * 0.42, 0.75);
         hitbox.userData.boatIndex = index;
         boatGroup.add(hitbox);
         boatHitboxes.push(hitbox);
@@ -2354,7 +2613,7 @@
 
       boat.group.position.set(
         boat.homePos.x,
-        boat.homePos.y - (1.0 - easeOut) * 0.34,
+        boat.homePos.y - (1.0 - easeOut) * 0.28,
         boat.homePos.z
       );
       boat.visual.scale.setScalar(THREE.MathUtils.lerp(0.93, 1.0, easeOut));
@@ -2401,14 +2660,13 @@
     }
 
     function updateLoadingBar() {
-      const combined = Math.min(Math.round((boatProgress * 0.5 + portalProgress * 0.5) * 100), 98);
+      const combined = Math.min(Math.round((boatProgress * 0.42 + portalProgress * 0.42 + waterProgress * 0.16) * 100), 98);
       loadFill.style.width = `${Math.max(12, combined)}%`;
     }
 
     function refreshIntroOrbs() {
-      if (!boatReady || !portalReady) return;
+      if (!boatReady || !portalReady || !waterReady) return;
 
-      // Liberamos los workers WASM de Draco una vez decodificados ambos modelos
       if (activeDracoLoader) {
         activeDracoLoader.dispose();
         activeDracoLoader = null;
@@ -2497,8 +2755,40 @@
         );
       };
 
+      const loadWater = (url, isFallback) => {
+        gltfLoader.load(
+          url,
+          (gltf) => {
+            setupGLBWaterPlane(gltf.scene);
+            waterProgress = 1;
+            waterReady = true;
+            updateLoadingBar();
+            refreshIntroOrbs();
+          },
+          (xhr) => {
+            if (xhr.lengthComputable) {
+              waterProgress = Math.min(xhr.loaded / xhr.total, 0.98);
+              updateLoadingBar();
+            }
+          },
+          () => {
+            if (!isFallback) {
+              loadWater(ASSETS.waterFallback, true);
+            } else {
+              usingGLBWater = false;
+              waterMesh.visible = true;
+              waterProgress = 1;
+              waterReady = true;
+              updateLoadingBar();
+              refreshIntroOrbs();
+            }
+          }
+        );
+      };
+
       loadBoat(ASSETS.boatPrimary, false);
       loadPortal(ASSETS.portalPrimary, false);
+      loadWater(ASSETS.waterPrimary, false);
     }
     loadAll3DAssets();
 
@@ -2734,7 +3024,7 @@
       galaxySkyDome.visible = false;
       galaxySkyUniforms.uReveal.value = 0.0;
 
-      waterMesh.visible = false;
+      waterRoot.visible = false;
       waterUniforms.uWaterReveal.value = 0.0;
       waterUniforms.uBoatSpeed.value = 0.0;
       waterUniforms.uMotionFactor.value = 0.0;
@@ -2772,7 +3062,7 @@
       hudEl.classList.add('visible');
       btnFullscreen.style.display = (modeName === 'web') ? '' : 'none';
 
-      waterMesh.visible = true;
+      waterRoot.visible = true;
       portalGroup.visible = true;
       ambientPoints.visible = true;
       galaxySkyDome.visible = !isARMode;
@@ -2816,7 +3106,7 @@
     function buildVoyageCurve(startPos) {
       const endPos = new THREE.Vector3(
         CONFIG.portalBasePosition.x,
-        0.45,
+        0.25,
         CONFIG.portalBasePosition.z + 1.5
       );
       const sideSign = startPos.x === 0 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(startPos.x);
@@ -2827,7 +3117,7 @@
       );
       const p2 = new THREE.Vector3(
         startPos.x * 0.25 - sideSign * 2.0,
-        0.12,
+        0.06,
         THREE.MathUtils.lerp(startPos.z, endPos.z, 0.68)
       );
       return new THREE.CatmullRomCurve3([startPos.clone(), p1, p2, endPos]);
@@ -2856,9 +3146,6 @@
       setHUD('Abordando barca...', 'La corriente hacia el portal está por iniciar', false);
     }
 
-    /**
-     * DESTINO DEL PORTAL (Aislado para futuros mundos o escenas)
-     */
     function onPortalCrossed(context) {
       playerRig.position.copy(CONFIG.originPosition);
 
@@ -2959,7 +3246,6 @@
 
     window.addEventListener('pointercancel', () => { isDragging = false; });
 
-    // Controladores WebXR (Quest 3 + toque pantalla WebAR)
     const tempMatrix = new THREE.Matrix4();
     const controllers = [];
     const vrLasers = [];
@@ -3000,7 +3286,6 @@
     setupXRController(0);
     setupXRController(1);
 
-    // Controles HUD esenciales
     btnAudio.addEventListener('click', () => audioEngine.toggle());
     btnModes.addEventListener('click', () => returnToIntroMenu());
 
@@ -3024,9 +3309,8 @@
     }
     detectXRCapabilities();
 
-    // Lanzador 3D Web
     orbWeb.addEventListener('click', () => {
-      if (!boatReady || !portalReady) return;
+      if (!boatReady || !portalReady || !waterReady) return;
       isARMode = false;
       scene.background = NIGHT_BG;
       scene.fog = NIGHT_FOG;
@@ -3035,19 +3319,18 @@
       vrLasers.forEach(l => l.visible = false);
       camera.position.set(0, CONFIG.defaultEyeHeight, 0);
       camYaw = 0;
-      camPitch = 0.14; // Encuadre inicial ligeramente elevado para abarcar el portal de 56 m
+      camPitch = 0.16;
       updateDesktopCameraLook();
 
       audioEngine.toggle(true);
       startMaterialization('web');
     });
 
-    // Lanzadores AR y VR
     orbAR.addEventListener('click', () => startXRMode('immersive-ar'));
     orbVR.addEventListener('click', () => startXRMode('immersive-vr'));
 
     async function startXRMode(xrMode) {
-      if (!boatReady || !portalReady || !('xr' in navigator)) return;
+      if (!boatReady || !portalReady || !waterReady || !('xr' in navigator)) return;
       try {
         audioEngine.toggle(true);
 
@@ -3096,7 +3379,7 @@
     }
 
     // =========================================================================
-    // BUCLE PRINCIPAL DE ANIMACIÓN (CERO ASIGNACIONES POR FRAME, 60–72+ FPS)
+    // BUCLE PRINCIPAL DE ANIMACIÓN (60–72+ FPS)
     // =========================================================================
     const clock = new THREE.Clock();
     const worldCamPos = new THREE.Vector3();
@@ -3114,9 +3397,6 @@
       matParticleUniforms.uTime.value = t;
       ambientParticleUniforms.uTime.value = t;
 
-      // =====================================================================
-      // ESTADO: INTRO
-      // =====================================================================
       if (currentState === STATE.INTRO) {
         introAuraUniforms.uTime.value = t;
         introDustUniforms.uTime.value = t;
@@ -3140,16 +3420,14 @@
         return;
       }
 
-      // Rotación celeste lenta y paralaje infinito del cielo
-      skyAngle += dt * 0.012 * SKY_SETTINGS.rotationSpeed;
+      skyAngle += dt * 0.010 * SKY_SETTINGS.rotationSpeed;
       galaxySkyUniforms.uSkyRotation.value = skyAngle;
       galaxySkyDome.position.copy(playerRig.position);
 
-      // Grid snapping del plano de agua
-      waterMesh.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
-      waterMesh.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
+      waterRoot.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
+      waterRoot.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
+      updateGLBWaterAnimation(t);
 
-      // Avance y apagado automático de las partículas de materialización
       if (matElapsed >= 0) {
         if (matElapsed < 6.5) {
           matElapsed += dt;
@@ -3159,9 +3437,6 @@
         }
       }
 
-      // =====================================================================
-      // ESTADO: MATERIALIZING
-      // =====================================================================
       if (currentState === STATE.MATERIALIZING) {
         stateTimer += dt;
         const u = Math.min(stateTimer / CONFIG.materializeDuration, 1.0);
@@ -3211,9 +3486,6 @@
 
       const portalBreath = 0.92 + 0.08 * Math.sin(t * 1.7);
 
-      // =====================================================================
-      // INTERACCIÓN XR EN REPOSO + FLOTACIÓN ORGÁNICA
-      // =====================================================================
       if (currentState === STATE.IDLE && renderer.xr.isPresenting) {
         hoveredBoatIndex = -1;
         if (!isARMode) {
@@ -3249,17 +3521,15 @@
           THREE.MathUtils.lerp(b.beaconRing.scale.x, targetScale, dt * 6)
         );
 
+        // Flotación pesada y asentada
         if (b !== activeBoat) {
           const ph = b.phaseOffset;
-          b.group.position.y = Math.sin(t * 1.15 + ph) * 0.05;
-          b.visual.rotation.x = Math.sin(t * 0.90 + ph) * 0.028;
-          b.visual.rotation.z = Math.cos(t * 1.05 + ph) * 0.034;
+          b.group.position.y = Math.sin(t * 0.62 + ph) * 0.022;
+          b.visual.rotation.x = Math.sin(t * 0.52 + ph) * 0.014;
+          b.visual.rotation.z = Math.cos(t * 0.58 + ph) * 0.018;
         }
       }
 
-      // =====================================================================
-      // ABORDAJE, NAVEGACIÓN (20s) Y CRUCE DEL PORTAL
-      // =====================================================================
       let targetMotionFactor = 0.0;
 
       if (currentState === STATE.BOARDING && activeBoat) {
@@ -3269,7 +3539,7 @@
 
         tmpTargetRigPos.copy(activeBoat.group.position).add(CONFIG.seatOffset);
         playerRig.position.lerpVectors(boardStartRigPos, tmpTargetRigPos, smooth);
-        activeBoat.group.position.y = -Math.sin(u * Math.PI) * 0.075;
+        activeBoat.group.position.y = -Math.sin(u * Math.PI) * 0.095;
 
         if (u >= 1.0) {
           currentState = STATE.NAVIGATING;
@@ -3293,13 +3563,13 @@
         targetMotionFactor = THREE.MathUtils.clamp(currentBoatSpeed / 3.8, 0.0, 1.0);
 
         activeBoat.group.position.copy(tmpPosOnCurve);
-        activeBoat.group.position.y += Math.sin(t * 2.15) * (0.04 + 0.045 * smoothMotionFactor);
+        activeBoat.group.position.y += Math.sin(t * 1.15) * (0.018 + 0.022 * smoothMotionFactor);
 
         const targetYaw = Math.atan2(tmpTangent.x, tmpTangent.z);
-        activeBoat.group.rotation.y = lerpAngle(activeBoat.group.rotation.y, targetYaw, dt * 3.2);
+        activeBoat.group.rotation.y = lerpAngle(activeBoat.group.rotation.y, targetYaw, dt * 2.6);
 
-        activeBoat.visual.rotation.x = Math.sin(t * 1.95) * (0.025 + 0.025 * smoothMotionFactor);
-        activeBoat.visual.rotation.z = Math.cos(t * 1.55) * (0.030 + 0.032 * smoothMotionFactor);
+        activeBoat.visual.rotation.x = -0.012 * smoothMotionFactor + Math.sin(t * 1.05) * (0.012 + 0.014 * smoothMotionFactor);
+        activeBoat.visual.rotation.z = Math.cos(t * 0.90) * (0.015 + 0.016 * smoothMotionFactor);
 
         playerRig.position.set(
           tmpPosOnCurve.x + CONFIG.seatOffset.x,

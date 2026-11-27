@@ -481,7 +481,7 @@
 
     const CONFIG = {
       targetBoatLength: 3.8,
-      waterlineSink: 0.32, // Más hundidas y con mayor peso visual en el agua
+      waterlineSink: 0.32, // Barcas más hundidas y aplomadas
       defaultEyeHeight: 1.65,
       seatOffset: new THREE.Vector3(0, 0.30, -0.1),
 
@@ -510,12 +510,13 @@
     };
 
     const SKY_SETTINGS = {
-      galaxyIntensity: 0.86,
-      nebulaRichness:  0.80,
-      rotationSpeed:   0.22
+      galaxyIntensity: 0.88,
+      nebulaRichness:  0.82,
+      rotationSpeed:   0.20
     };
 
-    const FOG_DENSITY = 0.0044;
+    const FOG_DENSITY_A = 0.0095; // Escenario A: oscuridad envolvente
+    const FOG_DENSITY_B = 0.0038; // Escenario B: horizonte abierto hacia las galaxias
 
     function disposeHierarchy(root, disposeGeometries = true, disposeMaterials = true) {
       if (!root) return;
@@ -551,8 +552,10 @@
 
     const scene = new THREE.Scene();
     const INTRO_BG = new THREE.Color(0x02060e);
-    const NIGHT_BG = new THREE.Color(0x020610);
-    const NIGHT_FOG = new THREE.FogExp2(0x050e1c, FOG_DENSITY);
+    const DARK_A_BG = new THREE.Color(0x010308);
+    const GALAXY_B_BG = new THREE.Color(0x020610);
+    const FOG_A = new THREE.FogExp2(0x02050c, FOG_DENSITY_A);
+    const FOG_B = new THREE.FogExp2(0x050e1c, FOG_DENSITY_B);
     scene.background = INTRO_BG;
     scene.fog = null;
 
@@ -577,14 +580,14 @@
     portalFlashMesh.visible = false;
     camera.add(portalFlashMesh);
 
-    const hemiLight = new THREE.HemisphereLight(0x7ca8d8, 0x142236, 0.92);
+    const hemiLight = new THREE.HemisphereLight(0x7ca8d8, 0x142236, 0.55);
     scene.add(hemiLight);
 
-    const moonLight = new THREE.DirectionalLight(0xd2e8ff, 1.18);
+    const moonLight = new THREE.DirectionalLight(0xd2e8ff, 0.72);
     moonLight.position.set(16, 36, 18);
     scene.add(moonLight);
 
-    const fillLight = new THREE.DirectionalLight(0x709cc8, 0.48);
+    const fillLight = new THREE.DirectionalLight(0x709cc8, 0.35);
     fillLight.position.set(-18, 18, 22);
     scene.add(fillLight);
 
@@ -601,11 +604,12 @@
     scene.add(portalCrownLight);
 
     // =========================================================================
-    // BLOQUE 2B: CIELO GALÁCTICO (GALAXIAS VISIBLES EN PERSPECTIVA FRONTAL)
+    // BLOQUE 2B: CIELO GALÁCTICO 360° (9 GALAXIAS DISTRIBUIDAS, SOLO ESCENARIO B)
     // =========================================================================
     const galaxySkyUniforms = {
       uTime:            { value: 0.0 },
       uReveal:          { value: 0.0 },
+      uGalaxyWorld:     { value: 0.0 }, // 0 = Escenario A (oscuro), 1 = Escenario B (galaxias)
       uGalaxyIntensity: { value: SKY_SETTINGS.galaxyIntensity },
       uNebulaRichness:  { value: SKY_SETTINGS.nebulaRichness },
       uSkyRotation:     { value: 0.0 },
@@ -625,6 +629,7 @@
 
       uniform float uTime;
       uniform float uReveal;
+      uniform float uGalaxyWorld;
       uniform float uGalaxyIntensity;
       uniform float uNebulaRichness;
       uniform float uSkyRotation;
@@ -728,7 +733,7 @@
         float tiltRatio, float tiltAngle, float spinSpeed,
         vec3 coreColor, vec3 armColor
       ) {
-        if (dot(dir, centerDir) < 0.72) return vec3(0.0);
+        if (dot(dir, centerDir) < 0.70) return vec3(0.0);
 
         vec3 upRef = abs(centerDir.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
         vec3 uAxis = normalize(cross(upRef, centerDir));
@@ -745,19 +750,19 @@
         if (r > 1.45) return vec3(0.0);
 
         float angle = atan(uv.y, uv.x) + uTime * spinSpeed;
-        float logSpiral = angle * 2.0 - log(r + 0.065) * 5.6;
+        float logSpiral = angle * 2.0 - log(r + 0.065) * 5.4;
         float mainArms = 0.5 + 0.5 * sin(logSpiral);
         float subArms  = 0.5 + 0.5 * sin(logSpiral * 2.0 + 1.4);
 
         float clumps = noise3D(vec3(uv * 5.2, 2.4)) * 0.65 + noise3D(vec3(uv * 11.5, 6.1)) * 0.35;
         float armMask = pow(mainArms, 2.1) * (0.60 + 0.78 * clumps) + pow(subArms, 3.0) * 0.28;
-        armMask *= smoothstep(0.04, 0.20, r) * exp(-r * 2.10);
+        armMask *= smoothstep(0.04, 0.20, r) * exp(-r * 2.15);
 
-        float core = exp(-r * 6.8) * 1.45;
-        float innerGlow = exp(-r * 2.8) * 0.42;
+        float core = exp(-r * 6.8) * 1.40;
+        float innerGlow = exp(-r * 2.8) * 0.40;
         float outerFade = smoothstep(1.40, 0.52, r);
 
-        return (coreColor * (core + innerGlow * 0.62) + armColor * (armMask * 0.95 + innerGlow * 0.42)) * outerFade;
+        return (coreColor * (core + innerGlow * 0.60) + armColor * (armMask * 0.92 + innerGlow * 0.40)) * outerFade;
       }
 
       void main() {
@@ -765,10 +770,19 @@
         vec3 dir = rotY(rawDir, uSkyRotation);
 
         float elev = clamp(rawDir.y, 0.0, 1.0);
+        vec3 darkNightA = mix(vec3(0.005, 0.009, 0.018), vec3(0.002, 0.003, 0.008), pow(elev, 0.7));
+
+        // Escenario A: cielo oscuro sereno, sin galaxias
+        if (uGalaxyWorld <= 0.001) {
+          float subtleStars = length(starLayer(dir, 95.0, 0.985, 0.65, 1.1)) * 0.14;
+          vec3 colA = darkNightA + vec3(0.75, 0.85, 1.0) * subtleStars * smoothstep(0.0, 0.25, rawDir.y);
+          gl_FragColor = vec4(colA * uReveal * uBakeBoost, 1.0);
+          return;
+        }
+
         vec3 voidCol = mix(vec3(0.009, 0.020, 0.044), vec3(0.003, 0.006, 0.016), pow(elev, 0.62));
 
-        // Banda de la Vía Láctea cruzando en diagonal baja justo frente al usuario
-        vec3 galUp    = normalize(vec3(0.62, 0.68, -0.39));
+        vec3 galUp    = normalize(vec3(0.58, 0.70, -0.42));
         vec3 galFwd   = normalize(vec3(-0.18, 0.34, -0.92));
         vec3 galRight = normalize(cross(galUp, galFwd));
         galFwd        = normalize(cross(galRight, galUp));
@@ -778,17 +792,17 @@
         float warp = (fbm3(g * 2.6 + vec3(1.2, -0.8, 3.1)) - 0.5) * 0.24;
         float lat = g.y + warp;
 
-        float bandTight = exp(-abs(lat) * 5.6);
-        float bandWide  = exp(-abs(lat) * 2.10);
+        float bandTight = exp(-abs(lat) * 5.2);
+        float bandWide  = exp(-abs(lat) * 1.95);
 
         float nebA = fbm4(g * 3.4 + vec3(0.0, 1.5, -2.2));
         float nebB = fbm3(g * 7.0 + vec3(4.1, -2.3, 1.7));
         float dustNoise = fbm3(g * 5.6 + vec3(-3.2, 0.6, 5.4));
 
         float riftBand = exp(-abs(lat + (dustNoise - 0.5) * 0.14) * 14.5);
-        float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.78;
+        float dustAbsorption = 1.0 - riftBand * smoothstep(0.36, 0.72, dustNoise) * 0.76;
 
-        vec3 coreDir = normalize(vec3(-0.14, 0.24, -0.96));
+        vec3 coreDir = normalize(vec3(-0.14, 0.26, -0.95));
         float coreAlign = pow(max(dot(dir, coreDir), 0.0), 4.0);
         float coreTight = pow(max(dot(dir, coreDir), 0.0), 12.0);
 
@@ -803,44 +817,54 @@
         milkyWay += colViolet * bandWide  * smoothstep(0.40, 0.84, nebB) * 0.66;
         milkyWay += colAmber  * (coreAlign * 0.56 + coreTight * 0.70) * (0.50 + 0.60 * nebA);
 
-        float cosmicMist = smoothstep(0.45, 0.86, fbm3(dir * 2.4 + vec3(2.3, -1.1, 4.7)));
-        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.18;
+        float cosmicMist = smoothstep(0.42, 0.85, fbm3(dir * 2.2 + vec3(2.3, -1.1, 4.7)));
+        vec3 outerNebula = mix(colIndigo, colViolet, nebB) * cosmicMist * 0.24;
 
         vec3 skyCol = voidCol + (milkyWay * dustAbsorption + outerNebula) * uNebulaRichness * uGalaxyIntensity;
 
-        // 3 galaxias espirales reubicadas en el campo de visión frontal del usuario
-        vec3 g1 = renderSpiralGalaxy(
-          dir, normalize(vec3(0.36, 0.28, -0.89)), 0.215, 0.44, 0.48, 0.024,
-          vec3(1.00, 0.86, 0.62), vec3(0.36, 0.68, 1.00)
-        );
-        vec3 g2 = renderSpiralGalaxy(
-          dir, normalize(vec3(-0.42, 0.34, -0.84)), 0.165, 0.74, -0.36, -0.028,
-          vec3(0.88, 0.94, 1.00), vec3(0.28, 0.76, 0.98)
-        );
-        vec3 g3 = renderSpiralGalaxy(
-          dir, normalize(vec3(0.08, 0.44, -0.89)), 0.145, 0.52, 1.02, 0.020,
-          vec3(0.98, 0.78, 0.56), vec3(0.58, 0.40, 0.92)
-        );
-        skyCol += (g1 + g2 + g3) * 0.92 * uGalaxyIntensity;
+        // 9 galaxias espirales distribuidas de forma orgánica por toda la bóveda celeste (sin vacíos)
+        vec3 galaxies = vec3(0.0);
+        // Frente-derecha media
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3( 0.42, 0.28, -0.86)), 0.20, 0.46,  0.52,  0.022, vec3(1.00, 0.86, 0.62), vec3(0.36, 0.68, 1.00));
+        // Frente-izquierda media
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3(-0.46, 0.34, -0.82)), 0.16, 0.74, -0.38, -0.026, vec3(0.88, 0.94, 1.00), vec3(0.28, 0.76, 0.98));
+        // Frente-alta central
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3( 0.06, 0.54, -0.84)), 0.14, 0.55,  1.05,  0.018, vec3(0.98, 0.78, 0.56), vec3(0.58, 0.40, 0.92));
+        // Lateral derecha
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3( 0.86, 0.36, -0.35)), 0.18, 0.42, -0.72,  0.020, vec3(1.00, 0.82, 0.58), vec3(0.46, 0.58, 0.98));
+        // Lateral izquierda
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3(-0.88, 0.32, -0.34)), 0.17, 0.62,  0.84, -0.022, vec3(0.92, 0.88, 1.00), vec3(0.62, 0.38, 0.88));
+        // Cenit inclinado
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3(-0.18, 0.88, -0.44)), 0.15, 0.78,  0.25,  0.016, vec3(0.96, 0.84, 0.64), vec3(0.32, 0.74, 0.96));
+        // Espalda-derecha
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3( 0.62, 0.40,  0.67)), 0.19, 0.50,  1.22, -0.024, vec3(0.98, 0.76, 0.54), vec3(0.52, 0.38, 0.86));
+        // Espalda-izquierda
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3(-0.58, 0.36,  0.73)), 0.16, 0.66, -0.95,  0.020, vec3(0.86, 0.92, 1.00), vec3(0.28, 0.68, 0.94));
+        // Espalda-alta
+        galaxies += renderSpiralGalaxy(dir, normalize(vec3( 0.05, 0.62,  0.78)), 0.13, 0.48,  0.40, -0.019, vec3(1.00, 0.84, 0.66), vec3(0.66, 0.44, 0.90));
+
+        skyCol += galaxies * 0.86 * uGalaxyIntensity;
 
         vec3 stars = vec3(0.0);
         float bandBoost = 1.0 + bandTight * 0.92 * dustAbsorption;
-        stars += starLayer(dir, 118.0, 0.932, 0.84, 1.6) * 0.52 * bandBoost;
-        stars += starLayer(dir,  64.0, 0.957, 0.94, 2.1) * 0.78;
-        stars += starLayer(dir,  29.0, 0.978, 1.10, 2.6) * 1.05;
-        skyCol += stars * (0.46 + 0.36 * uGalaxyIntensity);
+        stars += starLayer(dir, 118.0, 0.925, 0.84, 1.6) * 0.56 * bandBoost;
+        stars += starLayer(dir,  64.0, 0.952, 0.94, 2.1) * 0.82;
+        stars += starLayer(dir,  29.0, 0.975, 1.10, 2.6) * 1.08;
+        skyCol += stars * (0.48 + 0.38 * uGalaxyIntensity);
 
         float horizonBand = exp(-abs(rawDir.y) * 10.0);
         vec3 horizonGlow = vec3(0.018, 0.050, 0.096) * horizonBand * 0.82;
         float portalAzimuth = pow(max(dot(normalize(vec3(rawDir.x, 0.0, rawDir.z)), vec3(0.0, 0.0, -1.0)), 0.0), 8.0);
-        horizonGlow += vec3(0.20, 0.14, 0.06) * horizonBand * portalAzimuth * 0.42;
+        horizonGlow += vec3(0.20, 0.14, 0.06) * horizonBand * portalAzimuth * 0.36;
 
         float aboveWater = smoothstep(-0.08, 0.08, rawDir.y);
         skyCol = mix(vec3(0.012, 0.036, 0.070), skyCol, aboveWater) + horizonGlow;
 
+        vec3 blendedWorld = mix(darkNightA, skyCol, clamp(uGalaxyWorld, 0.0, 1.0));
+
         float rev = clamp(uReveal, 0.0, 1.0);
         vec3 birthTint = vec3(0.03, 0.14, 0.28) * sin(rev * 3.14159) * 0.34;
-        vec3 finalCol = mix(vec3(0.006, 0.012, 0.026), skyCol, rev) + birthTint;
+        vec3 finalCol = mix(vec3(0.004, 0.008, 0.018), blendedWorld, rev) + birthTint;
 
         gl_FragColor = vec4(finalCol * uBakeBoost, 1.0);
       }
@@ -872,6 +896,7 @@
         const bakeMat = galaxySkyMaterial.clone();
         bakeMat.uniforms = THREE.UniformsUtils.clone(galaxySkyUniforms);
         bakeMat.uniforms.uReveal.value = 1.0;
+        bakeMat.uniforms.uGalaxyWorld.value = 1.0;
         bakeMat.uniforms.uGalaxyIntensity.value = 0.92;
         bakeMat.uniforms.uNebulaRichness.value = 0.88;
         bakeMat.uniforms.uBakeBoost.value = 1.35;
@@ -1082,6 +1107,7 @@
     const waterUniforms = {
       uTime:            { value: 0 },
       uWaterReveal:     { value: 0 },
+      uGalaxyWorld:     { value: 0 }, // 0 = Escenario A (agua oscura), 1 = Escenario B (reflejo galáctico)
       uBoatPos:         { value: new THREE.Vector3(0, 0, -999) },
       uBoatDir:         { value: new THREE.Vector2(0, -1) },
       uBoatSpeed:       { value: 0 },
@@ -1089,7 +1115,7 @@
       uFlowOffset:      { value: new THREE.Vector2(0, 0) },
       uPortalPos:       { value: new THREE.Vector3(0, 26.0, CONFIG.portalBasePosition.z) },
       uGalaxyIntensity: { value: SKY_SETTINGS.galaxyIntensity },
-      uFogDensity:      { value: FOG_DENSITY },
+      uFogDensity:      { value: FOG_DENSITY_A },
       uIsAR:            { value: 0 }
     };
 
@@ -1162,6 +1188,7 @@
 
         uniform float uTime;
         uniform float uWaterReveal;
+        uniform float uGalaxyWorld;
         uniform vec3 uBoatPos;
         uniform vec2 uBoatDir;
         uniform float uBoatSpeed;
@@ -1205,23 +1232,24 @@
           vec3 V = normalize(cameraPosition - vWorldPos);
           vec3 R = reflect(-V, N);
 
-          vec3 deepColor  = vec3(0.012, 0.038, 0.074);
-          vec3 midColor   = vec3(0.032, 0.096, 0.158);
-          vec3 crestColor = vec3(0.072, 0.178, 0.252);
+          // Escenario A: agua nocturna muy oscura / Escenario B: agua azul cósmica reflejando galaxias
+          vec3 deepColor  = mix(vec3(0.004, 0.009, 0.018), vec3(0.012, 0.038, 0.074), uGalaxyWorld);
+          vec3 midColor   = mix(vec3(0.010, 0.022, 0.038), vec3(0.032, 0.096, 0.158), uGalaxyWorld);
+          vec3 crestColor = mix(vec3(0.022, 0.044, 0.068), vec3(0.072, 0.178, 0.252), uGalaxyWorld);
 
           float heightFactor = clamp(vElevation * 4.2 + 0.48, 0.0, 1.0);
           vec3 col = mix(deepColor, midColor, smoothstep(0.0, 0.65, heightFactor));
           col = mix(col, crestColor, smoothstep(0.55, 1.0, heightFactor));
 
           float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.7);
-          float galRefBand = exp(-abs(dot(R, normalize(vec3(0.62, 0.68, -0.39)))) * 4.0);
-          vec3 galaxyRefCol = mix(vec3(0.07, 0.16, 0.32), vec3(0.22, 0.20, 0.44), galRefBand);
-          col += galaxyRefCol * fresnel * (0.48 + 0.42 * uGalaxyIntensity);
+          float galRefBand = exp(-abs(dot(R, normalize(vec3(0.58, 0.70, -0.42)))) * 4.0);
+          vec3 galaxyRefCol = mix(vec3(0.08, 0.18, 0.36), vec3(0.26, 0.22, 0.48), galRefBand);
+          col += galaxyRefCol * fresnel * (0.55 + 0.45 * uGalaxyIntensity) * uGalaxyWorld;
 
           vec3 moonDir = normalize(vec3(0.32, 0.72, 0.26));
           vec3 moonHalf = normalize(moonDir + V);
           float moonSpec = pow(max(dot(N, moonHalf), 0.0), 46.0);
-          col += vec3(0.56, 0.74, 0.92) * moonSpec * 0.36;
+          col += vec3(0.56, 0.74, 0.92) * moonSpec * (0.14 + 0.24 * uGalaxyWorld);
 
           vec3 toPortal = uPortalPos - vWorldPos;
           float portalDist = length(toPortal.xz);
@@ -1229,8 +1257,8 @@
           vec3 Hportal = normalize(Lportal + V);
           float specPortal = pow(max(dot(N, Hportal), 0.0), 22.0);
           float portalAtten = smoothstep(160.0, 10.0, portalDist);
-          col += vec3(1.0, 0.83, 0.48) * specPortal * portalAtten * (1.35 + 0.35 * uMotionFactor);
-          col += vec3(0.95, 0.72, 0.36) * exp(-portalDist * 0.028) * 0.32;
+          col += vec3(0.95, 0.80, 0.48) * specPortal * portalAtten * (1.15 + 0.35 * uMotionFactor);
+          col += vec3(0.90, 0.70, 0.36) * exp(-portalDist * 0.028) * 0.26;
 
           if (uMotionFactor > 0.01) {
             vec2 toFrag = p - uBoatPos.xz;
@@ -1271,7 +1299,8 @@
             alpha = smoothstep(95.0, 28.0, camDist) * 0.94;
           } else {
             float fogFactor = 1.0 - exp(-pow(camDist * uFogDensity, 2.0));
-            col = mix(col, vec3(0.016, 0.046, 0.092), clamp(fogFactor, 0.0, 1.0));
+            vec3 fogCol = mix(vec3(0.005, 0.010, 0.022), vec3(0.016, 0.046, 0.092), uGalaxyWorld);
+            col = mix(col, fogCol, clamp(fogFactor, 0.0, 1.0));
           }
 
           gl_FragColor = vec4(col, alpha * revealMask);
@@ -1545,7 +1574,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 3B: PORTAL MONUMENTAL 3D + PUERTA INTERDIMENSIONAL ACOTADA AL MARCO
+    // BLOQUE 3B: PORTAL MONUMENTAL 3D + ESPIRAL ESTRICTAMENTE RECTANGULAR INTERIOR
     // =========================================================================
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalBasePosition);
@@ -1567,6 +1596,7 @@
     let portalCloudPoints = null;
     let portalSampledVerts = [];
 
+    // Espiral interdimensional estrictamente recortado al marco rectangular interior del GLB
     const portalVortexMaterial = new THREE.ShaderMaterial({
       uniforms: portalUniforms,
       transparent: true,
@@ -1575,13 +1605,9 @@
       fog: false,
       vertexShader: /* glsl */ `
         varying vec2 vUv;
-        varying vec3 vLocalViewDir;
         void main() {
           vUv = uv * 2.0 - 1.0;
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vec3 worldView = normalize(cameraPosition - worldPos.xyz);
-          vLocalViewDir = normalize((inverse(modelMatrix) * vec4(worldView, 0.0)).xyz);
-          gl_Position = projectionMatrix * viewMatrix * worldPos;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: /* glsl */ `
@@ -1593,119 +1619,52 @@
         uniform float uAspect;
 
         varying vec2 vUv;
-        varying vec3 vLocalViewDir;
-
-        float hash21(vec2 p) {
-          p = fract(p * vec2(123.34, 456.21));
-          p += dot(p, p + 45.32);
-          return fract(p.x * p.y);
-        }
-
-        float noise2D(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          vec2 u = f * f * (3.0 - 2.0 * f);
-          return mix(
-            mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
-            mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
-            u.y
-          );
-        }
-
-        float fbm2(vec2 p) {
-          float v = 0.0;
-          float a = 0.5;
-          mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-          for (int i = 0; i < 4; i++) {
-            v += a * noise2D(p);
-            p = rot * p * 2.05 + vec2(3.7, 1.9);
-            a *= 0.5;
-          }
-          return v;
-        }
-
-        float sdDoorway(vec2 p) {
-          float archStart = 0.18;
-          if (p.y > archStart) {
-            vec2 q = vec2(p.x, (p.y - archStart) / (1.0 - archStart));
-            return length(q) - 1.0;
-          }
-          vec2 d = abs(vec2(p.x, p.y)) - vec2(1.0, 1.0);
-          return max(d.x, d.y);
-        }
-
-        float starField2D(vec2 uv, float scale, float density) {
-          vec2 gv = fract(uv * scale) - 0.5;
-          vec2 id = floor(uv * scale);
-          float n = hash21(id);
-          if (n < density) return 0.0;
-          vec2 offs = vec2(hash21(id + 11.3), hash21(id + 27.9)) - 0.5;
-          float d = length(gv - offs * 0.62);
-          float b = smoothstep(density, 1.0, n);
-          float tw = 0.72 + 0.28 * sin(uTime * (2.0 + b * 3.0) + n * 40.0);
-          return smoothstep(0.11 * b + 0.03, 0.0, d) * b * tw;
-        }
 
         void main() {
           if (uReveal <= 0.005) discard;
 
-          float sdf = sdDoorway(vUv);
-          if (sdf > 0.0) discard;
+          // Recorte estricto al rectángulo interior [-1, 1] x [-1, 1] (jamás se sale del marco)
+          float edgeX = 1.0 - abs(vUv.x);
+          float edgeY = 1.0 - abs(vUv.y);
+          float minEdge = min(edgeX, edgeY);
+          if (minEdge <= 0.0) discard;
 
-          float innerDist = -sdf;
-          float edgeSoftMask = smoothstep(0.0, 0.055, innerDist);
+          // Coordenadas proporcionales para que el espiral no se deforme en el rectángulo
+          vec2 p = vec2(vUv.x * uAspect, vUv.y);
+          float r = length(p);
+          float angle = atan(p.y, p.x);
 
-          vec2 viewShift = vLocalViewDir.xy / max(abs(vLocalViewDir.z), 0.35);
-          vec2 pNorm = vec2(vUv.x * uAspect, vUv.y);
+          float speed = 1.15 + uProximity * 2.6 + (1.0 - uReveal) * 2.0;
+          // Espiral logarítmico girando hacia el centro
+          float logR = log(r + 0.055);
+          float spiral1 = 0.5 + 0.5 * sin(angle * 3.0 - logR * 9.5 + uTime * speed * 1.4);
+          float spiral2 = 0.5 + 0.5 * sin(angle * 6.0 - logR * 15.0 + uTime * speed * 0.95 + 1.2);
+          float spiralArms = pow(spiral1, 1.8) * 0.72 + pow(spiral2, 2.6) * 0.38;
 
-          float rimDistort = exp(-innerDist * 9.5) * 0.12;
-          vec2 pBase = pNorm + normalize(pNorm + vec2(0.0001)) * rimDistort;
+          // Profundidad de vórtice hacia el centro
+          float depthPull = exp(-r * 2.2);
+          float coreBright = exp(-r * 6.5);
 
-          vec2 deepUv = pBase * 1.15 - viewShift * 0.42;
-          float rDeep = length(deepUv);
-          float angDeep = atan(deepUv.y, deepUv.x);
+          vec3 colVoid   = vec3(0.03, 0.07, 0.18);
+          vec3 colCyan   = vec3(0.18, 0.62, 0.96);
+          vec3 colGold   = vec3(0.98, 0.80, 0.44);
+          vec3 colCore   = vec3(1.00, 0.97, 0.88);
+          vec3 colBirth  = vec3(0.24, 0.78, 1.00);
 
-          vec2 galUv = deepUv - vec2(0.0, 0.06);
-          float gR = length(galUv * vec2(1.0, 1.55));
-          float gAng = atan(galUv.y * 1.55, galUv.x) - uTime * (0.14 + uProximity * 0.35);
-          float spiral = 0.5 + 0.5 * sin(gAng * 2.0 - log(gR + 0.08) * 5.2);
-          float galArms = pow(spiral, 2.2) * exp(-gR * 2.4) * smoothstep(0.03, 0.18, gR);
-          float galCore = exp(-gR * 6.5) * 1.35;
+          vec3 col = mix(colVoid, colCyan, spiralArms * 0.78);
+          col = mix(col, colGold, spiralArms * (0.45 + 0.55 * depthPull));
+          col += colCore * coreBright * 0.95;
 
-          vec2 midUv = pBase * 1.45 - viewShift * 0.24;
-          float rotA = uTime * 0.06;
-          mat2 mRot = mat2(cos(rotA), -sin(rotA), sin(rotA), cos(rotA));
-          float neb1 = fbm2(mRot * midUv * 2.1 + vec2(0.0, uTime * 0.05));
-          float neb2 = fbm2(midUv * 3.8 - vec2(uTime * 0.07, -uTime * 0.04));
+          // Borde luminoso interno pegado exactamente al marco rectangular
+          float innerFrameRim = exp(-minEdge * 22.0) * 0.75;
+          col += mix(colGold, colCore, 0.45) * innerFrameRim;
 
-          float ripple = sin(rDeep * 11.0 - uTime * (1.2 + uProximity * 1.8) + neb2 * 3.5);
-          float curtain = (0.5 + 0.5 * ripple) * exp(-innerDist * 3.2) * 0.28;
-
-          float starsFar  = starField2D(deepUv + vec2(uTime * 0.004, 0.0), 16.0, 0.84) * 0.95;
-          float starsNear = starField2D(midUv  + vec2(-uTime * 0.007, 0.0), 9.5, 0.89) * 1.20;
-
-          vec3 colVoid    = vec3(0.015, 0.030, 0.075);
-          vec3 colSapph   = vec3(0.10, 0.36, 0.72);
-          vec3 colViolet  = vec3(0.32, 0.16, 0.56);
-          vec3 colGold    = vec3(1.00, 0.82, 0.48);
-          vec3 colRim     = vec3(0.88, 0.95, 1.00);
-          vec3 colBirth   = vec3(0.24, 0.78, 1.00);
-
-          vec3 col = colVoid;
-          col += colSapph  * smoothstep(0.32, 0.85, neb1) * 0.72;
-          col += colViolet * smoothstep(0.38, 0.88, neb2) * 0.60;
-          col += colSapph  * galArms * 0.95;
-          col += colGold   * (galCore * 0.95 + galArms * 0.35);
-          col += vec3(0.86, 0.93, 1.00) * (starsFar + starsNear);
-
-          float rimLine = exp(-innerDist * 18.0) * (0.75 + 0.25 * sin(angDeep * 6.0 - uTime * 2.2));
-          float innerGlow = exp(-innerDist * 5.2) * 0.42;
-          col += mix(colGold, colRim, 0.45) * (rimLine * 1.15 + innerGlow + curtain);
-
-          col = mix(col, vec3(1.0, 0.96, 0.88), uProximity * 0.72 * (0.35 + 0.65 * exp(-rDeep * 1.2)));
+          // Intensificación al acercarse la barca para cruzar
+          col = mix(col, colCore, uProximity * 0.76 * (0.35 + 0.65 * depthPull));
           col = mix(colBirth, col, smoothstep(0.22, 0.92, uReveal));
 
-          float alpha = edgeSoftMask * (0.94 + 0.06 * rimLine) * uReveal;
+          float rectMask = smoothstep(0.0, 0.035, minEdge);
+          float alpha = rectMask * (0.88 + 0.12 * spiralArms) * uReveal;
           gl_FragColor = vec4(col, alpha);
         }
       `
@@ -1719,9 +1678,7 @@
         portalCloudPoints = null;
       }
 
-      const TOTAL = 360;
-      const surfaceCount = Math.floor(TOTAL * 0.55);
-
+      const TOTAL = 260;
       const positions = new Float32Array(TOTAL * 3);
       const sizes     = new Float32Array(TOTAL);
       const phases    = new Float32Array(TOTAL);
@@ -1729,42 +1686,27 @@
       const colorMix  = new Float32Array(TOTAL);
       const drifts    = new Float32Array(TOTAL * 3);
 
-      const halfW = aperture.width * 0.5;
-      const halfH = aperture.height * 0.5;
+      const halfW = aperture.width * 0.48;
+      const halfH = aperture.height * 0.48;
 
       for (let i = 0; i < TOTAL; i++) {
-        let px, py, pz;
-
-        if (i < surfaceCount && sampledVerts.length > 0) {
-          const base = sampledVerts[i % sampledVerts.length];
-          const spread = 0.6 + Math.random() * 1.8;
-          const theta = Math.random() * Math.PI * 2;
-          const phi = (Math.random() - 0.5) * Math.PI;
-          px = base.x + Math.cos(theta) * Math.cos(phi) * spread;
-          py = base.y + Math.sin(phi) * spread;
-          pz = base.z + Math.sin(theta) * Math.cos(phi) * spread;
-        } else {
-          const ang = Math.random() * Math.PI * 2;
-          const rad = 0.78 + Math.random() * 0.24;
-          px = aperture.centerX + Math.cos(ang) * halfW * rad;
-          py = aperture.centerY + Math.sin(ang) * halfH * rad;
-          pz = aperture.zOffset + (Math.random() - 0.5) * 4.5;
-        }
-
-        py = Math.max(0.55, py);
+        // Partículas contenidas dentro del rectángulo interior del portal
+        const px = aperture.centerX + (Math.random() * 2 - 1) * halfW;
+        const py = Math.max(0.55, aperture.centerY + (Math.random() * 2 - 1) * halfH);
+        const pz = aperture.zOffset + (Math.random() - 0.5) * 2.2;
 
         positions[i * 3]     = px;
         positions[i * 3 + 1] = py;
         positions[i * 3 + 2] = pz;
 
-        sizes[i]    = 145.0 + Math.random() * 155.0;
+        sizes[i]    = 130.0 + Math.random() * 140.0;
         phases[i]   = Math.random() * Math.PI * 2;
         speeds[i]   = 1.35 + Math.random() * 2.0;
         colorMix[i] = Math.random();
 
-        drifts[i * 3]     = (Math.random() - 0.5) * 0.85;
-        drifts[i * 3 + 1] = 0.35 + Math.random() * 0.85;
-        drifts[i * 3 + 2] = (Math.random() - 0.5) * 0.85;
+        drifts[i * 3]     = (Math.random() - 0.5) * 0.45;
+        drifts[i * 3 + 1] = 0.25 + Math.random() * 0.55;
+        drifts[i * 3 + 2] = (Math.random() - 0.5) * 0.45;
       }
 
       const geo = new THREE.BufferGeometry();
@@ -1813,7 +1755,7 @@
             vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
             float dist = max(-mvPosition.z, 2.5);
             float ptSize = (aSize * uRatio / dist) * (0.72 + 0.40 * vPulse);
-            gl_PointSize = clamp(ptSize, 1.6 * uRatio, 14.0 * uRatio);
+            gl_PointSize = clamp(ptSize, 1.5 * uRatio, 12.0 * uRatio);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
@@ -1844,7 +1786,7 @@
             orbCol = mix(softCyan, orbCol, smoothstep(0.22, 0.95, vReveal));
             vec3 col = mix(orbCol, vec3(0.98, 0.96, 0.92), core * 0.55);
 
-            float alpha = (halo * 0.40 + core * 0.44) * (0.26 + 0.44 * vPulse) * 0.58 * vReveal;
+            float alpha = (halo * 0.38 + core * 0.42) * (0.26 + 0.44 * vPulse) * 0.55 * vReveal;
             gl_FragColor = vec4(col * (0.74 + 0.24 * vPulse + 0.12 * uProximity), alpha);
           }
         `
@@ -1855,6 +1797,7 @@
       portalGroup.add(portalCloudPoints);
     }
 
+    // Mide el hueco rectangular interior real del GLB con margen de seguridad para que nunca se salga
     function computePortalInnerAperture(wrapper, finalBox, finalSize) {
       wrapper.updateMatrixWorld(true);
       const yLow  = finalBox.min.y + finalSize.y * 0.22;
@@ -1879,8 +1822,8 @@
       });
 
       if (!isFinite(leftInner) || !isFinite(rightInner) || (rightInner - leftInner) < finalSize.x * 0.25) {
-        leftInner  = -finalSize.x * 0.34;
-        rightInner =  finalSize.x * 0.34;
+        leftInner  = -finalSize.x * 0.32;
+        rightInner =  finalSize.x * 0.32;
       }
 
       const rawHalfW = (rightInner - leftInner) * 0.5;
@@ -1900,12 +1843,13 @@
       });
 
       if (!isFinite(topInner) || topInner < finalSize.y * 0.45) {
-        topInner = finalBox.min.y + finalSize.y * 0.80;
+        topInner = finalBox.min.y + finalSize.y * 0.78;
       }
 
-      const bottomY = Math.max(finalBox.min.y, -0.35);
-      const width   = THREE.MathUtils.clamp((rightInner - leftInner) * 0.98, finalSize.x * 0.35, finalSize.x * 0.82);
-      const height  = THREE.MathUtils.clamp((topInner - bottomY) * 0.99, finalSize.y * 0.48, finalSize.y * 0.84);
+      const bottomY = Math.max(finalBox.min.y, -0.25);
+      // Margen interno estricto (93% ancho, 95% alto) para quedar encapsulado dentro del marco rectangular
+      const width   = THREE.MathUtils.clamp((rightInner - leftInner) * 0.93, finalSize.x * 0.32, finalSize.x * 0.78);
+      const height  = THREE.MathUtils.clamp((topInner - bottomY) * 0.95, finalSize.y * 0.45, finalSize.y * 0.80);
       const centerY = bottomY + height * 0.5;
 
       return { centerX, centerY, width, height, zOffset: -0.15 };
@@ -2268,23 +2212,25 @@
       scene.add(materializePoints);
     }
 
+    // --- Luciérnagas orgánicas (protagonistas en Escenario A oscuro, sutiles en Escenario B) ---
     const ambientParticleUniforms = {
-      uTime:   { value: 0 },
-      uReveal: { value: 0 },
-      uRatio:  { value: Math.min(window.devicePixelRatio, 2) }
+      uTime:        { value: 0 },
+      uReveal:      { value: 0 },
+      uGalaxyWorld: { value: 0 },
+      uRatio:       { value: Math.min(window.devicePixelRatio, 2) }
     };
     const ambientPoints = (() => {
-      const count = 165;
+      const count = 240;
       const positions = new Float32Array(count * 3);
       const phases = new Float32Array(count);
       const isBlue = new Float32Array(count);
       for (let i = 0; i < count; i++) {
-        const blueMote = i < 65;
-        positions[i * 3]     = (Math.random() - 0.5) * 38;
-        positions[i * 3 + 1] = blueMote ? (0.25 + Math.random() * 2.8) : (0.8 + Math.random() * 8.0);
-        positions[i * 3 + 2] = 4 - Math.random() * 90;
+        const nearBoats = i < 140;
+        positions[i * 3]     = nearBoats ? (Math.random() - 0.5) * 24 : (Math.random() - 0.5) * 44;
+        positions[i * 3 + 1] = nearBoats ? (0.35 + Math.random() * 3.8) : (0.6 + Math.random() * 8.5);
+        positions[i * 3 + 2] = nearBoats ? (2.5 - Math.random() * 18) : (4.0 - Math.random() * 86);
         phases[i] = Math.random() * Math.PI * 2;
-        isBlue[i] = blueMote ? 1.0 : 0.0;
+        isBlue[i] = i < 185 ? 0.0 : 1.0; // Mayoría luciérnagas cálidas doradas
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -2301,6 +2247,7 @@
           attribute float aIsBlue;
           uniform float uTime;
           uniform float uReveal;
+          uniform float uGalaxyWorld;
           uniform float uRatio;
           varying float vPulse;
           varying float vIsBlue;
@@ -2308,19 +2255,22 @@
 
           void main() {
             vec3 pos = position;
-            pos.y += sin(uTime * 0.72 + aPhase) * 0.36;
-            pos.x += cos(uTime * 0.44 + aPhase * 1.3) * 0.40;
-            vPulse = 0.28 + 0.72 * (0.5 + 0.5 * sin(uTime * (aIsBlue > 0.5 ? 2.6 : 1.7) + aPhase * 2.1));
+            pos.y += sin(uTime * 0.72 + aPhase) * 0.42;
+            pos.x += cos(uTime * 0.46 + aPhase * 1.3) * 0.52;
+            pos.z += sin(uTime * 0.38 + aPhase * 0.9) * 0.35;
+            vPulse = 0.22 + 0.78 * pow(0.5 + 0.5 * sin(uTime * (aIsBlue > 0.5 ? 2.4 : 1.65) + aPhase * 2.1), 1.6);
             vIsBlue = aIsBlue;
             vReveal = uReveal;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_PointSize = clamp((24.0 * uRatio / max(-mvPosition.z, 1.0)) * (0.65 + 0.55 * vPulse), 1.5, 24.0);
+            float sizeBoost = mix(30.0, 22.0, uGalaxyWorld);
+            gl_PointSize = clamp((sizeBoost * uRatio / max(-mvPosition.z, 1.0)) * (0.65 + 0.60 * vPulse), 1.8, 28.0);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: /* glsl */ `
           precision highp float;
 
+          uniform float uGalaxyWorld;
           varying float vPulse;
           varying float vIsBlue;
           varying float vReveal;
@@ -2329,8 +2279,10 @@
             if (vReveal <= 0.005) discard;
             float d = length(gl_PointCoord - 0.5);
             if (d > 0.5) discard;
-            float glow = exp(-d * 6.4) * vPulse * vReveal * 0.85;
-            vec3 col = mix(vec3(1.0, 0.88, 0.54), vec3(0.32, 0.80, 1.0), vIsBlue);
+            float glow = exp(-d * 6.0) * vPulse * vReveal * mix(1.05, 0.65, uGalaxyWorld);
+            vec3 fireflyGold = vec3(1.00, 0.88, 0.44);
+            vec3 cosmicBlue  = vec3(0.36, 0.82, 1.00);
+            vec3 col = mix(fireflyGold, cosmicBlue, vIsBlue * (0.25 + 0.75 * uGalaxyWorld));
             gl_FragColor = vec4(col, glow);
           }
         `
@@ -2960,7 +2912,7 @@
     });
 
     // =========================================================================
-    // BLOQUE 6: MÁQUINA DE ESTADOS (INTRO -> MATERIALIZING -> IDLE -> VOYAGE)
+    // BLOQUE 6: MÁQUINA DE ESTADOS + TRANSICIÓN ESCENARIO A -> ESCENARIO B
     // =========================================================================
     const STATE = {
       INTRO: 'INTRO',
@@ -2972,6 +2924,7 @@
     };
 
     let currentState = STATE.INTRO;
+    let currentWorld = 'A'; // 'A' = Oscuro + luciérnagas | 'B' = Agua + galaxias
     let activeMode = 'web';
     let activeBoat = null;
     let hoveredBoatIndex = -1;
@@ -3003,6 +2956,26 @@
       stateLabel.textContent = status;
       if (hint !== undefined) hintEl.textContent = hint;
       statusDot.classList.toggle('blue', blueDot);
+    }
+
+    function applyWorldAtmosphere(worldId) {
+      currentWorld = worldId;
+      const isB = (worldId === 'B');
+      const wVal = isB ? 1.0 : 0.0;
+
+      galaxySkyUniforms.uGalaxyWorld.value = wVal;
+      waterUniforms.uGalaxyWorld.value = wVal;
+      ambientParticleUniforms.uGalaxyWorld.value = wVal;
+      waterUniforms.uFogDensity.value = isB ? FOG_DENSITY_B : FOG_DENSITY_A;
+
+      if (!isARMode) {
+        scene.background = isB ? GALAXY_B_BG : DARK_A_BG;
+        scene.fog = isB ? FOG_B : FOG_A;
+      }
+
+      hemiLight.intensity = isB ? 1.02 : 0.48;
+      moonLight.intensity = isB ? 1.24 : 0.62;
+      fillLight.intensity = isB ? 0.52 : 0.30;
     }
 
     function lerpAngle(a, b, t) {
@@ -3056,6 +3029,7 @@
     function startMaterialization(modeName) {
       activeMode = modeName;
       resetSceneToHidden();
+      applyWorldAtmosphere('A'); // Siempre inicia en Escenario A (oscuro + luciérnagas)
 
       introStage.visible = false;
       introScreen.classList.add('hidden');
@@ -3074,7 +3048,7 @@
       matParticleUniforms.uMatTime.value = 0;
 
       audioEngine.playMaterializeSwell();
-      setHUD('Materializando...', 'El cielo, el agua y las esculturas emergen', true);
+      setHUD('Materializando...', 'Las barcas y luciérnagas emergen en la noche', true);
     }
 
     function showIntroState() {
@@ -3167,11 +3141,23 @@
       sprayMat.opacity = 0;
       sprayPoints.visible = false;
 
-      setHUD(
-        `Embarcadero · Travesía #${context.voyagesCompleted}`,
-        'Toca una barca para volver a zarpar',
-        false
-      );
+      // Transición Escenario A (oscuro + luciérnagas) <-> Escenario B (agua + galaxias)
+      const nextWorld = (currentWorld === 'A') ? 'B' : 'A';
+      applyWorldAtmosphere(nextWorld);
+
+      if (nextWorld === 'B') {
+        setHUD(
+          'Escenario B · Mar de Galaxias',
+          'Explora el cielo 360° · Toca una barca para cruzar de regreso',
+          false
+        );
+      } else {
+        setHUD(
+          'Escenario A · Embarcadero nocturno',
+          'Toca una barca para cruzar hacia el Mar de Galaxias',
+          false
+        );
+      }
     }
 
     // =========================================================================
@@ -3312,14 +3298,12 @@
     orbWeb.addEventListener('click', () => {
       if (!boatReady || !portalReady || !waterReady) return;
       isARMode = false;
-      scene.background = NIGHT_BG;
-      scene.fog = NIGHT_FOG;
       waterUniforms.uIsAR.value = 0.0;
       renderer.setClearAlpha(1);
       vrLasers.forEach(l => l.visible = false);
       camera.position.set(0, CONFIG.defaultEyeHeight, 0);
       camYaw = 0;
-      camPitch = 0.16;
+      camPitch = 0.14;
       updateDesktopCameraLook();
 
       audioEngine.toggle(true);
@@ -3354,8 +3338,6 @@
           renderer.setClearAlpha(0);
           vrLasers.forEach(l => l.visible = false);
         } else {
-          scene.background = NIGHT_BG;
-          scene.fog = NIGHT_FOG;
           waterUniforms.uIsAR.value = 0.0;
           renderer.setClearAlpha(1);
           vrLasers.forEach(l => l.visible = true);
@@ -3443,7 +3425,7 @@
 
         galaxySkyUniforms.uReveal.value = smoothstepJS(0.02, 0.86, u);
         waterUniforms.uWaterReveal.value = smoothstepJS(0.0, 0.72, u);
-        ambientParticleUniforms.uReveal.value = smoothstepJS(0.45, 1.0, u);
+        ambientParticleUniforms.uReveal.value = smoothstepJS(0.30, 1.0, u);
 
         const blueBell = Math.sin(u * Math.PI);
         const blueBeat = 0.65 + 0.35 * Math.sin(t * 7.8);
@@ -3471,11 +3453,11 @@
 
           currentState = STATE.IDLE;
           if (activeMode === 'ar') {
-            setHUD('AR · Barcas en calma', 'Camina hacia una barca o tócala para abordar', false);
+            setHUD('AR · Escenario A (Nocturno)', 'Camina hacia una barca o tócala para abordar', false);
           } else if (activeMode === 'vr') {
-            setHUD('VR · Barcas en calma', 'Apunta o camina hacia una barca para abordar', false);
+            setHUD('VR · Escenario A (Nocturno)', 'Apunta o camina hacia una barca para abordar', false);
           } else {
-            setHUD('Embarcadero en calma', 'Arrastra 360° para explorar · Toca una barca para navegar', false);
+            setHUD('Escenario A · Embarcadero nocturno', 'Arrastra 360° · Toca una barca para cruzar el portal', false);
           }
         }
 
@@ -3521,7 +3503,6 @@
           THREE.MathUtils.lerp(b.beaconRing.scale.x, targetScale, dt * 6)
         );
 
-        // Flotación pesada y asentada
         if (b !== activeBoat) {
           const ph = b.phaseOffset;
           b.group.position.y = Math.sin(t * 0.62 + ph) * 0.022;
@@ -3544,7 +3525,7 @@
         if (u >= 1.0) {
           currentState = STATE.NAVIGATING;
           stateTimer = 0;
-          setHUD('Navegando hacia el portal', 'Observa el portal, el agua y el cielo libremente', false);
+          setHUD('Navegando hacia el portal', 'Observa el portal y el entorno libremente', false);
         }
       }
 

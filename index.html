@@ -679,12 +679,12 @@
       portalMaxWidth:     88.0,
       portalWaterSink:    1.25,
 
-      walkBoundary: { centerX: 0, centerZ: -4.8, radius: 14.2 },
-      navBoundary:  { centerX: 0, centerZ: -36.0, radius: 45.5 },
+      walkBoundary: { centerX: 0, centerZ: -4.8,  radius: 14.2 },
+      navBoundary:  { centerX: 0, centerZ: -36.0, radius: 46.5 },
 
       walkSpeed: 4.3,
       nearbyBoardDist: 3.9,
-      boatMaxForwardSpeed: 7.2,
+      boatMaxForwardSpeed: 7.4,
       boatMaxReverseSpeed: -2.1,
       boatTurnRate: 1.18,
 
@@ -716,13 +716,6 @@
     function smoothstepJS(edge0, edge1, x) {
       const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
       return t * t * (3 - 2 * t);
-    }
-
-    function medianValue(arr) {
-      if (!arr.length) return NaN;
-      const sorted = arr.slice().sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length * 0.5);
-      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) * 0.5;
     }
 
     // =========================================================================
@@ -787,15 +780,15 @@
     scene.add(materializeBlueLight);
 
     const portalGlowLight = new THREE.PointLight(0xffd27d, 0.0, 210, 1.05);
-    portalGlowLight.position.set(0, 16.0, CONFIG.portalBasePosition.z + 10.0);
+    portalGlowLight.position.set(0, 14.0, CONFIG.portalBasePosition.z + 12.0);
     scene.add(portalGlowLight);
 
     const portalCrownLight = new THREE.PointLight(0x88c8ff, 0.0, 150, 1.15);
-    portalCrownLight.position.set(0, 34.0, CONFIG.portalBasePosition.z + 12.0);
+    portalCrownLight.position.set(0, 34.0, CONFIG.portalBasePosition.z + 14.0);
     scene.add(portalCrownLight);
 
     // =========================================================================
-    // BLOQUE 2B: CIELO GALÁCTICO 360° (9 GALAXIAS DISTRIBUIDAS, SOLO ESCENARIO B)
+    // BLOQUE 2B: CIELO GALÁCTICO 360° (SOLO ESCENARIO B)
     // =========================================================================
     const galaxySkyUniforms = {
       uTime:            { value: 0.0 },
@@ -1689,7 +1682,7 @@
       }
     }
 
-    // --- Aro luminoso sutil sobre el agua indicando la circunferencia límite ---
+    // Aro luminoso sutil sobre el agua indicando la circunferencia límite
     const boundaryUniforms = {
       uTime:      { value: 0 },
       uOpacity:   { value: 0 },
@@ -1821,7 +1814,7 @@
     }
 
     // =========================================================================
-    // BLOQUE 3B: PORTAL MONUMENTAL 3D + ESPIRAL SELLADO AL MARCO POR RAYCASTER
+    // BLOQUE 3B: PORTAL MONUMENTAL 3D + VÓRTICE AL RAS DEL MARCO INTERIOR
     // =========================================================================
     const portalGroup = new THREE.Group();
     portalGroup.position.copy(CONFIG.portalBasePosition);
@@ -1832,7 +1825,7 @@
       uTime:      { value: 0 },
       uProximity: { value: 0 },
       uReveal:    { value: 0 },
-      uAspect:    { value: 0.56 },
+      uAspect:    { value: 0.62 },
       uRatio:     { value: Math.min(window.devicePixelRatio, 2) }
     };
 
@@ -1844,15 +1837,17 @@
     let portalSampledVerts = [];
     let portalApertureData = {
       centerX: 0,
-      centerY: 17.5,
-      width: 20.0,
-      height: 36.0,
-      clearWidth: 19.2,
-      outerHalfW: 24.0,
-      zOffset: -1.2
+      centerY: 17,
+      width: 18,
+      height: 36,
+      openWidth: 17.5,
+      leftInner: -8.75,
+      rightInner: 8.75,
+      topInner: 35,
+      zOffset: -1.4
     };
 
-    // Espiral opaco y continuo de marco a marco (el propio marco 3D recorta los bordes por Z-buffer)
+    // Vórtice espiral al ras del vano rectangular con paralaje de profundidad 3D
     const portalVortexMaterial = new THREE.ShaderMaterial({
       uniforms: portalUniforms,
       transparent: true,
@@ -1862,9 +1857,12 @@
       fog: false,
       vertexShader: /* glsl */ `
         varying vec2 vUv;
+        varying vec3 vWorldPos;
         void main() {
           vUv = uv * 2.0 - 1.0;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
         }
       `,
       fragmentShader: /* glsl */ `
@@ -1876,47 +1874,59 @@
         uniform float uAspect;
 
         varying vec2 vUv;
+        varying vec3 vWorldPos;
 
         void main() {
           if (uReveal <= 0.005) discard;
 
-          // Coordenadas circulares proporcionadas a la altura real del vano
-          vec2 p = vec2(vUv.x * uAspect, vUv.y + 0.04);
-          float r = length(p);
-          float angle = atan(p.y, p.x);
-
-          float speed = 1.12 + uProximity * 2.5 + (1.0 - uReveal) * 1.9;
-          float logR = log(r + 0.055);
-
-          float spiral1 = 0.5 + 0.5 * sin(angle * 3.0 - logR * 8.4 + uTime * speed * 1.35);
-          float spiral2 = 0.5 + 0.5 * sin(angle * 5.0 - logR * 13.0 + uTime * speed * 0.92 + 1.15);
-          float spiralArms = pow(spiral1, 1.75) * 0.74 + pow(spiral2, 2.4) * 0.34;
-
-          // Mantiene brazos luminosos hasta las esquinas superiores del marco sin zonas muertas
-          float depthPull = exp(-r * 1.45);
-          float coreBright = exp(-r * 5.6);
-
-          vec3 colVoid  = vec3(0.025, 0.055, 0.145);
-          vec3 colCyan  = vec3(0.18, 0.58, 0.92);
-          vec3 colGold  = vec3(0.96, 0.80, 0.46);
-          vec3 colCore  = vec3(1.00, 0.97, 0.88);
-          vec3 colBirth = vec3(0.24, 0.78, 1.00);
-
-          vec3 col = mix(colVoid, colCyan, spiralArms * (0.72 + 0.24 * depthPull));
-          col = mix(col, colGold, spiralArms * (0.40 + 0.58 * depthPull));
-          col += colCore * coreBright * 0.95;
-
-          // Sombra de contacto muy sutil pegada al borde del marco para profundidad volumétrica
           float edgeX = 1.0 - abs(vUv.x);
           float edgeY = 1.0 - abs(vUv.y);
           float minEdge = min(edgeX, edgeY);
-          float frameAO = mix(0.68, 1.0, smoothstep(0.0, 0.09, minEdge));
+          if (minEdge <= 0.0) discard;
+
+          // Paralaje 3D: el centro del vórtice se desplaza sutilmente con la perspectiva
+          // mientras los bordes permanecen anclados al marco de la puerta
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          vec2 baseP = vec2(vUv.x * uAspect, vUv.y);
+          float baseR = length(baseP);
+          float parallaxWeight = exp(-baseR * 1.45) * 0.14;
+          vec2 p = baseP - vec2(viewDir.x, viewDir.y) * parallaxWeight;
+
+          float r = length(p);
+          float angle = atan(p.y, p.x);
+
+          float speed = 1.10 + uProximity * 2.55 + (1.0 - uReveal) * 1.9;
+          float logR = log(r + 0.055);
+          float spiral1 = 0.5 + 0.5 * sin(angle * 3.0 - logR * 9.0 + uTime * speed * 1.35);
+          float spiral2 = 0.5 + 0.5 * sin(angle * 5.0 - logR * 14.0 + uTime * speed * 0.90 + 1.15);
+          float spiralArms = pow(spiral1, 1.80) * 0.74 + pow(spiral2, 2.45) * 0.36;
+
+          float depthPull = exp(-r * 1.95);
+          float coreBright = exp(-r * 6.0);
+
+          vec3 colVoid  = vec3(0.02, 0.05, 0.13);
+          vec3 colCyan  = vec3(0.16, 0.58, 0.94);
+          vec3 colGold  = vec3(0.97, 0.80, 0.44);
+          vec3 colCore  = vec3(1.00, 0.96, 0.88);
+          vec3 colBirth = vec3(0.24, 0.78, 1.00);
+
+          vec3 col = mix(colVoid, colCyan, spiralArms * 0.76);
+          col = mix(col, colGold, spiralArms * (0.44 + 0.56 * depthPull));
+          col += colCore * coreBright * 0.94;
+
+          // Sombra de contacto realista donde la energía toca el dintel y las jambas (sin hueco transparente)
+          float frameAO = mix(0.46, 1.0, smoothstep(0.0, 0.12, minEdge));
           col *= frameAO;
+
+          // Brillo tenue donde la base del vórtice entra en el agua
+          float waterSeam = exp(-abs(vUv.y + 0.96) * 16.0) * 0.24;
+          col += colGold * waterSeam * frameAO;
 
           col = mix(col, colCore, uProximity * 0.74 * (0.35 + 0.65 * depthPull));
           col = mix(colBirth, col, smoothstep(0.22, 0.92, uReveal));
 
-          float alpha = clamp(0.95 + 0.05 * spiralArms, 0.0, 1.0) * uReveal;
+          // Opacidad sólida hasta el borde exacto del marco (cero recorte redondeado, cero hueco superior)
+          float alpha = smoothstep(0.0, 0.008, minEdge) * (0.94 + 0.06 * spiralArms) * uReveal;
           gl_FragColor = vec4(col, alpha);
         }
       `
@@ -1938,26 +1948,23 @@
       const colorMix  = new Float32Array(TOTAL);
       const drifts    = new Float32Array(TOTAL * 3);
 
-      const halfW = aperture.clearWidth * 0.46;
-      const halfH = aperture.height * 0.45;
+      const halfW = aperture.openWidth * 0.45;
+      const minY  = 0.45;
+      const maxY  = Math.max(minY + 1.0, aperture.topInner - 0.6);
 
       for (let i = 0; i < TOTAL; i++) {
-        const px = aperture.centerX + (Math.random() * 2 - 1) * halfW;
-        const py = Math.max(0.55, aperture.centerY + (Math.random() * 2 - 1) * halfH);
-        const pz = aperture.zOffset + (Math.random() - 0.35) * 1.8;
-
-        positions[i * 3]     = px;
-        positions[i * 3 + 1] = py;
-        positions[i * 3 + 2] = pz;
+        positions[i * 3]     = aperture.centerX + (Math.random() * 2 - 1) * halfW;
+        positions[i * 3 + 1] = minY + Math.random() * (maxY - minY);
+        positions[i * 3 + 2] = aperture.zOffset + (Math.random() - 0.5) * 1.4;
 
         sizes[i]    = 115.0 + Math.random() * 125.0;
         phases[i]   = Math.random() * Math.PI * 2;
         speeds[i]   = 1.35 + Math.random() * 2.0;
         colorMix[i] = Math.random();
 
-        drifts[i * 3]     = (Math.random() - 0.5) * 0.38;
-        drifts[i * 3 + 1] = 0.22 + Math.random() * 0.45;
-        drifts[i * 3 + 2] = (Math.random() - 0.5) * 0.38;
+        drifts[i * 3]     = (Math.random() - 0.5) * 0.35;
+        drifts[i * 3 + 1] = 0.20 + Math.random() * 0.42;
+        drifts[i * 3 + 2] = (Math.random() - 0.5) * 0.35;
       }
 
       const geo = new THREE.BufferGeometry();
@@ -2037,7 +2044,7 @@
             orbCol = mix(softCyan, orbCol, smoothstep(0.22, 0.95, vReveal));
             vec3 col = mix(orbCol, vec3(0.98, 0.96, 0.92), core * 0.55);
 
-            float alpha = (halo * 0.38 + core * 0.42) * (0.26 + 0.44 * vPulse) * 0.52 * vReveal;
+            float alpha = (halo * 0.38 + core * 0.42) * (0.26 + 0.44 * vPulse) * 0.55 * vReveal;
             gl_FragColor = vec4(col * (0.74 + 0.24 * vPulse + 0.12 * uProximity), alpha);
           }
         `
@@ -2048,127 +2055,160 @@
       portalGroup.add(portalCloudPoints);
     }
 
-    // Mide exactamente el marco interior (jambas, dintel y profundidad Z) usando Raycaster sobre el GLB
+    // Mide con precisión geométrica (Raycast + análisis de profundidad) el vano exacto de la puerta GLB
     function computePortalInnerAperture(wrapper, finalBox, finalSize) {
       wrapper.updateMatrixWorld(true);
 
-      // Activar temporalmente DoubleSide para detectar cualquier cara interior sin depender de normales
+      const meshes = [];
       const savedSides = [];
       wrapper.traverse((obj) => {
-        if (!obj.isMesh || !obj.material) return;
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        for (const m of mats) {
-          savedSides.push({ mat: m, side: m.side });
-          m.side = THREE.DoubleSide;
+        if (obj.isMesh && obj.geometry && obj.material) {
+          meshes.push(obj);
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach((m) => {
+            savedSides.push({ mat: m, side: m.side });
+            m.side = THREE.DoubleSide;
+          });
         }
       });
 
       const rc = new THREE.Raycaster();
       const origin = new THREE.Vector3();
-      const dirLeft  = new THREE.Vector3(-1, 0, 0);
-      const dirRight = new THREE.Vector3( 1, 0, 0);
-      const dirUp    = new THREE.Vector3( 0, 1, 0);
+      const dir = new THREE.Vector3();
 
-      const leftHits = [];
-      const rightHits = [];
-      const frameZHits = [];
+      const zMid  = (finalBox.min.z + finalBox.max.z) * 0.5;
+      const zHalf = Math.max(finalSize.z * 0.5, 0.5);
+      const zSlices = [
+        zMid - zHalf * 0.30,
+        zMid - zHalf * 0.15,
+        zMid,
+        zMid + zHalf * 0.15,
+        zMid + zHalf * 0.30
+      ];
 
-      const zSlices = [-0.20, -0.10, 0.0, 0.10, 0.20].map((f) => finalSize.z * f);
-      const yProbeFracs = [0.16, 0.24, 0.34, 0.44, 0.52];
+      // 1) Raycast horizontal desde el centro del vano hacia las jambas izquierda y derecha
+      const yHeights = [0.16, 0.24, 0.32, 0.40, 0.48].map((f) => finalBox.min.y + finalSize.y * f);
+      let leftInner = -Infinity;
+      let rightInner = Infinity;
 
-      for (const yf of yProbeFracs) {
-        const y = finalBox.min.y + finalSize.y * yf;
+      for (const y of yHeights) {
         for (const z of zSlices) {
           origin.set(0, y, z);
 
-          rc.set(origin, dirLeft);
-          const hitsL = rc.intersectObject(wrapper, true);
-          for (const h of hitsL) {
-            if (h.distance > finalSize.x * 0.06 && h.distance < finalSize.x * 0.48) {
-              leftHits.push(h.point.x);
-              frameZHits.push(h.point.z);
-              break;
-            }
+          dir.set(-1, 0, 0);
+          rc.set(origin, dir);
+          const hitsL = rc.intersectObjects(meshes, false);
+          if (hitsL.length > 0 && hitsL[0].point.x < -finalSize.x * 0.04) {
+            if (hitsL[0].point.x > leftInner) leftInner = hitsL[0].point.x;
           }
 
-          rc.set(origin, dirRight);
-          const hitsR = rc.intersectObject(wrapper, true);
-          for (const h of hitsR) {
-            if (h.distance > finalSize.x * 0.06 && h.distance < finalSize.x * 0.48) {
-              rightHits.push(h.point.x);
-              frameZHits.push(h.point.z);
-              break;
-            }
+          dir.set(1, 0, 0);
+          rc.set(origin, dir);
+          const hitsR = rc.intersectObjects(meshes, false);
+          if (hitsR.length > 0 && hitsR[0].point.x > finalSize.x * 0.04) {
+            if (hitsR[0].point.x < rightInner) rightInner = hitsR[0].point.x;
           }
         }
       }
 
-      const leftInner  = leftHits.length  ? medianValue(leftHits)  : -finalSize.x * 0.22;
-      const rightInner = rightHits.length ? medianValue(rightHits) :  finalSize.x * 0.22;
-      const clearWidth = Math.max(rightInner - leftInner, finalSize.x * 0.24);
-      const centerX    = (leftInner + rightInner) * 0.5;
+      if (!isFinite(leftInner) || !isFinite(rightInner) || (rightInner - leftInner) < finalSize.x * 0.16) {
+        leftInner  = -finalSize.x * 0.24;
+        rightInner =  finalSize.x * 0.24;
+      }
 
-      // Medir la cara inferior exacta del dintel horizontal disparando rayos hacia +Y desde el vano
-      const topHits = [];
-      const lintelZHits = [];
-      const yStart = Math.max(0.5, finalBox.min.y + finalSize.y * 0.15);
-      const xProbeFracs = [-0.28, -0.14, 0.0, 0.14, 0.28];
+      const centerX   = (leftInner + rightInner) * 0.5;
+      const openWidth = rightInner - leftInner;
 
-      for (const xf of xProbeFracs) {
-        const x = centerX + clearWidth * xf;
+      // 2) Raycast vertical hacia arriba para detectar la cara inferior exacta del dintel
+      const yStartUp = finalBox.min.y + finalSize.y * 0.18;
+      const xSamples = [
+        centerX - openWidth * 0.34,
+        centerX - openWidth * 0.17,
+        centerX,
+        centerX + openWidth * 0.17,
+        centerX + openWidth * 0.34
+      ];
+
+      let topInner = Infinity;
+      for (const x of xSamples) {
         for (const z of zSlices) {
-          origin.set(x, yStart, z);
-          rc.set(origin, dirUp);
-          const hitsU = rc.intersectObject(wrapper, true);
-          for (const h of hitsU) {
-            if (h.point.y > finalBox.min.y + finalSize.y * 0.35 && h.point.y < finalBox.min.y + finalSize.y * 0.86) {
-              topHits.push(h.point.y);
-              lintelZHits.push(h.point.z);
-              break;
+          origin.set(x, yStartUp, z);
+          dir.set(0, 1, 0);
+          rc.set(origin, dir);
+          const hitsUp = rc.intersectObjects(meshes, false);
+          if (hitsUp.length > 0) {
+            const hitY = hitsUp[0].point.y;
+            if (hitY > finalBox.min.y + finalSize.y * 0.30 && hitY < topInner) {
+              topInner = hitY;
             }
           }
         }
       }
 
-      // Restaurar el side original de cada material
+      // Restaurar el modo `side` original de todos los materiales del GLB
       for (const item of savedSides) {
         item.mat.side = item.side;
       }
 
-      const topInner = topHits.length
-        ? medianValue(topHits)
-        : (finalBox.min.y + finalSize.y * 0.66);
-
-      // Extender ligeramente dentro del marco sólido para garantizar 0 mm de hueco sin sobresalir jamás
-      const bottomY   = -0.65; // Entra bajo la superficie del agua
-      const sideEmbed = Math.min(0.42, clearWidth * 0.024);
-      const topEmbed  = Math.min(0.68, (topInner - bottomY) * 0.022);
-
-      const width   = clearWidth + sideEmbed * 2.0;
-      const topY    = Math.min(topInner + topEmbed, finalBox.max.y - finalSize.y * 0.16);
-      const height  = Math.max(topY - bottomY, finalSize.y * 0.40);
-      const centerY = bottomY + height * 0.5;
-
-      // Posición Z dentro del espesor interior del marco (ligeramente hacia la cara posterior del vano)
-      const zSamples = lintelZHits.length ? lintelZHits : frameZHits;
-      let zOffset = -Math.max(0.85, finalSize.z * 0.15);
-      if (zSamples.length >= 2) {
-        const zMin = Math.min(...zSamples);
-        const zMax = Math.max(...zSamples);
-        const zSpan = zMax - zMin;
-        zOffset = zSpan > 0.25
-          ? THREE.MathUtils.lerp(zMin, zMax, 0.32)
-          : (medianValue(zSamples) - 0.18);
+      if (!isFinite(topInner) || topInner > finalBox.max.y - finalSize.y * 0.05) {
+        topInner = finalBox.min.y + finalSize.y * 0.64;
       }
-      zOffset = THREE.MathUtils.clamp(zOffset, finalBox.min.z + 0.30, finalBox.max.z - 0.30);
+
+      // 3) Medir el grosor real en Z de las jambas del marco para empotrar el vórtice hacia adentro
+      let doorMinZ = Infinity;
+      let doorMaxZ = -Infinity;
+      const vTmp = new THREE.Vector3();
+      const yBandMin = finalBox.min.y + finalSize.y * 0.15;
+      const yBandMax = Math.min(topInner, finalBox.min.y + finalSize.y * 0.55);
+
+      for (const mesh of meshes) {
+        const posAttr = mesh.geometry.attributes.position;
+        if (!posAttr) continue;
+        const stride = Math.max(1, Math.floor(posAttr.count / 1200));
+        for (let i = 0; i < posAttr.count; i += stride) {
+          vTmp.fromBufferAttribute(posAttr, i).applyMatrix4(mesh.matrixWorld);
+          if (vTmp.y >= yBandMin && vTmp.y <= yBandMax) {
+            const nearLeft  = Math.abs(vTmp.x - leftInner)  < 1.2;
+            const nearRight = Math.abs(vTmp.x - rightInner) < 1.2;
+            if (nearLeft || nearRight) {
+              if (vTmp.z < doorMinZ) doorMinZ = vTmp.z;
+              if (vTmp.z > doorMaxZ) doorMaxZ = vTmp.z;
+            }
+          }
+        }
+      }
+
+      if (!isFinite(doorMinZ) || !isFinite(doorMaxZ) || (doorMaxZ - doorMinZ) < 0.2) {
+        doorMinZ = finalBox.min.z;
+        doorMaxZ = finalBox.max.z;
+      }
+
+      const doorDepth = doorMaxZ - doorMinZ;
+      const doorMidZ  = (doorMinZ + doorMaxZ) * 0.5;
+      // Colocar el vórtice retrasado dentro de la mitad trasera del grosor de la puerta
+      const zOffset = THREE.MathUtils.clamp(
+        doorMidZ - doorDepth * 0.24,
+        doorMinZ + Math.min(0.35, doorDepth * 0.18),
+        doorMidZ - 0.15
+      );
+
+      // 4) Dimensiones exactas al ras del marco con ligero empotramiento dentro de la moldura sólida
+      //    (el depthTest del marco GLB recorta cualquier exceso sin dejar huecos ni fugas por el calado)
+      const bottomY = finalBox.min.y - 0.20;
+      const topY    = topInner + 0.36;
+      const width   = openWidth + 0.48;
+      const height  = Math.max(topY - bottomY, finalSize.y * 0.45);
+      const centerY = bottomY + height * 0.5;
 
       return {
         centerX,
         centerY,
         width,
         height,
-        clearWidth,
-        outerHalfW: finalSize.x * 0.5,
+        openWidth,
+        leftInner,
+        rightInner,
+        topInner,
         zOffset
       };
     }
@@ -2246,12 +2286,12 @@
         envMapIntensity: 1.35
       });
       const h = CONFIG.portalTargetHeight;
-      const w = h * 0.76;
-      const thick = 5.2;
-      const depth = 6.2;
+      const w = h * 0.74;
+      const thick = 4.6;
+      const depth = 6.8;
 
-      const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(thick, h * 0.72, depth), mat);
-      leftPillar.position.set(-w * 0.5 + thick * 0.5, h * 0.36, 0);
+      const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(thick, h * 0.78, depth), mat);
+      leftPillar.position.set(-w * 0.5 + thick * 0.5, h * 0.39, 0);
       const rightPillar = leftPillar.clone();
       rightPillar.position.x = w * 0.5 - thick * 0.5;
       const topBeam = new THREE.Mesh(new THREE.BoxGeometry(w, thick * 1.4, depth * 1.05), mat);
@@ -2291,10 +2331,10 @@
 
       buildPortalParticleCloud(aperture);
 
-      const frontOffset = Math.max(finalSize.z * 0.55, 6.0) + 4.5;
-      portalGlowLight.position.set(aperture.centerX, aperture.centerY * 0.78, CONFIG.portalBasePosition.z + frontOffset);
-      portalCrownLight.position.set(aperture.centerX, aperture.centerY * 1.45, CONFIG.portalBasePosition.z + frontOffset + 3.0);
-      waterUniforms.uPortalPos.value.set(aperture.centerX, aperture.centerY, CONFIG.portalBasePosition.z);
+      const frontOffset = Math.max(finalSize.z * 0.6, 8.0) + 6.0;
+      portalGlowLight.position.set(0, aperture.centerY * 0.65, CONFIG.portalBasePosition.z + frontOffset);
+      portalCrownLight.position.set(0, aperture.centerY * 1.35, CONFIG.portalBasePosition.z + frontOffset + 4.0);
+      waterUniforms.uPortalPos.value.set(0, aperture.centerY, CONFIG.portalBasePosition.z);
     }
 
     const BLUE_MAT_COLOR       = new THREE.Color(0x28a4ff);
@@ -2708,4 +2748,1597 @@
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
           mats.forEach((m) => {
             if (m.isMeshStandardMaterial) {
-              m.roughness = Math.
+              m.roughness = Math.min(m.roughness ?? 0.55, 0.72);
+              m.envMapIntensity = 1.25;
+            }
+          });
+        }
+      });
+
+      const sampledVerts = sampleVerticesFromTemplate(wrapper, 145);
+      return { wrapper, finalSize, sampledVerts };
+    }
+
+    function createSculpturalFallbackBoat() {
+      const wrapper = new THREE.Group();
+      const bronzeDark = new THREE.MeshStandardMaterial({
+        color: 0x4b3f32,
+        metalness: 0.74,
+        roughness: 0.34,
+        envMapIntensity: 1.35
+      });
+      const bronzeGold = new THREE.MeshStandardMaterial({
+        color: 0x997c52,
+        metalness: 0.80,
+        roughness: 0.28,
+        envMapIntensity: 1.4
+      });
+
+      const hullGeo = new THREE.CapsuleGeometry(0.56, 2.3, 8, 18);
+      hullGeo.rotateX(Math.PI / 2);
+      hullGeo.scale(1.12, 0.52, 1.15);
+      const hull = new THREE.Mesh(hullGeo, bronzeDark);
+      hull.position.y = 0.04;
+      wrapper.add(hull);
+
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.06, 10, 28), bronzeGold);
+      rim.rotation.x = Math.PI / 2;
+      rim.scale.set(0.64, 1.72, 1.0);
+      rim.position.y = 0.22;
+      wrapper.add(rim);
+
+      const neckCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.20, 1.20),
+        new THREE.Vector3(0, 0.80, 1.56),
+        new THREE.Vector3(0, 1.40, 1.44),
+        new THREE.Vector3(0, 1.50, 1.66)
+      ]);
+      wrapper.add(new THREE.Mesh(new THREE.TubeGeometry(neckCurve, 22, 0.07, 10, false), bronzeGold));
+
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.42, 8), bronzeGold);
+      beak.rotation.x = Math.PI / 2 + 0.12;
+      beak.position.set(0, 1.48, 1.92);
+      wrapper.add(beak);
+
+      [-1, 1].forEach((side) => {
+        const wingCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.48, 0.20, 0.55),
+          new THREE.Vector3(side * 0.68, 0.56, -0.10),
+          new THREE.Vector3(side * 0.50, 0.76, -0.95),
+          new THREE.Vector3(side * 0.24, 0.46, -1.52)
+        ]);
+        wrapper.add(new THREE.Mesh(new THREE.TubeGeometry(wingCurve, 18, 0.055, 8, false), bronzeDark));
+      });
+
+      return {
+        wrapper,
+        finalSize: new THREE.Vector3(1.4, 1.85, 3.8),
+        sampledVerts: sampleVerticesFromTemplate(wrapper, 145)
+      };
+    }
+
+    function populateBoats(normalizedData) {
+      boats.forEach((b) => {
+        scene.remove(b.group);
+        disposeHierarchy(b.group, false, true);
+      });
+      boats.length = 0;
+      boatHitboxes.length = 0;
+
+      const { wrapper, finalSize, sampledVerts } = normalizedData;
+      boatSampledVerts = sampledVerts;
+      const ringRadius = Math.max(finalSize.x, finalSize.z) * 0.48;
+      const centerIndex = Math.floor(CONFIG.boatsLayout.length / 2);
+
+      const sharedRingGeo = new THREE.RingGeometry(ringRadius * 0.92, ringRadius * 1.03, 40);
+      const sharedHitboxGeo = new THREE.BoxGeometry(
+        Math.max(finalSize.x * 1.15, 1.8),
+        Math.max(finalSize.y * 1.15, 2.0),
+        Math.max(finalSize.z * 1.08, 3.6)
+      );
+      const sharedHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
+
+      buildIntroWireframe(wrapper);
+
+      CONFIG.boatsLayout.forEach((cfg, index) => {
+        const boatGroup = new THREE.Group();
+        boatGroup.position.copy(cfg.pos);
+        const initialYaw = Math.PI + cfg.yaw;
+        boatGroup.rotation.y = initialYaw;
+        boatGroup.visible = false;
+
+        const visual = wrapper.clone(true);
+
+        const matRecords = [];
+        visual.traverse((obj) => {
+          if (obj.isMesh && obj.material) {
+            const isArray = Array.isArray(obj.material);
+            const clonedList = (isArray ? obj.material : [obj.material]).map((orig) => {
+              const m = orig.clone();
+              matRecords.push({
+                mat: m,
+                origTransparent: !!m.transparent,
+                origDepthWrite: m.depthWrite !== undefined ? m.depthWrite : true,
+                origOpacity: m.opacity !== undefined ? m.opacity : 1.0,
+                hasEmissive: !!m.emissive,
+                origEmissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
+                origEmissiveIntensity: m.emissiveIntensity !== undefined ? m.emissiveIntensity : 0.0
+              });
+              return m;
+            });
+            obj.material = isArray ? clonedList : clonedList[0];
+          }
+        });
+
+        boatGroup.add(visual);
+
+        const beaconRing = new THREE.Mesh(
+          sharedRingGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0xf4d694,
+            transparent: true,
+            opacity: 0.0,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          })
+        );
+        beaconRing.rotation.x = -Math.PI / 2;
+        beaconRing.position.y = 0.05;
+        boatGroup.add(beaconRing);
+
+        const hitbox = new THREE.Mesh(sharedHitboxGeo, sharedHitboxMat);
+        hitbox.position.y = Math.max(finalSize.y * 0.42, 0.75);
+        hitbox.userData.boatIndex = index;
+        boatGroup.add(hitbox);
+        boatHitboxes.push(hitbox);
+
+        scene.add(boatGroup);
+
+        const radialStep = Math.abs(index - centerIndex);
+        boats.push({
+          index,
+          group: boatGroup,
+          visual,
+          beaconRing,
+          matRecords,
+          matDelay: 0.25 + radialStep * 0.24,
+          materialized: false,
+          homePos: cfg.pos.clone(),
+          homeYaw: initialYaw,
+          phaseOffset: index * 1.41 + Math.random() * 0.5
+        });
+      });
+    }
+
+    function setBoatMaterialization(boat, progress, timeSec) {
+      const p = THREE.MathUtils.clamp(progress, 0, 1);
+      if (p <= 0.001) {
+        boat.group.visible = false;
+        boat.materialized = false;
+        return;
+      }
+
+      boat.group.visible = true;
+      const easeOut = 1.0 - Math.pow(1.0 - p, 3.0);
+
+      boat.group.position.set(
+        boat.homePos.x,
+        boat.homePos.y - (1.0 - easeOut) * 0.28,
+        boat.homePos.z
+      );
+      boat.visual.scale.setScalar(THREE.MathUtils.lerp(0.93, 1.0, easeOut));
+
+      if (p >= 0.999) {
+        if (!boat.materialized) {
+          boat.materialized = true;
+          boat.visual.scale.setScalar(1.0);
+          for (const rec of boat.matRecords) {
+            rec.mat.transparent = rec.origTransparent;
+            rec.mat.depthWrite  = rec.origDepthWrite;
+            rec.mat.opacity     = rec.origOpacity;
+            if (rec.hasEmissive) {
+              rec.mat.emissive.copy(rec.origEmissive);
+              rec.mat.emissiveIntensity = rec.origEmissiveIntensity;
+            }
+            rec.mat.needsUpdate = true;
+          }
+        }
+        return;
+      }
+
+      boat.materialized = false;
+      const glowBell = Math.sin(p * Math.PI);
+      const bluePulse = 0.58 + 0.42 * Math.sin(timeSec * 8.5 + boat.phaseOffset);
+
+      for (const rec of boat.matRecords) {
+        if (!rec.mat.transparent) {
+          rec.mat.transparent = true;
+          rec.mat.needsUpdate = true;
+        }
+        rec.mat.depthWrite = p > 0.58 ? rec.origDepthWrite : false;
+        rec.mat.opacity = rec.origOpacity * smoothstepJS(0.05, 0.86, p);
+
+        if (rec.hasEmissive) {
+          rec.mat.emissive.lerpColors(BLUE_MAT_COLOR, rec.origEmissive, smoothstepJS(0.45, 1.0, p));
+          rec.mat.emissiveIntensity = THREE.MathUtils.lerp(
+            rec.origEmissiveIntensity,
+            1.75 * bluePulse,
+            glowBell
+          );
+        }
+      }
+    }
+
+    function updateLoadingBar() {
+      const combined = Math.min(Math.round((boatProgress * 0.42 + portalProgress * 0.42 + waterProgress * 0.16) * 100), 98);
+      loadFill.style.width = `${Math.max(12, combined)}%`;
+    }
+
+    function refreshIntroOrbs() {
+      if (!boatReady || !portalReady || !waterReady) return;
+
+      if (activeDracoLoader) {
+        activeDracoLoader.dispose();
+        activeDracoLoader = null;
+      }
+
+      if (!materializePoints) {
+        buildMaterializeParticles(boatSampledVerts);
+      }
+
+      loadFill.style.width = '100%';
+      loadTrack.classList.add('done');
+
+      orbWeb.disabled = false;
+      orbAR.disabled  = !arSupported;
+      orbVR.disabled  = !vrSupported;
+
+      orbAR.title = arSupported ? 'Entrar en Realidad Aumentada' : 'AR no disponible en este navegador';
+      orbVR.title = vrSupported ? 'Entrar en Realidad Virtual' : 'VR no disponible en este navegador';
+    }
+
+    function loadAll3DAssets() {
+      activeDracoLoader = new DRACOLoader();
+      activeDracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.setDRACOLoader(activeDracoLoader);
+      gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+
+      const loadBoat = (url, isFallback) => {
+        gltfLoader.load(
+          url,
+          (gltf) => {
+            populateBoats(normalizeBoatTemplate(gltf.scene));
+            boatProgress = 1;
+            boatReady = true;
+            updateLoadingBar();
+            refreshIntroOrbs();
+          },
+          (xhr) => {
+            if (xhr.lengthComputable) {
+              boatProgress = Math.min(xhr.loaded / xhr.total, 0.98);
+              updateLoadingBar();
+            }
+          },
+          (err) => {
+            if (!isFallback) {
+              loadBoat(ASSETS.boatFallback, true);
+            } else {
+              console.warn('Usando barca escultórica de respaldo:', err);
+              populateBoats(createSculpturalFallbackBoat());
+              boatProgress = 1;
+              boatReady = true;
+              refreshIntroOrbs();
+            }
+          }
+        );
+      };
+
+      const loadPortal = (url, isFallback) => {
+        gltfLoader.load(
+          url,
+          (gltf) => {
+            setupMonumentalPortal(normalizePortalTemplate(gltf.scene));
+            portalProgress = 1;
+            portalReady = true;
+            updateLoadingBar();
+            refreshIntroOrbs();
+          },
+          (xhr) => {
+            if (xhr.lengthComputable) {
+              portalProgress = Math.min(xhr.loaded / xhr.total, 0.98);
+              updateLoadingBar();
+            }
+          },
+          (err) => {
+            if (!isFallback) {
+              loadPortal(ASSETS.portalFallback, true);
+            } else {
+              console.warn('Usando portal escultórico monumental de respaldo:', err);
+              setupMonumentalPortal(createFallbackMonumentalPortal());
+              portalProgress = 1;
+              portalReady = true;
+              refreshIntroOrbs();
+            }
+          }
+        );
+      };
+
+      const loadWater = (url, isFallback) => {
+        gltfLoader.load(
+          url,
+          (gltf) => {
+            setupGLBWaterPlane(gltf.scene);
+            waterProgress = 1;
+            waterReady = true;
+            updateLoadingBar();
+            refreshIntroOrbs();
+          },
+          (xhr) => {
+            if (xhr.lengthComputable) {
+              waterProgress = Math.min(xhr.loaded / xhr.total, 0.98);
+              updateLoadingBar();
+            }
+          },
+          () => {
+            if (!isFallback) {
+              loadWater(ASSETS.waterFallback, true);
+            } else {
+              usingGLBWater = false;
+              waterMesh.visible = true;
+              waterProgress = 1;
+              waterReady = true;
+              updateLoadingBar();
+              refreshIntroOrbs();
+            }
+          }
+        );
+      };
+
+      loadBoat(ASSETS.boatPrimary, false);
+      loadPortal(ASSETS.portalPrimary, false);
+      loadWater(ASSETS.waterPrimary, false);
+    }
+    loadAll3DAssets();
+
+    // =========================================================================
+    // BLOQUE 5: AUDIO HÍBRIDO (bosque_noche.mp3 + WEB AUDIO + CICLO DE VIDA)
+    // =========================================================================
+    const forestAudio = new Audio();
+    forestAudio.crossOrigin = 'anonymous';
+    forestAudio.src = ASSETS.audioPrimary;
+    forestAudio.loop = true;
+    forestAudio.preload = 'auto';
+    forestAudio.volume = 0;
+    forestAudio.addEventListener('error', () => {
+      if (forestAudio.src !== ASSETS.audioFallback) {
+        forestAudio.src = ASSETS.audioFallback;
+      }
+    });
+
+    const audioEngine = {
+      ctx: null,
+      enabled: false,
+      masterGain: null,
+      wakeGain: null,
+      wakeFilter: null,
+      portalGain: null,
+      currentForestVol: 0,
+
+      initSynth() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.0;
+        this.masterGain.connect(this.ctx.destination);
+
+        const bufSize = this.ctx.sampleRate * 3;
+        const noiseBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufSize; i++) {
+          const white = Math.random() * 2 - 1;
+          lastOut = (lastOut + 0.025 * white) / 1.025;
+          data[i] = lastOut * 2.6;
+        }
+
+        const wakeSrc = this.ctx.createBufferSource();
+        wakeSrc.buffer = noiseBuf;
+        wakeSrc.loop = true;
+        this.wakeFilter = this.ctx.createBiquadFilter();
+        this.wakeFilter.type = 'bandpass';
+        this.wakeFilter.frequency.value = 420;
+        this.wakeFilter.Q.value = 0.75;
+        this.wakeGain = this.ctx.createGain();
+        this.wakeGain.gain.value = 0.0;
+        wakeSrc.connect(this.wakeFilter).connect(this.wakeGain).connect(this.masterGain);
+        wakeSrc.start();
+
+        this.portalGain = this.ctx.createGain();
+        this.portalGain.gain.value = 0.0;
+
+        const oscA = this.ctx.createOscillator();
+        oscA.type = 'sine';
+        oscA.frequency.value = 146.83;
+
+        const oscB = this.ctx.createOscillator();
+        oscB.type = 'triangle';
+        oscB.frequency.value = 220.0;
+
+        const portalFilter = this.ctx.createBiquadFilter();
+        portalFilter.type = 'lowpass';
+        portalFilter.frequency.value = 640;
+
+        oscA.connect(portalFilter);
+        oscB.connect(portalFilter);
+        portalFilter.connect(this.portalGain).connect(this.masterGain);
+        oscA.start();
+        oscB.start();
+      },
+
+      toggle(forceOn = false) {
+        this.initSynth();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        this.enabled = forceOn ? true : !this.enabled;
+        const now = this.ctx.currentTime;
+        this.masterGain.gain.setTargetAtTime(this.enabled ? 0.65 : 0.0, now, 0.25);
+
+        if (this.enabled) {
+          forestAudio.play().catch(() => {});
+        } else {
+          forestAudio.pause();
+        }
+
+        btnAudio.textContent = this.enabled ? 'Audio: ON' : 'Audio: OFF';
+        btnAudio.classList.toggle('active', this.enabled);
+      },
+
+      handleVisibility(isHidden) {
+        if (!this.ctx) return;
+        if (isHidden) {
+          forestAudio.pause();
+          if (this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+        } else if (this.enabled) {
+          if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+          forestAudio.play().catch(() => {});
+        }
+      },
+
+      playMaterializeSwell() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [196.0, 293.66, 369.99, 587.33];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq * 0.985, now);
+          osc.frequency.exponentialRampToValueAtTime(freq, now + 2.2);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(320, now);
+          filter.frequency.exponentialRampToValueAtTime(1600, now + 1.8);
+          filter.frequency.exponentialRampToValueAtTime(480, now + 3.8);
+
+          const start = now + idx * 0.14;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.linearRampToValueAtTime(0.065, start + 1.2);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 3.6);
+
+          osc.connect(filter).connect(gain).connect(this.masterGain);
+          osc.start(start);
+          osc.stop(start + 3.7);
+        });
+      },
+
+      playBoardChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(293.66, now);
+        osc.frequency.exponentialRampToValueAtTime(440.0, now + 0.65);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.13, now + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+        osc.connect(gain).connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 1.45);
+      },
+
+      update(dt, motionFactor, portalProximity) {
+        const targetForest = this.enabled ? THREE.MathUtils.lerp(0.62, 0.22, portalProximity) : 0.0;
+        this.currentForestVol = THREE.MathUtils.lerp(this.currentForestVol, targetForest, dt * 2.5);
+        forestAudio.volume = THREE.MathUtils.clamp(this.currentForestVol, 0, 1);
+
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        this.wakeGain.gain.setTargetAtTime(motionFactor * 0.44, now, 0.18);
+        this.wakeFilter.frequency.setTargetAtTime(360 + motionFactor * 560, now, 0.18);
+        this.portalGain.gain.setTargetAtTime(Math.pow(portalProximity, 1.55) * 0.30, now, 0.12);
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      audioEngine.handleVisibility(document.hidden);
+    });
+
+    // =========================================================================
+    // BLOQUE 6: MÁQUINA DE ESTADOS + EXPLORACIÓN + NAVEGACIÓN MANUAL ACOTADA
+    // =========================================================================
+    const STATE = {
+      INTRO: 'INTRO',
+      MATERIALIZING: 'MATERIALIZING',
+      IDLE: 'IDLE',
+      BOARDING: 'BOARDING',
+      NAVIGATING: 'NAVIGATING',
+      PORTAL_CROSSING: 'PORTAL_CROSSING'
+    };
+
+    let currentState = STATE.INTRO;
+    let currentWorld = 'A';
+    let activeMode = 'web';
+    let activeBoat = null;
+    let nearbyBoat = null;
+    let hoveredBoatIndex = -1;
+    let isARMode = false;
+    let voyagesCompleted = 0;
+
+    let stateTimer = 0;
+    let matElapsed = -1.0;
+    let skyAngle = 0.0;
+
+    const boardStartRigPos = new THREE.Vector3();
+    const walkVelXZ = new THREE.Vector2(0, 0);
+    let boatYaw = Math.PI;
+    let boatForwardSpeed = 0;
+    let boatTurnSmoothed = 0;
+    let smoothMotionFactor = 0;
+    const currentBoatDir = new THREE.Vector2(0, -1);
+    let flashSwapped = false;
+
+    const hudEl             = document.getElementById('hud');
+    const statusDot         = document.getElementById('status-dot');
+    const stateLabel        = document.getElementById('state-label');
+    const hintEl            = document.getElementById('hint');
+    const btnBoardNear      = document.getElementById('btn-board-near');
+    const btnDisembark      = document.getElementById('btn-disembark');
+    const btnModes          = document.getElementById('btn-modes');
+    const btnAudio          = document.getElementById('btn-audio');
+    const btnFullscreen     = document.getElementById('btn-fullscreen');
+    const joystickZone      = document.getElementById('joystick-zone');
+    const joystickBase      = document.getElementById('joystick-base');
+    const joystickKnob      = document.getElementById('joystick-knob');
+    const joystickModeLabel = document.getElementById('joystick-mode-label');
+
+    function setHUD(status, hint, blueDot = false) {
+      stateLabel.textContent = status;
+      if (hint !== undefined) hintEl.textContent = hint;
+      statusDot.classList.toggle('blue', blueDot);
+    }
+
+    function updateJoystickVisibility() {
+      const canUseOnScreenJoy =
+        !renderer.xr.isPresenting &&
+        (currentState === STATE.IDLE || currentState === STATE.NAVIGATING);
+
+      joystickZone.classList.toggle('active', canUseOnScreenJoy);
+      const isHelm = (currentState === STATE.NAVIGATING);
+      joystickZone.classList.toggle('helm-mode', isHelm);
+      joystickModeLabel.textContent = isHelm ? 'Timón' : 'Caminar';
+      btnDisembark.style.display = isHelm ? '' : 'none';
+
+      if (!canUseOnScreenJoy) resetJoystickState();
+      if (currentState !== STATE.IDLE) btnBoardNear.classList.remove('show');
+    }
+
+    function applyWorldAtmosphere(worldId) {
+      currentWorld = worldId;
+      const isB = (worldId === 'B');
+      const wVal = isB ? 1.0 : 0.0;
+
+      galaxySkyUniforms.uGalaxyWorld.value = wVal;
+      waterUniforms.uGalaxyWorld.value = wVal;
+      ambientParticleUniforms.uGalaxyWorld.value = wVal;
+      waterUniforms.uFogDensity.value = isB ? FOG_DENSITY_B : FOG_DENSITY_A;
+
+      if (!isARMode) {
+        scene.background = isB ? GALAXY_B_BG : DARK_A_BG;
+        scene.fog = isB ? FOG_B : FOG_A;
+      }
+
+      hemiLight.intensity = isB ? 1.02 : 0.48;
+      moonLight.intensity = isB ? 1.24 : 0.62;
+      fillLight.intensity = isB ? 0.52 : 0.30;
+    }
+
+    function resetSceneToHidden() {
+      playerRig.position.copy(CONFIG.originPosition);
+      activeBoat = null;
+      nearbyBoat = null;
+      walkVelXZ.set(0, 0);
+      boatForwardSpeed = 0;
+      boatTurnSmoothed = 0;
+      smoothMotionFactor = 0;
+      matElapsed = -1.0;
+      matParticleUniforms.uMatTime.value = -1.0;
+      if (materializePoints) materializePoints.visible = false;
+
+      galaxySkyDome.visible = false;
+      galaxySkyUniforms.uReveal.value = 0.0;
+
+      waterRoot.visible = false;
+      waterUniforms.uWaterReveal.value = 0.0;
+      waterUniforms.uBoatSpeed.value = 0.0;
+      waterUniforms.uMotionFactor.value = 0.0;
+
+      boundaryRingMesh.visible = false;
+      boundaryUniforms.uOpacity.value = 0.0;
+
+      portalGroup.visible = false;
+      portalUniforms.uProximity.value = 0.0;
+      setPortalMaterialization(0.0, 0.0);
+      portalGlowLight.intensity = 0.0;
+      portalCrownLight.intensity = 0.0;
+      materializeBlueLight.intensity = 0.0;
+
+      ambientPoints.visible = false;
+      ambientParticleUniforms.uReveal.value = 0.0;
+      sprayMat.opacity = 0.0;
+      sprayPoints.visible = false;
+
+      portalFlashMesh.visible = false;
+      portalFlashMat.opacity = 0.0;
+
+      for (const b of boats) {
+        b.group.position.copy(b.homePos);
+        b.group.rotation.set(0, b.homeYaw, 0);
+        b.visual.rotation.set(0, 0, 0);
+        b.beaconRing.material.opacity = 0.0;
+        setBoatMaterialization(b, 0.0, 0.0);
+      }
+
+      updateJoystickVisibility();
+    }
+
+    function startMaterialization(modeName) {
+      activeMode = modeName;
+      resetSceneToHidden();
+      applyWorldAtmosphere('A');
+
+      introStage.visible = false;
+      introScreen.classList.add('hidden');
+      hudEl.classList.add('visible');
+      btnFullscreen.style.display = (modeName === 'web') ? '' : 'none';
+
+      waterRoot.visible = true;
+      portalGroup.visible = true;
+      ambientPoints.visible = true;
+      galaxySkyDome.visible = !isARMode;
+      if (materializePoints) materializePoints.visible = true;
+
+      currentState = STATE.MATERIALIZING;
+      stateTimer = 0;
+      matElapsed = 0;
+      matParticleUniforms.uMatTime.value = 0;
+      updateJoystickVisibility();
+
+      audioEngine.playMaterializeSwell();
+      setHUD('Materializando...', 'Las barcas y luciérnagas emergen en la noche', true);
+    }
+
+    function showIntroState() {
+      currentState = STATE.INTRO;
+      resetSceneToHidden();
+
+      scene.background = INTRO_BG;
+      scene.fog = null;
+      renderer.setClearAlpha(1);
+      camera.position.set(0, CONFIG.defaultEyeHeight, 0);
+      camYaw = 0;
+      camPitch = 0;
+      updateDesktopCameraLook();
+
+      introStage.visible = true;
+      positionIntroStage();
+      hudEl.classList.remove('visible');
+      introScreen.classList.remove('hidden');
+      updateJoystickVisibility();
+    }
+
+    async function returnToIntroMenu() {
+      const session = renderer.xr.getSession();
+      if (session) {
+        await session.end().catch(() => {});
+      }
+      showIntroState();
+    }
+
+    function startBoarding(boat) {
+      if (currentState !== STATE.IDLE || !boat) return;
+      if (!audioEngine.enabled) audioEngine.toggle(true);
+      audioEngine.playBoardChime();
+
+      activeBoat = boat;
+      nearbyBoat = null;
+      walkVelXZ.set(0, 0);
+      currentState = STATE.BOARDING;
+      stateTimer = 0;
+      boardStartRigPos.copy(playerRig.position);
+      boatYaw = boat.group.rotation.y;
+      boatForwardSpeed = 0;
+      boatTurnSmoothed = 0;
+
+      updateJoystickVisibility();
+      setHUD('Abordando barca...', 'Toma el timón para dirigirte hacia el portal', false);
+    }
+
+    function disembarkActiveBoat() {
+      if (currentState !== STATE.NAVIGATING || !activeBoat) return;
+
+      activeBoat.group.position.copy(activeBoat.homePos);
+      activeBoat.group.rotation.set(0, activeBoat.homeYaw, 0);
+      activeBoat.visual.rotation.set(0, 0, 0);
+
+      const sideX = activeBoat.homePos.x + (activeBoat.homePos.x >= 0 ? -1.8 : 1.8);
+      const sideZ = Math.min(activeBoat.homePos.z + 2.2, 0.5);
+      playerRig.position.set(sideX, 0, sideZ);
+
+      activeBoat = null;
+      boatForwardSpeed = 0;
+      boatTurnSmoothed = 0;
+      smoothMotionFactor = 0;
+      portalUniforms.uProximity.value = 0;
+      waterUniforms.uBoatSpeed.value = 0;
+      waterUniforms.uMotionFactor.value = 0;
+      portalFlashMesh.visible = false;
+      portalFlashMat.opacity = 0;
+      sprayMat.opacity = 0;
+      sprayPoints.visible = false;
+
+      currentState = STATE.IDLE;
+      updateJoystickVisibility();
+      setHUD(
+        currentWorld === 'B' ? 'Escenario B · Mar de Galaxias' : 'Escenario A · Embarcadero nocturno',
+        'Camina junto a las barcas con el joystick · Elige la que prefieras',
+        false
+      );
+    }
+
+    function onPortalCrossed(context) {
+      playerRig.position.copy(CONFIG.originPosition);
+
+      if (context.boat) {
+        context.boat.group.position.copy(context.boat.homePos);
+        context.boat.group.rotation.set(0, context.boat.homeYaw, 0);
+        context.boat.visual.rotation.x = 0;
+        context.boat.visual.rotation.z = 0;
+      }
+
+      activeBoat = null;
+      nearbyBoat = null;
+      walkVelXZ.set(0, 0);
+      boatForwardSpeed = 0;
+      boatTurnSmoothed = 0;
+      smoothMotionFactor = 0;
+      portalUniforms.uProximity.value = 0;
+      waterUniforms.uBoatSpeed.value = 0;
+      waterUniforms.uMotionFactor.value = 0;
+      sprayMat.opacity = 0;
+      sprayPoints.visible = false;
+
+      const nextWorld = (currentWorld === 'A') ? 'B' : 'A';
+      applyWorldAtmosphere(nextWorld);
+
+      if (nextWorld === 'B') {
+        setHUD(
+          'Escenario B · Mar de Galaxias',
+          'Explora junto a las barcas o navega de regreso por el portal',
+          false
+        );
+      } else {
+        setHUD(
+          'Escenario A · Embarcadero nocturno',
+          'Camina junto a las barcas y navega hacia el Mar de Galaxias',
+          false
+        );
+      }
+    }
+
+    function resolveWalkingBoatCollisions(pos) {
+      const hullHalfW = 1.15;
+      const hullHalfL = 2.15;
+
+      for (const b of boats) {
+        const dx = pos.x - b.group.position.x;
+        const dz = pos.z - b.group.position.z;
+        const yaw = b.group.rotation.y;
+        const cosY = Math.cos(yaw);
+        const sinY = Math.sin(yaw);
+
+        const localX =  dx * cosY - dz * sinY;
+        const localZ =  dx * sinY + dz * cosY;
+
+        const nx = localX / hullHalfW;
+        const nz = localZ / hullHalfL;
+        const ellipDist = Math.hypot(nx, nz);
+
+        if (ellipDist < 1.0) {
+          const safeDist = Math.max(ellipDist, 0.001);
+          const pushedLocalX = (nx / safeDist) * hullHalfW;
+          const pushedLocalZ = (nz / safeDist) * hullHalfL;
+
+          pos.x = b.group.position.x + pushedLocalX * cosY + pushedLocalZ * sinY;
+          pos.z = b.group.position.z - pushedLocalX * sinY + pushedLocalZ * cosY;
+        }
+      }
+    }
+
+    function resolveBoatToBoatCollisions(active) {
+      const minSep = 2.65;
+      for (const other of boats) {
+        if (other === active) continue;
+        const dx = active.group.position.x - other.group.position.x;
+        const dz = active.group.position.z - other.group.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < minSep) {
+          const safe = Math.max(dist, 0.001);
+          const push = (minSep - dist);
+          active.group.position.x += (dx / safe) * push;
+          active.group.position.z += (dz / safe) * push;
+        }
+      }
+    }
+
+    // Evita que la barca atraviese los pilares laterales del portal y la canaliza al vano
+    function resolvePortalPillarCollisions(pos) {
+      const portalFrontZ = CONFIG.portalBasePosition.z + 4.8;
+      if (pos.z > portalFrontZ) return false;
+
+      const centerX = CONFIG.portalBasePosition.x + portalApertureData.centerX;
+      const safeHalfOpening = Math.max(portalApertureData.openWidth * 0.5 - 1.25, 2.5);
+      const dx = pos.x - centerX;
+
+      if (Math.abs(dx) > safeHalfOpening) {
+        // Si intenta pasar por los pilares laterales, detener en la cara frontal del pilar
+        if (pos.z > CONFIG.portalBasePosition.z + 2.2) {
+          pos.z = portalFrontZ;
+        } else {
+          pos.x = centerX + Math.sign(dx) * safeHalfOpening;
+        }
+        return true;
+      }
+      return false;
+    }
+
+    function clampToCircle(pos, boundary) {
+      const dx = pos.x - boundary.centerX;
+      const dz = pos.z - boundary.centerZ;
+      const dist = Math.hypot(dx, dz);
+      if (dist > boundary.radius) {
+        const inv = boundary.radius / dist;
+        pos.x = boundary.centerX + dx * inv;
+        pos.z = boundary.centerZ + dz * inv;
+        return true;
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // BLOQUE 7: JOYSTICK REDONDO + TECLADO + INTERACCIÓN 360° + WEBXR
+    // =========================================================================
+    const joyInput = { x: 0, y: 0 };
+    const keyInput = { x: 0, y: 0 };
+    const keysDown = new Set();
+    let joystickPointerId = null;
+
+    function resetJoystickState() {
+      joystickPointerId = null;
+      joyInput.x = 0;
+      joyInput.y = 0;
+      joystickBase.classList.remove('dragging');
+      joystickKnob.style.transform = 'translate3d(0px, 0px, 0px)';
+    }
+
+    function updateJoystickFromClient(clientX, clientY) {
+      const rect = joystickBase.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      const maxR = rect.width * 0.36;
+
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxR) {
+        dx = (dx / dist) * maxR;
+        dy = (dy / dist) * maxR;
+      }
+
+      joystickKnob.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0px)`;
+      joyInput.x = dx / maxR;
+      joyInput.y = -dy / maxR;
+    }
+
+    joystickBase.addEventListener('pointerdown', (e) => {
+      if (currentState !== STATE.IDLE && currentState !== STATE.NAVIGATING) return;
+      e.stopPropagation();
+      joystickPointerId = e.pointerId;
+      joystickBase.setPointerCapture?.(e.pointerId);
+      joystickBase.classList.add('dragging');
+      updateJoystickFromClient(e.clientX, e.clientY);
+    });
+
+    joystickBase.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== joystickPointerId) return;
+      e.stopPropagation();
+      updateJoystickFromClient(e.clientX, e.clientY);
+    });
+
+    joystickBase.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== joystickPointerId) return;
+      e.stopPropagation();
+      resetJoystickState();
+    });
+
+    joystickBase.addEventListener('pointercancel', (e) => {
+      if (e.pointerId !== joystickPointerId) return;
+      resetJoystickState();
+    });
+
+    function recomputeKeyInput() {
+      let x = 0;
+      let y = 0;
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp'))    y += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown'))  y -= 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) x += 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft'))  x -= 1;
+      const len = Math.hypot(x, y);
+      if (len > 1) { x /= len; y /= len; }
+      keyInput.x = x;
+      keyInput.y = y;
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        keysDown.add(e.code);
+        recomputeKeyInput();
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (keysDown.delete(e.code)) recomputeKeyInput();
+    });
+    window.addEventListener('blur', () => {
+      keysDown.clear();
+      recomputeKeyInput();
+      resetJoystickState();
+    });
+
+    function getCombinedStickInput(outVec) {
+      let x = joyInput.x + keyInput.x;
+      let y = joyInput.y + keyInput.y;
+
+      const session = renderer.xr.getSession();
+      if (session) {
+        for (const src of session.inputSources) {
+          const gp = src.gamepad;
+          if (!gp || !gp.axes || gp.axes.length < 2) continue;
+          const ax = gp.axes.length >= 4 ? gp.axes[2] : gp.axes[0];
+          const ay = gp.axes.length >= 4 ? gp.axes[3] : gp.axes[1];
+          if (Math.abs(ax) > 0.14) x += ax;
+          if (Math.abs(ay) > 0.14) y -= ay;
+        }
+      }
+
+      const mag = Math.hypot(x, y);
+      if (mag > 1.0) {
+        x /= mag;
+        y /= mag;
+      }
+      outVec.set(x, y);
+      return outVec;
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2();
+
+    let lookPointerId = null;
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let camYaw = 0;
+    let camPitch = 0;
+
+    function updateDesktopCameraLook() {
+      if (renderer.xr.isPresenting) return;
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = camYaw;
+      camera.rotation.x = camPitch;
+    }
+    updateDesktopCameraLook();
+
+    window.addEventListener('pointermove', (e) => {
+      if (currentState !== STATE.INTRO || !e.isPrimary) return;
+      introParallaxX = (e.clientX / window.innerWidth - 0.5) * 2;
+      introParallaxY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    function pickBoatFromPointer(clientX, clientY) {
+      pointerNDC.x = (clientX / window.innerWidth) * 2 - 1;
+      pointerNDC.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+      const hits = raycaster.intersectObjects(boatHitboxes, false);
+      return hits.length > 0 ? boats[hits[0].object.userData.boatIndex] : null;
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      if (currentState === STATE.INTRO) return;
+      if (e.pointerId === joystickPointerId || lookPointerId !== null) return;
+      lookPointerId = e.pointerId;
+      pointerDownX = lastPointerX = e.clientX;
+      pointerDownY = lastPointerY = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (currentState === STATE.INTRO) return;
+      if (e.pointerId === lookPointerId && !renderer.xr.isPresenting) {
+        const dx = e.clientX - lastPointerX;
+        const dy = e.clientY - lastPointerY;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        camYaw += dx * 0.0042;
+        camPitch = THREE.MathUtils.clamp(camPitch + dy * 0.0038, -0.95, 1.48);
+        updateDesktopCameraLook();
+      } else if (lookPointerId === null && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
+        const b = pickBoatFromPointer(e.clientX, e.clientY);
+        hoveredBoatIndex = b ? b.index : -1;
+        renderer.domElement.style.cursor = b ? 'pointer' : 'grab';
+      }
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== lookPointerId) return;
+      const moved = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
+      lookPointerId = null;
+      if (e.target === renderer.domElement && moved < 10 && currentState === STATE.IDLE && !renderer.xr.isPresenting) {
+        const b = pickBoatFromPointer(e.clientX, e.clientY);
+        if (b) startBoarding(b);
+      }
+    });
+
+    window.addEventListener('pointercancel', (e) => {
+      if (e.pointerId === lookPointerId) lookPointerId = null;
+    });
+
+    const tempMatrix = new THREE.Matrix4();
+    const controllers = [];
+    const vrLasers = [];
+
+    function raycastFromController(controller) {
+      tempMatrix.identity().extractRotation(controller.matrixWorld);
+      raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+      raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+      const hits = raycaster.intersectObjects(boatHitboxes, false);
+      return hits.length > 0 ? boats[hits[0].object.userData.boatIndex] : null;
+    }
+
+    function setupXRController(idx) {
+      const controller = renderer.xr.getController(idx);
+      const laser = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 0, -16)
+        ]),
+        new THREE.LineBasicMaterial({
+          color: 0xf4d694,
+          transparent: true,
+          opacity: 0.45
+        })
+      );
+      controller.add(laser);
+      vrLasers.push(laser);
+
+      controller.addEventListener('selectstart', () => {
+        if (currentState !== STATE.IDLE) return;
+        const boat = raycastFromController(controller) || nearbyBoat;
+        if (boat) startBoarding(boat);
+      });
+
+      playerRig.add(controller);
+      controllers.push(controller);
+    }
+    setupXRController(0);
+    setupXRController(1);
+
+    btnBoardNear.addEventListener('click', () => {
+      if (currentState === STATE.IDLE && nearbyBoat) startBoarding(nearbyBoat);
+    });
+    btnDisembark.addEventListener('click', () => disembarkActiveBoat());
+    btnAudio.addEventListener('click', () => audioEngine.toggle());
+    btnModes.addEventListener('click', () => returnToIntroMenu());
+
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      btnFullscreen.textContent = document.fullscreenElement ? 'Salir pantalla' : 'Pantalla completa';
+    });
+
+    async function detectXRCapabilities() {
+      if ('xr' in navigator) {
+        vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+        arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+      }
+      refreshIntroOrbs();
+    }
+    detectXRCapabilities();
+
+    orbWeb.addEventListener('click', () => {
+      if (!boatReady || !portalReady || !waterReady) return;
+      isARMode = false;
+      waterUniforms.uIsAR.value = 0.0;
+      renderer.setClearAlpha(1);
+      vrLasers.forEach(l => l.visible = false);
+      camera.position.set(0, CONFIG.defaultEyeHeight, 0);
+      camYaw = 0;
+      camPitch = 0.10;
+      updateDesktopCameraLook();
+
+      audioEngine.toggle(true);
+      startMaterialization('web');
+    });
+
+    orbAR.addEventListener('click', () => startXRMode('immersive-ar'));
+    orbVR.addEventListener('click', () => startXRMode('immersive-vr'));
+
+    async function startXRMode(xrMode) {
+      if (!boatReady || !portalReady || !waterReady || !('xr' in navigator)) return;
+      try {
+        audioEngine.toggle(true);
+
+        const isAR = (xrMode === 'immersive-ar');
+        const sessionInit = isAR
+          ? {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'dom-overlay'],
+              domOverlay: { root: document.getElementById('hud') }
+            }
+          : {
+              optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+            };
+
+        const session = await navigator.xr.requestSession(xrMode, sessionInit);
+        isARMode = isAR;
+
+        if (isARMode) {
+          scene.background = null;
+          scene.fog = null;
+          waterUniforms.uIsAR.value = 1.0;
+          renderer.setClearAlpha(0);
+          vrLasers.forEach(l => l.visible = false);
+        } else {
+          waterUniforms.uIsAR.value = 0.0;
+          renderer.setClearAlpha(1);
+          vrLasers.forEach(l => l.visible = true);
+        }
+
+        if (renderer.xr.setFoveation) renderer.xr.setFoveation(1);
+        await renderer.xr.setSession(session);
+        camera.position.set(0, 0, 0);
+
+        startMaterialization(isARMode ? 'ar' : 'vr');
+
+        session.addEventListener('end', () => {
+          isARMode = false;
+          waterUniforms.uIsAR.value = 0.0;
+          vrLasers.forEach(l => l.visible = false);
+          showIntroState();
+        });
+      } catch (err) {
+        console.warn('No se pudo iniciar la sesión WebXR:', err);
+      }
+    }
+
+    // =========================================================================
+    // BUCLE PRINCIPAL DE ANIMACIÓN (60–72+ FPS)
+    // =========================================================================
+    const clock = new THREE.Clock();
+    const worldCamPos = new THREE.Vector3();
+    const worldCamDir = new THREE.Vector3();
+    const tmpTargetRigPos = new THREE.Vector3();
+    const stickVec = new THREE.Vector2();
+
+    renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.getElapsedTime();
+
+      galaxySkyUniforms.uTime.value = t;
+      waterUniforms.uTime.value = t;
+      portalUniforms.uTime.value = t;
+      matParticleUniforms.uTime.value = t;
+      ambientParticleUniforms.uTime.value = t;
+      boundaryUniforms.uTime.value = t;
+
+      if (currentState === STATE.INTRO) {
+        introAuraUniforms.uTime.value = t;
+        introDustUniforms.uTime.value = t;
+
+        if (introWireframePivot) {
+          introFadeIn = Math.min(introFadeIn + dt * 0.9, 1.0);
+          const pulse = 0.78 + 0.22 * Math.sin(t * 2.1);
+
+          introAuraUniforms.uFade.value = introFadeIn;
+          if (introEdgeMat)     introEdgeMat.opacity     = 0.36 * introFadeIn * pulse;
+          if (introMeshWireMat) introMeshWireMat.opacity = 0.055 * introFadeIn * pulse;
+
+          introWireframePivot.position.y = Math.sin(t * 0.95) * 0.07;
+          const targetRotY = (Math.PI / 2 - 0.10) + introParallaxX * 0.10;
+          const targetRotX = 0.04 + introParallaxY * 0.05;
+          introWireframePivot.rotation.y = THREE.MathUtils.lerp(introWireframePivot.rotation.y, targetRotY, dt * 3.0);
+          introWireframePivot.rotation.x = THREE.MathUtils.lerp(introWireframePivot.rotation.x, targetRotX, dt * 3.0);
+        }
+
+        renderer.render(scene, camera);
+        return;
+      }
+
+      skyAngle += dt * 0.010 * SKY_SETTINGS.rotationSpeed;
+      galaxySkyUniforms.uSkyRotation.value = skyAngle;
+      galaxySkyDome.position.copy(playerRig.position);
+
+      waterRoot.position.x = Math.round(playerRig.position.x / WATER_STEP) * WATER_STEP;
+      waterRoot.position.z = Math.round(playerRig.position.z / WATER_STEP) * WATER_STEP;
+      updateGLBWaterAnimation(t);
+
+      if (matElapsed >= 0) {
+        if (matElapsed < 6.5) {
+          matElapsed += dt;
+          matParticleUniforms.uMatTime.value = matElapsed;
+        } else if (materializePoints && materializePoints.visible) {
+          materializePoints.visible = false;
+        }
+      }
+
+      if (currentState === STATE.MATERIALIZING) {
+        stateTimer += dt;
+        const u = Math.min(stateTimer / CONFIG.materializeDuration, 1.0);
+
+        galaxySkyUniforms.uReveal.value = smoothstepJS(0.02, 0.86, u);
+        waterUniforms.uWaterReveal.value = smoothstepJS(0.0, 0.72, u);
+        ambientParticleUniforms.uReveal.value = smoothstepJS(0.30, 1.0, u);
+
+        const blueBell = Math.sin(u * Math.PI);
+        const blueBeat = 0.65 + 0.35 * Math.sin(t * 7.8);
+        materializeBlueLight.intensity = blueBell * blueBeat * 11.5;
+
+        for (const b of boats) {
+          const boatLocal = (stateTimer - b.matDelay) / 2.05;
+          setBoatMaterialization(b, boatLocal, t);
+        }
+
+        const portalP = smoothstepJS(0.22, 0.96, u);
+        setPortalMaterialization(portalP, t);
+        portalGlowLight.intensity  = portalP * 18.0;
+        portalCrownLight.intensity = portalP * 9.0;
+
+        if (u >= 1.0) {
+          galaxySkyUniforms.uReveal.value = 1.0;
+          waterUniforms.uWaterReveal.value = 1.0;
+          ambientParticleUniforms.uReveal.value = 1.0;
+          setPortalMaterialization(1.0, t);
+          portalGlowLight.intensity  = 18.0;
+          portalCrownLight.intensity = 9.0;
+          materializeBlueLight.intensity = 0.0;
+          for (const b of boats) setBoatMaterialization(b, 1.0, t);
+
+          currentState = STATE.IDLE;
+          updateJoystickVisibility();
+          if (activeMode === 'ar') {
+            setHUD('AR · Escenario A (Nocturno)', 'Camina junto a las barcas y toca la que quieras abordar', false);
+          } else if (activeMode === 'vr') {
+            setHUD('VR · Escenario A (Nocturno)', 'Camina con el joystick junto a las barcas · Gatillo para abordar', false);
+          } else {
+            setHUD('Escenario A · Embarcadero nocturno', 'Usa el joystick para caminar junto a las barcas · Toca una para abordar', false);
+          }
+        }
+
+        audioEngine.update(dt, 0, 0);
+        renderer.render(scene, camera);
+        return;
+      }
+
+      const portalBreath = 0.92 + 0.08 * Math.sin(t * 1.7);
+      getCombinedStickInput(stickVec);
+
+      // --- ESTADO IDLE: CAMINAR AL LADO DE LAS BARCAS Y ELEGIR CUALQUIERA ---
+      if (currentState === STATE.IDLE) {
+        if (renderer.xr.isPresenting) {
+          hoveredBoatIndex = -1;
+          if (!isARMode) {
+            for (const ctrl of controllers) {
+              const hit = raycastFromController(ctrl);
+              if (hit) { hoveredBoatIndex = hit.index; break; }
+            }
+          }
+        }
+
+        if (renderer.xr.isPresenting) {
+          camera.getWorldDirection(worldCamDir);
+          worldCamDir.y = 0;
+          if (worldCamDir.lengthSq() > 0.0001) worldCamDir.normalize();
+          else worldCamDir.set(0, 0, -1);
+        } else {
+          worldCamDir.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
+        }
+        const rightX = -worldCamDir.z;
+        const rightZ =  worldCamDir.x;
+
+        const targetVx = (worldCamDir.x * stickVec.y + rightX * stickVec.x) * CONFIG.walkSpeed;
+        const targetVz = (worldCamDir.z * stickVec.y + rightZ * stickVec.x) * CONFIG.walkSpeed;
+        walkVelXZ.x = THREE.MathUtils.lerp(walkVelXZ.x, targetVx, Math.min(1, dt * 8.5));
+        walkVelXZ.y = THREE.MathUtils.lerp(walkVelXZ.y, targetVz, Math.min(1, dt * 8.5));
+
+        if (walkVelXZ.lengthSq() > 0.0002) {
+          playerRig.position.x += walkVelXZ.x * dt;
+          playerRig.position.z += walkVelXZ.y * dt;
+          resolveWalkingBoatCollisions(playerRig.position);
+          clampToCircle(playerRig.position, CONFIG.walkBoundary);
+        }
+
+        camera.getWorldPosition(worldCamPos);
+        let closestBoat = null;
+        let closestDist = CONFIG.nearbyBoardDist;
+        for (const b of boats) {
+          const d = Math.hypot(
+            worldCamPos.x - b.group.position.x,
+            worldCamPos.z - b.group.position.z
+          );
+          if (d < closestDist) {
+            closestDist = d;
+            closestBoat = b;
+          }
+        }
+        nearbyBoat = closestBoat;
+        btnBoardNear.classList.toggle('show', !!nearbyBoat && !renderer.xr.isPresenting);
+
+        boundaryRingMesh.visible = true;
+        boundaryRingMesh.position.set(CONFIG.walkBoundary.centerX, 0.09, CONFIG.walkBoundary.centerZ);
+        boundaryRingMesh.scale.setScalar(CONFIG.walkBoundary.radius);
+        boundaryUniforms.uCenterXZ.value.set(CONFIG.walkBoundary.centerX, CONFIG.walkBoundary.centerZ);
+        boundaryUniforms.uRadius.value = CONFIG.walkBoundary.radius;
+        boundaryUniforms.uPlayerXZ.value.set(worldCamPos.x, worldCamPos.z);
+        boundaryUniforms.uColorMode.value = THREE.MathUtils.lerp(boundaryUniforms.uColorMode.value, 0.0, dt * 4);
+        boundaryUniforms.uOpacity.value = THREE.MathUtils.lerp(boundaryUniforms.uOpacity.value, 0.85, dt * 4);
+      }
+
+      for (const b of boats) {
+        const isHighlighted =
+          currentState === STATE.IDLE &&
+          (b.index === hoveredBoatIndex || b === nearbyBoat);
+        const targetRingOpacity = (currentState === STATE.IDLE) ? (isHighlighted ? 0.90 : 0.16) : 0.0;
+        b.beaconRing.material.opacity = THREE.MathUtils.lerp(
+          b.beaconRing.material.opacity,
+          targetRingOpacity,
+          dt * 6
+        );
+        const targetScale = isHighlighted ? 1.14 : 1.0;
+        b.beaconRing.scale.setScalar(
+          THREE.MathUtils.lerp(b.beaconRing.scale.x, targetScale, dt * 6)
+        );
+
+        if (b !== activeBoat) {
+          const ph = b.phaseOffset;
+          b.group.position.y = Math.sin(t * 0.62 + ph) * 0.022;
+          b.visual.rotation.x = Math.sin(t * 0.52 + ph) * 0.014;
+          b.visual.rotation.z = Math.cos(t * 0.58 + ph) * 0.018;
+        }
+      }
+
+      let targetMotionFactor = 0.0;
+      let currentProximity = 0.0;
+
+      // --- ESTADO BOARDING ---
+      if (currentState === STATE.BOARDING && activeBoat) {
+        stateTimer += dt;
+        const u = Math.min(stateTimer / CONFIG.boardingDuration, 1.0);
+        const smooth = u * u * (3 - 2 * u);
+
+        tmpTargetRigPos.copy(activeBoat.group.position).add(CONFIG.seatOffset);
+        playerRig.position.lerpVectors(boardStartRigPos, tmpTargetRigPos, smooth);
+        activeBoat.group.position.y = -Math.sin(u * Math.PI) * 0.095;
+
+        boundaryUniforms.uOpacity.value = THREE.MathUtils.lerp(boundaryUniforms.uOpacity.value, 0.0, dt * 6);
+
+        if (u >= 1.0) {
+          currentState = STATE.NAVIGATING;
+          stateTimer = 0;
+          boatYaw = activeBoat.group.rotation.y;
+          boatForwardSpeed = 0.8;
+          updateJoystickVisibility();
+          setHUD('Navegando hacia el portal', 'Dirige la barca con el joystick hacia el umbral', false);
+        }
+      }
+
+      // --- ESTADO NAVIGATING: CONDUCCIÓN CON JOYSTICK ACOTADA EN CIRCUNFERENCIA ---
+      else if (currentState === STATE.NAVIGATING && activeBoat) {
+        const thrustInput = stickVec.y;
+        const steerInput  = stickVec.x;
+
+        const targetSpeed = thrustInput >= 0
+          ? thrustInput * CONFIG.boatMaxForwardSpeed
+          : thrustInput * Math.abs(CONFIG.boatMaxReverseSpeed);
+
+        const accelRate = Math.abs(thrustInput) > 0.05 ? 2.4 : 1.35;
+        boatForwardSpeed = THREE.MathUtils.lerp(boatForwardSpeed, targetSpeed, Math.min(1, dt * accelRate));
+
+        const reverseSign = boatForwardSpeed < -0.35 ? -1 : 1;
+        const turnDelta = -steerInput * reverseSign * CONFIG.boatTurnRate * dt;
+        boatYaw += turnDelta;
+        boatTurnSmoothed = THREE.MathUtils.lerp(boatTurnSmoothed, steerInput, Math.min(1, dt * 6.0));
+
+        if (lookPointerId === null && !renderer.xr.isPresenting) {
+          camYaw += turnDelta * 0.85;
+          updateDesktopCameraLook();
+        }
+
+        const fwdX = Math.sin(boatYaw);
+        const fwdZ = Math.cos(boatYaw);
+
+        const pos = activeBoat.group.position;
+        const prevX = pos.x;
+        const prevZ = pos.z;
+
+        pos.x += fwdX * boatForwardSpeed * dt;
+        pos.z += fwdZ * boatForwardSpeed * dt;
+
+        resolveBoatToBoatCollisions(activeBoat);
+        const hitPillar   = resolvePortalPillarCollisions(pos);
+        const hitBoundary = clampToCircle(pos, CONFIG.navBoundary);
+
+        if ((hitBoundary || hitPillar) && Math.abs(boatForwardSpeed) > 0.3) {
+          boatForwardSpeed *= Math.pow(0.84, dt * 10);
+        }
+
+        const actualVx = dt > 0 ? (pos.x - prevX) / dt : 0;
+        const actualVz = dt > 0 ? (pos.z - prevZ) / dt : 0;
+        const actualSpeed = Math.hypot(actualVx, actualVz);
+        targetMotionFactor = THREE.MathUtils.clamp(actualSpeed / 4.2, 0.0, 1.0);
+
+        pos.y = Math.sin(t * 1.15) * (0.018 + 0.022 * smoothMotionFactor);
+        activeBoat.group.rotation.y = boatYaw;
+
+        activeBoat.visual.rotation.x =
+          -0.018 * smoothMotionFactor * Math.sign(boatForwardSpeed || 1)
+          + Math.sin(t * 1.05) * (0.012 + 0.014 * smoothMotionFactor);
+        activeBoat.visual.rotation.z =
+          -boatTurnSmoothed * (0.045 + 0.055 * smoothMotionFactor)
+          + Math.cos(t * 0.90) * (0.014 + 0.015 * smoothMotionFactor);
+
+        playerRig.position.set(
+          pos.x + CONFIG.seatOffset.x,
+          pos.y + CONFIG.seatOffset.y,
+          pos.z + CONFIG.seatOffset.z
+        );
+
+        waterUniforms.uBoatPos.value.copy(pos);
+        currentBoatDir.set(fwdX, fwdZ).normalize();
+        waterUniforms.uBoatDir.value.copy(currentBoatDir);
+        waterUniforms.uBoatSpeed.value = actualSpeed;
+
+        waterUniforms.uFlowOffset.value.x -= actualVx * dt * 0.55;
+        waterUniforms.uFlowOffset.value.y -= actualVz * dt * 0.55;
+
+        updateWaterSpray(dt, pos, currentBoatDir, smoothMotionFactor);
+
+        boundaryRingMesh.visible = true;
+        boundaryRingMesh.position.set(CONFIG.navBoundary.centerX, 0.09, CONFIG.navBoundary.centerZ);
+        boundaryRingMesh.scale.setScalar(CONFIG.navBoundary.radius);
+        boundaryUniforms.uCenterXZ.value.set(CONFIG.navBoundary.centerX, CONFIG.navBoundary.centerZ);
+        boundaryUniforms.uRadius.value = CONFIG.navBoundary.radius;
+        boundaryUniforms.uPlayerXZ.value.set(pos.x, pos.z);
+        boundaryUniforms.uColorMode.value = THREE.MathUtils.lerp(boundaryUniforms.uColorMode.value, 1.0, dt * 4);
+        boundaryUniforms.uOpacity.value = THREE.MathUtils.lerp(boundaryUniforms.uOpacity.value, 0.92, dt * 4);
+
+        const portalThresholdZ = CONFIG.portalBasePosition.z + portalApertureData.zOffset;
+        const dxPortal = pos.x - (CONFIG.portalBasePosition.x + portalApertureData.centerX);
+        const dzPortal = pos.z - portalThresholdZ;
+        const distToPortal = Math.hypot(dxPortal, dzPortal);
+
+        currentProximity = smoothstepJS(46.0, 4.5, distToPortal);
+        portalUniforms.uProximity.value = currentProximity;
+        portalGlowLight.intensity  = (18.0 + currentProximity * 26.0) * portalBreath;
+        portalCrownLight.intensity = (9.0  + currentProximity * 12.0) * portalBreath;
+
+        const insidePortalWidth = Math.abs(dxPortal) <= portalApertureData.openWidth * 0.55;
+
+        if (insidePortalWidth && dzPortal < 8.5 && dzPortal > 0.0) {
+          const preFlash = smoothstepJS(8.5, 1.2, dzPortal);
+          portalFlashMesh.visible = true;
+          portalFlashMat.opacity = Math.min(preFlash * 0.68, 0.68);
+        } else if (portalFlashMesh.visible) {
+          portalFlashMat.opacity = THREE.MathUtils.lerp(portalFlashMat.opacity, 0.0, dt * 6);
+          if (portalFlashMat.opacity < 0.01) portalFlashMesh.visible = false;
+        }
+
+        if (insidePortalWidth && dzPortal <= 1.6) {
+          currentState = STATE.PORTAL_CROSSING;
+          stateTimer = 0;
+          flashSwapped = false;
+          portalFlashMesh.visible = true;
+          updateJoystickVisibility();
+          setHUD('Cruzando el umbral...', '', false);
+        }
+      }
+
+      // --- ESTADO PORTAL_CROSSING ---
+      else if (currentState === STATE.PORTAL_CROSSING) {
+        stateTimer += dt;
+        boundaryUniforms.uOpacity.value = THREE.MathUtils.lerp(boundaryUniforms.uOpacity.value, 0.0, dt * 6);
+
+        const riseTime = 0.45;
+        const holdTime = CONFIG.flashPeakDuration;
+        const fadeTime = 1.25;
+
+        if (stateTimer < riseTime) {
+          const k = stateTimer / riseTime;
+          portalFlashMat.opacity = THREE.MathUtils.lerp(Math.max(portalFlashMat.opacity, 0.55), 1.0, k);
+        } else if (stateTimer < riseTime + holdTime) {
+          portalFlashMat.opacity = 1.0;
+          if (!flashSwapped) {
+            flashSwapped = true;
+            voyagesCompleted += 1;
+            onPortalCrossed({
+              voyagesCompleted,
+              boat: activeBoat,
+              isARMode
+            });
+          }
+        } else if (stateTimer < riseTime + holdTime + fadeTime) {
+          const k = (stateTimer - riseTime - holdTime) / fadeTime;
+          portalFlashMat.opacity = 1.0 - (k * k * (3 - 2 * k));
+        } else {
+          portalFlashMat.opacity = 0.0;
+          portalFlashMesh.visible = false;
+          portalGlowLight.intensity  = 18.0;
+          portalCrownLight.intensity = 9.0;
+          currentState = STATE.IDLE;
+          updateJoystickVisibility();
+        }
+      } else {
+        portalGlowLight.intensity  = 18.0 * portalBreath;
+        portalCrownLight.intensity = 9.0  * portalBreath;
+      }
+
+      smoothMotionFactor = THREE.MathUtils.lerp(smoothMotionFactor, targetMotionFactor, dt * 2.8);
+      waterUniforms.uMotionFactor.value = smoothMotionFactor;
+      if (currentState !== STATE.NAVIGATING) {
+        updateWaterSpray(dt, waterUniforms.uBoatPos.value, currentBoatDir, 0);
+      }
+
+      audioEngine.update(dt, smoothMotionFactor, currentProximity);
+      renderer.render(scene, camera);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      const pr = Math.min(window.devicePixelRatio, 2);
+      matParticleUniforms.uRatio.value = pr;
+      ambientParticleUniforms.uRatio.value = pr;
+      introDustUniforms.uRatio.value = pr;
+      portalUniforms.uRatio.value = pr;
+      positionIntroStage();
+    });
+  </script>
+</body>
+</html>
